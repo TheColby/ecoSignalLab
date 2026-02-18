@@ -54,6 +54,7 @@ class PipelineRunConfig:
     plot_metrics: list[str] | None = None
     include_spectral: bool = True
     include_similarity_matrix: bool = False
+    include_novelty_matrix: bool = False
     ml_export: bool = False
     project: str | None = None
     force: bool = False
@@ -112,6 +113,7 @@ def _init_manifest(cfg: PipelineRunConfig) -> dict[str, Any]:
         "plot_metrics": cfg.plot_metrics or [],
         "include_spectral": cfg.include_spectral,
         "include_similarity_matrix": cfg.include_similarity_matrix,
+        "include_novelty_matrix": cfg.include_novelty_matrix,
         "ml_export": cfg.ml_export,
         "project": cfg.project,
         "force": cfg.force,
@@ -277,6 +279,7 @@ def _run_stage_plot(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[st
                 include_metrics=cfg.plot_metrics,
                 include_spectral=cfg.include_spectral,
                 include_similarity_matrix=cfg.include_similarity_matrix,
+                include_novelty_matrix=cfg.include_novelty_matrix,
             )
             made += 1
         except Exception:
