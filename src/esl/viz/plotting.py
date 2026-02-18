@@ -165,6 +165,54 @@ def _plot_spectral_suite(audio_path: str | Path, out_dir: Path) -> list[Path]:
     return paths
 
 
+def _compute_similarity_matrix(
+    audio_path: str | Path,
+    n_fft: int = 1024,
+    hop: int = 256,
+    n_mels: int = 64,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute frame-level self-similarity matrix from log-mel features."""
+    buf = read_audio(audio_path)
+    mono = np.mean(buf.samples, axis=1)
+    nperseg = min(n_fft, max(16, len(mono)))
+    noverlap = min(nperseg - 1, max(0, nperseg - hop))
+    _, t, z = stft(mono, fs=buf.sample_rate, nperseg=nperseg, noverlap=noverlap, boundary=None)
+    if z.size == 0:
+        return np.array([0.0]), np.zeros((1, 1), dtype=np.float64)
+
+    mag = np.abs(z)
+    fb = _mel_filterbank(buf.sample_rate, n_fft=nperseg, n_mels=n_mels)
+    mel = np.dot(fb, np.square(mag))  # [mel, frames]
+    feat = np.log1p(mel.T)  # [frames, mel]
+    feat = feat - np.mean(feat, axis=1, keepdims=True)
+    feat = feat / np.maximum(np.linalg.norm(feat, axis=1, keepdims=True), 1e-12)
+    ssm = np.dot(feat, feat.T)
+    ssm = np.clip(ssm, 0.0, 1.0)
+    return t, ssm
+
+
+def _plot_similarity_matrix(audio_path: str | Path, out_dir: Path) -> Path:
+    """Render self-similarity matrix plot."""
+    t, ssm = _compute_similarity_matrix(audio_path)
+    out_path = out_dir / "similarity_matrix.png"
+    fig, ax = plt.subplots(figsize=(8, 7))
+    if t.size > 1:
+        extent = [float(t[0]), float(t[-1]), float(t[0]), float(t[-1])]
+        im = ax.imshow(ssm, origin="lower", aspect="auto", extent=extent, cmap="viridis", vmin=0.0, vmax=1.0)
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Time (s)")
+    else:
+        im = ax.imshow(ssm, origin="lower", aspect="auto", cmap="viridis", vmin=0.0, vmax=1.0)
+        ax.set_xlabel("Frame")
+        ax.set_ylabel("Frame")
+    ax.set_title("Self-Similarity Matrix")
+    fig.colorbar(im, ax=ax, label="Similarity")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
+
+
 def _plot_metric_lines(
     result: dict[str, Any],
     out_dir: Path,
@@ -259,6 +307,7 @@ def plot_analysis(
     interactive: bool = False,
     include_metrics: list[str] | None = None,
     include_spectral: bool = True,
+    include_similarity_matrix: bool = False,
 ) -> list[str]:
     """Create standard static and optional interactive plots."""
     out = Path(output_dir)
@@ -272,6 +321,11 @@ def plot_analysis(
     if source_audio and include_spectral:
         try:
             artifacts.extend(_plot_spectral_suite(source_audio, out))
+        except Exception:
+            pass
+    if source_audio and include_similarity_matrix:
+        try:
+            artifacts.append(_plot_similarity_matrix(source_audio, out))
         except Exception:
             pass
 
@@ -290,6 +344,7 @@ def plot_from_json(
     audio_path: str | Path | None = None,
     include_metrics: list[str] | None = None,
     include_spectral: bool = True,
+    include_similarity_matrix: bool = False,
 ) -> list[str]:
     """Load analysis JSON and produce plots."""
     payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
@@ -300,4 +355,5 @@ def plot_from_json(
         interactive=interactive,
         include_metrics=include_metrics,
         include_spectral=include_spectral,
+        include_similarity_matrix=include_similarity_matrix,
     )

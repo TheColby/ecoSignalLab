@@ -74,6 +74,7 @@ esl plot results.json --out plots --interactive
 Plot controls:
 - `--metrics spl_a_db,snr_db,novelty_curve`
 - `--no-spectral` (skip spectrogram/mel/log/waterfall/LTSA suite)
+- `--similarity-matrix` (generate self-similarity matrix plot)
 
 ### Ingest datasets
 

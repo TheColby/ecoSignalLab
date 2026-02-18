@@ -107,6 +107,7 @@ def _run_analyze(args: argparse.Namespace) -> int:
             interactive=args.interactive,
             include_metrics=_metric_list(args.plot_metrics),
             include_spectral=not args.no_spectral,
+            include_similarity_matrix=args.similarity_matrix,
         )
         if cfg.verbosity >= 1:
             print(f"plots: {len(plots)} files -> {plot_dir}")
@@ -202,6 +203,7 @@ def _run_batch(args: argparse.Namespace) -> int:
                 interactive=args.interactive,
                 include_metrics=_metric_list(args.plot_metrics),
                 include_spectral=not args.no_spectral,
+                include_similarity_matrix=args.similarity_matrix,
             )
 
         if args.ml_export:
@@ -242,6 +244,7 @@ def _run_plot(args: argparse.Namespace) -> int:
         audio_path=args.audio,
         include_metrics=_metric_list(args.metrics),
         include_spectral=not args.no_spectral,
+        include_similarity_matrix=args.similarity_matrix,
     )
     print(f"generated {len(plots)} plot files in {args.out}")
     return 0
@@ -320,6 +323,7 @@ def _run_pipeline_run(args: argparse.Namespace) -> int:
         interactive=args.interactive,
         plot_metrics=_metric_list(args.plot_metrics),
         include_spectral=not args.no_spectral,
+        include_similarity_matrix=args.similarity_matrix,
         ml_export=args.ml_export,
         project=args.project,
         force=args.force,
@@ -370,6 +374,7 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--interactive", action="store_true", help="Generate Plotly interactive plots")
     pa.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
     pa.add_argument("--no-spectral", action="store_true", help="Skip spectrogram/mel/log/waterfall/LTSA plots")
+    pa.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
     pa.add_argument("--ml-export", action="store_true", help="Export ML-ready features")
     pa.add_argument("--project", default=None, help="Project name")
     pa.add_argument("--variant", default=None, help="Variant name")
@@ -393,6 +398,7 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--interactive", action="store_true")
     pb.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
     pb.add_argument("--no-spectral", action="store_true", help="Skip spectral plots in batch mode")
+    pb.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plots")
     pb.add_argument("--ml-export", action="store_true")
     pb.add_argument("--project", default=None)
     pb.add_argument("--variant", default=None)
@@ -417,6 +423,7 @@ def _build_parser() -> argparse.ArgumentParser:
     pp.add_argument("--audio", default=None, help="Optional source audio path")
     pp.add_argument("--metrics", default=None, help="Comma-separated metric filter for plotting")
     pp.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite")
+    pp.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
     pp.set_defaults(func=_run_plot)
 
     # ingest
@@ -451,6 +458,7 @@ def _build_parser() -> argparse.ArgumentParser:
     ppl_run.add_argument("--interactive", action="store_true", help="Interactive plot HTML in plot stage")
     ppl_run.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in pipeline plots")
     ppl_run.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite in pipeline plot stage")
+    ppl_run.add_argument("--similarity-matrix", action="store_true", help="Generate similarity matrix in pipeline plot stage")
     ppl_run.add_argument("--ml-export", action="store_true", help="Run ML export stage")
     ppl_run.add_argument("--project", default=None, help="Project name for provenance tagging")
     ppl_run.add_argument("--stages", default=None, help="Explicit stage list: analyze,plot,ml_export,digest")

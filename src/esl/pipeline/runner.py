@@ -53,6 +53,7 @@ class PipelineRunConfig:
     interactive: bool = False
     plot_metrics: list[str] | None = None
     include_spectral: bool = True
+    include_similarity_matrix: bool = False
     ml_export: bool = False
     project: str | None = None
     force: bool = False
@@ -110,6 +111,7 @@ def _init_manifest(cfg: PipelineRunConfig) -> dict[str, Any]:
         "interactive": cfg.interactive,
         "plot_metrics": cfg.plot_metrics or [],
         "include_spectral": cfg.include_spectral,
+        "include_similarity_matrix": cfg.include_similarity_matrix,
         "ml_export": cfg.ml_export,
         "project": cfg.project,
         "force": cfg.force,
@@ -274,6 +276,7 @@ def _run_stage_plot(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[st
                 audio_path=item.get("input"),
                 include_metrics=cfg.plot_metrics,
                 include_spectral=cfg.include_spectral,
+                include_similarity_matrix=cfg.include_similarity_matrix,
             )
             made += 1
         except Exception:
