@@ -42,6 +42,7 @@ esl analyze file.wav \
   --verbosity 2 \
   --debug 1 \
   --plot \
+  --show \
   --ml-export \
   --project restaurant_design \
   --variant designA
@@ -56,7 +57,7 @@ esl batch input_dir --out out_dir --csv --parquet --hdf5
 ### Staged pipeline mode (CLI-first)
 
 ```bash
-esl pipeline run input_dir --out out_dir --plot --interactive --ml-export
+esl pipeline run input_dir --out out_dir --plot --interactive --show --ml-export
 esl pipeline status --manifest out_dir/pipeline_manifest.json
 ```
 
@@ -76,6 +77,7 @@ Plot controls:
 - `--no-spectral` (skip spectrogram/mel/log/waterfall/LTSA suite)
 - `--similarity-matrix` (generate self-similarity matrix plot)
 - `--novelty-matrix` (generate Foote-style novelty matrix plot)
+- `--show --show-limit 12` (spawn generated plots via system viewer/browser)
 
 ### Ingest datasets
 
