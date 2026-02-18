@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import stft
+from scipy.signal import find_peaks, stft
 
 from esl.core.audio import read_audio
 
@@ -213,6 +213,168 @@ def _plot_similarity_matrix(audio_path: str | Path, out_dir: Path) -> Path:
     return out_path
 
 
+def _checkerboard_kernel(L: int, sigma_scale: float = 0.5) -> np.ndarray:
+    """Build Foote-style Gaussian checkerboard kernel of size (2L+1)."""
+    if L < 1:
+        raise ValueError("L must be >= 1")
+    axis = np.arange(-L, L + 1, dtype=np.float64)
+    sigma = max(1e-6, L * float(sigma_scale))
+    g = np.exp(-(axis**2) / (2.0 * sigma * sigma))
+    gauss = np.outer(g, g)
+
+    sign = np.zeros((2 * L + 1, 2 * L + 1), dtype=np.float64)
+    sign[:L, :L] = 1.0
+    sign[L + 1 :, L + 1 :] = 1.0
+    sign[:L, L + 1 :] = -1.0
+    sign[L + 1 :, :L] = -1.0
+    # center row and center column remain zero by design.
+    return gauss * sign
+
+
+def compute_novelty_matrix(
+    audio_path: str | Path,
+    n_fft: int = 1024,
+    hop: int = 256,
+    n_mels: int = 64,
+    kernel_size: int = 32,
+    kernel_sigma_scale: float = 0.5,
+) -> dict[str, np.ndarray]:
+    """
+    Compute novelty-matrix components:
+    - self-similarity matrix
+    - checkerboard kernel
+    - novelty curve
+    - novelty peaks
+    """
+    t, ssm = _compute_similarity_matrix(audio_path, n_fft=n_fft, hop=hop, n_mels=n_mels)
+    n_frames = int(ssm.shape[0])
+    if n_frames <= 1:
+        return {
+            "times_s": np.array([0.0], dtype=np.float64),
+            "ssm": np.array([[1.0]], dtype=np.float64),
+            "kernel": np.array([[0.0]], dtype=np.float64),
+            "novelty": np.array([0.0], dtype=np.float64),
+            "peaks_idx": np.array([], dtype=np.int64),
+            "peaks_s": np.array([], dtype=np.float64),
+        }
+
+    L_target = max(2, kernel_size // 2)
+    L_max = max(1, (n_frames - 1) // 2)
+    L = int(min(L_target, L_max))
+    kernel = _checkerboard_kernel(L, sigma_scale=kernel_sigma_scale)
+
+    novelty = np.zeros(n_frames, dtype=np.float64)
+    for idx in range(L, n_frames - L):
+        local = ssm[idx - L : idx + L + 1, idx - L : idx + L + 1]
+        novelty[idx] = float(np.sum(local * kernel))
+
+    novelty = np.maximum(novelty, 0.0)
+    max_nov = float(np.max(novelty))
+    if max_nov > 0:
+        novelty = novelty / max_nov
+
+    peak_distance = max(1, L // 2)
+    prominence = 0.08 if max_nov > 0 else 0.0
+    peaks_idx, _ = find_peaks(novelty, distance=peak_distance, prominence=prominence)
+    peaks_s = t[peaks_idx] if t.size > 0 else np.array([], dtype=np.float64)
+
+    return {
+        "times_s": t.astype(np.float64),
+        "ssm": ssm.astype(np.float64),
+        "kernel": kernel.astype(np.float64),
+        "novelty": novelty.astype(np.float64),
+        "peaks_idx": peaks_idx.astype(np.int64),
+        "peaks_s": peaks_s.astype(np.float64),
+    }
+
+
+def plot_novelty_matrix(
+    audio_path: str | Path,
+    output_dir: str | Path,
+    n_fft: int = 1024,
+    hop: int = 256,
+    n_mels: int = 64,
+    kernel_size: int = 32,
+    kernel_sigma_scale: float = 0.5,
+) -> Path:
+    """Render novelty matrix figure (SSM + kernel + novelty curve)."""
+    out_dir = Path(output_dir)
+    _ensure_dir(out_dir)
+    data = compute_novelty_matrix(
+        audio_path=audio_path,
+        n_fft=n_fft,
+        hop=hop,
+        n_mels=n_mels,
+        kernel_size=kernel_size,
+        kernel_sigma_scale=kernel_sigma_scale,
+    )
+    t = data["times_s"]
+    ssm = data["ssm"]
+    kernel = data["kernel"]
+    novelty = data["novelty"]
+    peaks_idx = data["peaks_idx"]
+
+    out_path = out_dir / "novelty_matrix.png"
+
+    fig = plt.figure(figsize=(12, 7))
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.45, 1.0], height_ratios=[1.0, 1.0], wspace=0.28, hspace=0.32)
+
+    # SSM
+    ax0 = fig.add_subplot(gs[:, 0])
+    if t.size > 1:
+        extent = [float(t[0]), float(t[-1]), float(t[0]), float(t[-1])]
+        im0 = ax0.imshow(ssm, origin="lower", aspect="auto", extent=extent, cmap="viridis", vmin=0.0, vmax=1.0)
+        for p in peaks_idx.tolist():
+            if p < t.size:
+                px = float(t[p])
+                ax0.axvline(px, color="white", alpha=0.25, linewidth=0.7)
+                ax0.axhline(px, color="white", alpha=0.25, linewidth=0.7)
+        ax0.set_xlabel("Time (s)")
+        ax0.set_ylabel("Time (s)")
+    else:
+        im0 = ax0.imshow(ssm, origin="lower", aspect="auto", cmap="viridis", vmin=0.0, vmax=1.0)
+        ax0.set_xlabel("Frame")
+        ax0.set_ylabel("Frame")
+    ax0.set_title("Self-Similarity Matrix")
+    fig.colorbar(im0, ax=ax0, fraction=0.046, pad=0.04, label="Similarity")
+
+    # Checkerboard kernel
+    ax1 = fig.add_subplot(gs[0, 1])
+    vmax = float(np.max(np.abs(kernel))) if kernel.size else 1.0
+    vmax = max(vmax, 1e-6)
+    im1 = ax1.imshow(kernel, origin="lower", cmap="RdBu_r", vmin=-vmax, vmax=vmax)
+    ax1.set_title("Checkerboard Kernel")
+    ax1.set_xlabel("Kernel X")
+    ax1.set_ylabel("Kernel Y")
+    fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04, label="Weight")
+
+    # Novelty curve
+    ax2 = fig.add_subplot(gs[1, 1])
+    if t.size == novelty.size and t.size > 0:
+        ax2.plot(t, novelty, linewidth=1.4, color="#0ea5e9")
+        if peaks_idx.size > 0:
+            ax2.scatter(t[peaks_idx], novelty[peaks_idx], color="#ef4444", s=18, zorder=5, label="Peaks")
+        ax2.set_xlabel("Time (s)")
+    else:
+        x = np.arange(novelty.size)
+        ax2.plot(x, novelty, linewidth=1.4, color="#0ea5e9")
+        if peaks_idx.size > 0:
+            ax2.scatter(peaks_idx, novelty[peaks_idx], color="#ef4444", s=18, zorder=5, label="Peaks")
+        ax2.set_xlabel("Frame")
+    ax2.set_ylabel("Novelty (norm.)")
+    ax2.set_ylim(0.0, max(1.05, float(np.max(novelty) * 1.05 if novelty.size else 1.0)))
+    ax2.set_title("Novelty Curve")
+    ax2.grid(True, alpha=0.3)
+    if peaks_idx.size > 0:
+        ax2.legend(loc="upper right", frameon=False)
+
+    fig.suptitle("Novelty Matrix (Foote-style)", fontsize=13)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+    return out_path
+
+
 def _plot_metric_lines(
     result: dict[str, Any],
     out_dir: Path,
@@ -308,6 +470,7 @@ def plot_analysis(
     include_metrics: list[str] | None = None,
     include_spectral: bool = True,
     include_similarity_matrix: bool = False,
+    include_novelty_matrix: bool = False,
 ) -> list[str]:
     """Create standard static and optional interactive plots."""
     out = Path(output_dir)
@@ -328,6 +491,11 @@ def plot_analysis(
             artifacts.append(_plot_similarity_matrix(source_audio, out))
         except Exception:
             pass
+    if source_audio and include_novelty_matrix:
+        try:
+            artifacts.append(plot_novelty_matrix(source_audio, out))
+        except Exception:
+            pass
 
     if interactive:
         html = _plot_interactive(result, out, include_metrics=include_set)
@@ -345,6 +513,7 @@ def plot_from_json(
     include_metrics: list[str] | None = None,
     include_spectral: bool = True,
     include_similarity_matrix: bool = False,
+    include_novelty_matrix: bool = False,
 ) -> list[str]:
     """Load analysis JSON and produce plots."""
     payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
@@ -356,4 +525,5 @@ def plot_from_json(
         include_metrics=include_metrics,
         include_spectral=include_spectral,
         include_similarity_matrix=include_similarity_matrix,
+        include_novelty_matrix=include_novelty_matrix,
     )

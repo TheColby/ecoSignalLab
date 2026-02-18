@@ -75,6 +75,7 @@ Plot controls:
 - `--metrics spl_a_db,snr_db,novelty_curve`
 - `--no-spectral` (skip spectrogram/mel/log/waterfall/LTSA suite)
 - `--similarity-matrix` (generate self-similarity matrix plot)
+- `--novelty-matrix` (generate Foote-style novelty matrix plot)
 
 ### Ingest datasets
 
