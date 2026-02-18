@@ -97,7 +97,7 @@ def _run_analyze(args: argparse.Namespace) -> int:
         save_soundcheck_csv(result, Path(args.soundcheck_csv))
 
     if args.plot:
-        from esl.viz import plot_analysis
+        from esl.viz import plot_analysis, spawn_plot_paths
 
         plot_dir = out_dir / f"{stem}_plots"
         plots = plot_analysis(
@@ -112,6 +112,13 @@ def _run_analyze(args: argparse.Namespace) -> int:
         )
         if cfg.verbosity >= 1:
             print(f"plots: {len(plots)} files -> {plot_dir}")
+        if args.show:
+            spawn_summary = spawn_plot_paths(plots, limit=args.show_limit)
+            print(
+                f"plot spawn: opened={spawn_summary['opened']} "
+                f"failed={spawn_summary['failed']} "
+                f"skipped={spawn_summary['skipped_by_limit']}"
+            )
 
     if args.ml_export:
         from esl.ml import export_ml_features
@@ -163,6 +170,7 @@ def _run_batch(args: argparse.Namespace) -> int:
         return 0
 
     rows: list[dict[str, Any]] = []
+    plot_artifacts: list[str] = []
     for fp in files:
         rel = fp.relative_to(in_root)
         run_out = out_dir / rel.parent
@@ -197,7 +205,7 @@ def _run_batch(args: argparse.Namespace) -> int:
         if args.plot:
             from esl.viz import plot_analysis
 
-            plot_analysis(
+            plots = plot_analysis(
                 result,
                 output_dir=run_out / f"{fp.stem}_plots",
                 audio_path=fp,
@@ -207,6 +215,7 @@ def _run_batch(args: argparse.Namespace) -> int:
                 include_similarity_matrix=args.similarity_matrix,
                 include_novelty_matrix=args.novelty_matrix,
             )
+            plot_artifacts.extend(plots)
 
         if args.ml_export:
             from esl.ml import export_ml_features
@@ -233,11 +242,20 @@ def _run_batch(args: argparse.Namespace) -> int:
             writer.writerow(row)
     print(f"batch complete: {len(rows)} files -> {out_dir}")
     print(f"index: {idx}")
+    if args.plot and args.show:
+        from esl.viz import spawn_plot_paths
+
+        spawn_summary = spawn_plot_paths(plot_artifacts, limit=args.show_limit)
+        print(
+            f"plot spawn: opened={spawn_summary['opened']} "
+            f"failed={spawn_summary['failed']} "
+            f"skipped={spawn_summary['skipped_by_limit']}"
+        )
     return 0
 
 
 def _run_plot(args: argparse.Namespace) -> int:
-    from esl.viz import plot_from_json
+    from esl.viz import plot_from_json, spawn_plot_paths
 
     plots = plot_from_json(
         json_path=args.results_json,
@@ -250,6 +268,13 @@ def _run_plot(args: argparse.Namespace) -> int:
         include_novelty_matrix=args.novelty_matrix,
     )
     print(f"generated {len(plots)} plot files in {args.out}")
+    if args.show:
+        spawn_summary = spawn_plot_paths(plots, limit=args.show_limit)
+        print(
+            f"plot spawn: opened={spawn_summary['opened']} "
+            f"failed={spawn_summary['failed']} "
+            f"skipped={spawn_summary['skipped_by_limit']}"
+        )
     return 0
 
 
@@ -328,6 +353,8 @@ def _run_pipeline_run(args: argparse.Namespace) -> int:
         include_spectral=not args.no_spectral,
         include_similarity_matrix=args.similarity_matrix,
         include_novelty_matrix=args.novelty_matrix,
+        show_plots=args.show,
+        show_limit=args.show_limit,
         ml_export=args.ml_export,
         project=args.project,
         force=args.force,
@@ -380,6 +407,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--no-spectral", action="store_true", help="Skip spectrogram/mel/log/waterfall/LTSA plots")
     pa.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
     pa.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plot")
+    pa.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
+    pa.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pa.add_argument("--ml-export", action="store_true", help="Export ML-ready features")
     pa.add_argument("--project", default=None, help="Project name")
     pa.add_argument("--variant", default=None, help="Variant name")
@@ -405,6 +434,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--no-spectral", action="store_true", help="Skip spectral plots in batch mode")
     pb.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plots")
     pb.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plots")
+    pb.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
+    pb.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pb.add_argument("--ml-export", action="store_true")
     pb.add_argument("--project", default=None)
     pb.add_argument("--variant", default=None)
@@ -431,6 +462,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pp.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite")
     pp.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
     pp.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plot")
+    pp.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
+    pp.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pp.set_defaults(func=_run_plot)
 
     # ingest
@@ -467,6 +500,8 @@ def _build_parser() -> argparse.ArgumentParser:
     ppl_run.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite in pipeline plot stage")
     ppl_run.add_argument("--similarity-matrix", action="store_true", help="Generate similarity matrix in pipeline plot stage")
     ppl_run.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix in pipeline plot stage")
+    ppl_run.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
+    ppl_run.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     ppl_run.add_argument("--ml-export", action="store_true", help="Run ML export stage")
     ppl_run.add_argument("--project", default=None, help="Project name for provenance tagging")
     ppl_run.add_argument("--stages", default=None, help="Explicit stage list: analyze,plot,ml_export,digest")

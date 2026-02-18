@@ -55,6 +55,8 @@ class PipelineRunConfig:
     include_spectral: bool = True
     include_similarity_matrix: bool = False
     include_novelty_matrix: bool = False
+    show_plots: bool = False
+    show_limit: int = 12
     ml_export: bool = False
     project: str | None = None
     force: bool = False
@@ -114,6 +116,8 @@ def _init_manifest(cfg: PipelineRunConfig) -> dict[str, Any]:
         "include_spectral": cfg.include_spectral,
         "include_similarity_matrix": cfg.include_similarity_matrix,
         "include_novelty_matrix": cfg.include_novelty_matrix,
+        "show_plots": cfg.show_plots,
+        "show_limit": cfg.show_limit,
         "ml_export": cfg.ml_export,
         "project": cfg.project,
         "force": cfg.force,
@@ -256,12 +260,13 @@ def _run_stage_analyze(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> tupl
 
 
 def _run_stage_plot(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[str, Any]:
-    from esl.viz import plot_from_json
+    from esl.viz import plot_from_json, spawn_plot_paths
 
     results = _scan_results_from_index_or_tree(cfg.output_dir)
     made = 0
     skipped = 0
     errors = 0
+    plot_artifacts: list[str] = []
     for item in results:
         json_path = Path(item["json"])
         if not json_path.exists():
@@ -271,7 +276,7 @@ def _run_stage_plot(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[st
             skipped += 1
             continue
         try:
-            plot_from_json(
+            plots = plot_from_json(
                 json_path=json_path,
                 output_dir=plot_dir,
                 interactive=cfg.interactive,
@@ -281,10 +286,29 @@ def _run_stage_plot(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[st
                 include_similarity_matrix=cfg.include_similarity_matrix,
                 include_novelty_matrix=cfg.include_novelty_matrix,
             )
+            plot_artifacts.extend(plots)
             made += 1
         except Exception:
             errors += 1
-    return {"analysis_items": len(results), "generated": made, "skipped": skipped, "errors": errors}
+
+    opened = 0
+    open_failed = 0
+    open_skipped = 0
+    if cfg.show_plots and plot_artifacts:
+        spawn_summary = spawn_plot_paths(plot_artifacts, limit=cfg.show_limit)
+        opened = int(spawn_summary["opened"])
+        open_failed = int(spawn_summary["failed"])
+        open_skipped = int(spawn_summary["skipped_by_limit"])
+
+    return {
+        "analysis_items": len(results),
+        "generated": made,
+        "skipped": skipped,
+        "errors": errors,
+        "opened": opened,
+        "open_failed": open_failed,
+        "open_skipped": open_skipped,
+    }
 
 
 def _run_stage_ml_export(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[str, Any]:
