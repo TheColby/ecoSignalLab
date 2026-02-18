@@ -1,0 +1,5 @@
+dbfs_reference: -20.0
+spl_reference_db: 74.0
+weighting: A
+mic_sensitivity_mv_pa: 12.5
+calibration_tone_file: calibrator_1k.wav
