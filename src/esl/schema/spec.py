@@ -14,6 +14,7 @@ def analysis_output_schema() -> dict:
         "properties": {
             "esl_version": {"type": "string"},
             "analysis_time_utc": {"type": "string", "format": "date-time"},
+            "analysis_time_local": {"type": "string", "format": "date-time"},
             "config_hash": {"type": "string"},
             "analysis_mode": {"type": "string", "enum": ["full", "streaming"]},
             "metadata": {
@@ -36,11 +37,13 @@ def analysis_output_schema() -> dict:
                     "format_name": {"type": ["string", "null"]},
                     "subtype": {"type": ["string", "null"]},
                     "backend": {"type": ["string", "null"]},
+                    "channel_layout_hint": {"type": ["string", "null"]},
                     "frame_size": {"type": "integer", "minimum": 1},
                     "hop_size": {"type": "integer", "minimum": 1},
                     "seed": {"type": "integer"},
                     "project": {"type": ["string", "null"]},
                     "variant": {"type": ["string", "null"]},
+                    "runtime": {"type": ["object", "null"]},
                     "calibration": {"type": ["object", "null"]},
                     "assumptions": {"type": "array", "items": {"type": "string"}},
                     "warnings": {"type": "array", "items": {"type": "string"}},

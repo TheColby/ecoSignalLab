@@ -53,11 +53,27 @@ esl analyze file.wav \
 esl batch input_dir --out out_dir --csv --parquet --hdf5
 ```
 
+### Staged pipeline mode (CLI-first)
+
+```bash
+esl pipeline run input_dir --out out_dir --plot --interactive --ml-export
+esl pipeline status --manifest out_dir/pipeline_manifest.json
+```
+
+Pipeline mode persists:
+- `pipeline_manifest.json` (stage status, timing, counts, errors)
+- `pipeline_analysis_index.json` (analysis artifact index)
+- `pipeline_digest.csv` and `pipeline_digest.json` (dataset-level summary)
+
 ### Plot from existing JSON
 
 ```bash
 esl plot results.json --out plots --interactive
 ```
+
+Plot controls:
+- `--metrics spl_a_db,snr_db,novelty_curve`
+- `--no-spectral` (skip spectrogram/mel/log/waterfall/LTSA suite)
 
 ### Ingest datasets
 
@@ -118,7 +134,10 @@ Each run emits:
 - `config_hash` (SHA-256 over canonicalized config)
 - `esl_version`
 - UTC timestamp
+- local timestamp
 - seed value
+- runtime fingerprint (python/platform/hostname)
+- channel layout hint
 - calibration assumptions
 
 ## Calibration model

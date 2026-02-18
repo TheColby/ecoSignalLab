@@ -165,7 +165,11 @@ def _plot_spectral_suite(audio_path: str | Path, out_dir: Path) -> list[Path]:
     return paths
 
 
-def _plot_metric_lines(result: dict[str, Any], out_dir: Path) -> list[Path]:
+def _plot_metric_lines(
+    result: dict[str, Any],
+    out_dir: Path,
+    include_metrics: set[str] | None = None,
+) -> list[Path]:
     paths: list[Path] = []
     to_plot = [
         ("spl_a_db", "SPL A over time", "dBA", "spl_a_over_time.png"),
@@ -185,6 +189,8 @@ def _plot_metric_lines(result: dict[str, Any], out_dir: Path) -> list[Path]:
 
     metrics = result.get("metrics", {})
     for metric_name, title, ylabel, fname in to_plot:
+        if include_metrics is not None and metric_name not in include_metrics:
+            continue
         payload = metrics.get(metric_name)
         if not payload:
             continue
@@ -197,6 +203,8 @@ def _plot_metric_lines(result: dict[str, Any], out_dir: Path) -> list[Path]:
         paths.append(p)
 
     rt = metrics.get("rt60_s")
+    if include_metrics is not None and "rt60_s" not in include_metrics:
+        rt = None
     if rt and rt.get("extra", {}).get("time") and rt.get("extra", {}).get("decay_db"):
         p_decay = out_dir / "rt60_decay_curve.png"
         _save_line(
@@ -211,7 +219,11 @@ def _plot_metric_lines(result: dict[str, Any], out_dir: Path) -> list[Path]:
     return paths
 
 
-def _plot_interactive(result: dict[str, Any], out_dir: Path) -> Path | None:
+def _plot_interactive(
+    result: dict[str, Any],
+    out_dir: Path,
+    include_metrics: set[str] | None = None,
+) -> Path | None:
     try:
         import plotly.graph_objects as go
     except Exception:
@@ -220,6 +232,8 @@ def _plot_interactive(result: dict[str, Any], out_dir: Path) -> Path | None:
     fig = go.Figure()
     metrics = result.get("metrics", {})
     for name, payload in metrics.items():
+        if include_metrics is not None and name not in include_metrics:
+            continue
         ts = payload.get("timestamps_s", [])
         vals = payload.get("series", [])
         if ts and vals:
@@ -243,23 +257,26 @@ def plot_analysis(
     output_dir: str | Path,
     audio_path: str | Path | None = None,
     interactive: bool = False,
+    include_metrics: list[str] | None = None,
+    include_spectral: bool = True,
 ) -> list[str]:
     """Create standard static and optional interactive plots."""
     out = Path(output_dir)
     _ensure_dir(out)
+    include_set = set(include_metrics) if include_metrics else None
 
     artifacts: list[Path] = []
-    artifacts.extend(_plot_metric_lines(result, out))
+    artifacts.extend(_plot_metric_lines(result, out, include_metrics=include_set))
 
     source_audio = audio_path or result.get("metadata", {}).get("input_path")
-    if source_audio:
+    if source_audio and include_spectral:
         try:
             artifacts.extend(_plot_spectral_suite(source_audio, out))
         except Exception:
             pass
 
     if interactive:
-        html = _plot_interactive(result, out)
+        html = _plot_interactive(result, out, include_metrics=include_set)
         if html is not None:
             artifacts.append(html)
 
@@ -271,7 +288,16 @@ def plot_from_json(
     output_dir: str | Path,
     interactive: bool = False,
     audio_path: str | Path | None = None,
+    include_metrics: list[str] | None = None,
+    include_spectral: bool = True,
 ) -> list[str]:
     """Load analysis JSON and produce plots."""
     payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
-    return plot_analysis(payload, output_dir=output_dir, audio_path=audio_path, interactive=interactive)
+    return plot_analysis(
+        payload,
+        output_dir=output_dir,
+        audio_path=audio_path,
+        interactive=interactive,
+        include_metrics=include_metrics,
+        include_spectral=include_spectral,
+    )
