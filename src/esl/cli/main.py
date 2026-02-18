@@ -33,6 +33,12 @@ def _metric_list(raw: str | None) -> list[str]:
     return [x.strip() for x in raw.split(",") if x.strip()]
 
 
+def _stage_list(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+
 def _mkdir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
@@ -94,7 +100,14 @@ def _run_analyze(args: argparse.Namespace) -> int:
         from esl.viz import plot_analysis
 
         plot_dir = out_dir / f"{stem}_plots"
-        plots = plot_analysis(result, output_dir=plot_dir, audio_path=input_path, interactive=args.interactive)
+        plots = plot_analysis(
+            result,
+            output_dir=plot_dir,
+            audio_path=input_path,
+            interactive=args.interactive,
+            include_metrics=_metric_list(args.plot_metrics),
+            include_spectral=not args.no_spectral,
+        )
         if cfg.verbosity >= 1:
             print(f"plots: {len(plots)} files -> {plot_dir}")
 
@@ -140,6 +153,7 @@ def _run_batch(args: argparse.Namespace) -> int:
     in_dir = Path(args.input_dir)
     out_dir = Path(args.out)
     _mkdir(out_dir)
+    in_root = in_dir.resolve()
 
     files = iter_supported_files(in_dir, patterns=["*.wav", "*.flac", "*.aiff", "*.aif", "*.rf64", "*.caf", "*.mp3", "*.aac", "*.ogg", "*.opus", "*.wma", "*.alac", "*.m4a", "*.sofa"], recursive=not args.no_recursive)
     if not files:
@@ -148,7 +162,7 @@ def _run_batch(args: argparse.Namespace) -> int:
 
     rows: list[dict[str, Any]] = []
     for fp in files:
-        rel = fp.relative_to(in_dir)
+        rel = fp.relative_to(in_root)
         run_out = out_dir / rel.parent
         _mkdir(run_out)
 
@@ -181,7 +195,14 @@ def _run_batch(args: argparse.Namespace) -> int:
         if args.plot:
             from esl.viz import plot_analysis
 
-            plot_analysis(result, output_dir=run_out / f"{fp.stem}_plots", audio_path=fp, interactive=args.interactive)
+            plot_analysis(
+                result,
+                output_dir=run_out / f"{fp.stem}_plots",
+                audio_path=fp,
+                interactive=args.interactive,
+                include_metrics=_metric_list(args.plot_metrics),
+                include_spectral=not args.no_spectral,
+            )
 
         if args.ml_export:
             from esl.ml import export_ml_features
@@ -219,6 +240,8 @@ def _run_plot(args: argparse.Namespace) -> int:
         output_dir=args.out,
         interactive=args.interactive,
         audio_path=args.audio,
+        include_metrics=_metric_list(args.metrics),
+        include_spectral=not args.no_spectral,
     )
     print(f"generated {len(plots)} plot files in {args.out}")
     return 0
@@ -280,6 +303,50 @@ def _run_ingest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_pipeline_run(args: argparse.Namespace) -> int:
+    from esl.pipeline import PipelineRunConfig, run_pipeline
+
+    cfg = PipelineRunConfig(
+        input_dir=Path(args.input_dir),
+        output_dir=Path(args.out),
+        calibration_path=args.calibration,
+        metrics=_metric_list(args.metrics),
+        frame_size=args.frame_size,
+        hop_size=args.hop_size,
+        sample_rate=args.sample_rate,
+        chunk_size=args.chunk_size,
+        seed=args.seed,
+        plot=args.plot,
+        interactive=args.interactive,
+        plot_metrics=_metric_list(args.plot_metrics),
+        include_spectral=not args.no_spectral,
+        ml_export=args.ml_export,
+        project=args.project,
+        force=args.force,
+        stages=_stage_list(args.stages) or None,
+    )
+    manifest_path, manifest = run_pipeline(cfg)
+    print(f"pipeline status: {manifest.get('status')}")
+    print(f"manifest: {manifest_path}")
+    for stage, payload in manifest.get("stages", {}).items():
+        print(f"- {stage}: {payload.get('status')} counts={payload.get('counts', {})}")
+    return 0
+
+
+def _run_pipeline_status(args: argparse.Namespace) -> int:
+    from esl.pipeline import read_pipeline_status
+
+    payload = read_pipeline_status(args.manifest)
+    print(f"pipeline_id: {payload.get('pipeline_id')}")
+    print(f"status: {payload.get('status')}")
+    print(f"created_utc: {payload.get('created_utc')}")
+    print(f"updated_utc: {payload.get('updated_utc')}")
+    print("stages:")
+    for stage, info in payload.get("stages", {}).items():
+        print(f"- {stage}: {info.get('status')} ({info.get('duration_s')}s)")
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="esl", description="ecoSignalLab CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -301,6 +368,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
     pa.add_argument("--plot", action="store_true", help="Generate plots")
     pa.add_argument("--interactive", action="store_true", help="Generate Plotly interactive plots")
+    pa.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
+    pa.add_argument("--no-spectral", action="store_true", help="Skip spectrogram/mel/log/waterfall/LTSA plots")
     pa.add_argument("--ml-export", action="store_true", help="Export ML-ready features")
     pa.add_argument("--project", default=None, help="Project name")
     pa.add_argument("--variant", default=None, help="Variant name")
@@ -322,6 +391,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
     pb.add_argument("--plot", action="store_true")
     pb.add_argument("--interactive", action="store_true")
+    pb.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
+    pb.add_argument("--no-spectral", action="store_true", help="Skip spectral plots in batch mode")
     pb.add_argument("--ml-export", action="store_true")
     pb.add_argument("--project", default=None)
     pb.add_argument("--variant", default=None)
@@ -344,6 +415,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pp.add_argument("--out", required=True, help="Output plot directory")
     pp.add_argument("--interactive", action="store_true")
     pp.add_argument("--audio", default=None, help="Optional source audio path")
+    pp.add_argument("--metrics", default=None, help="Comma-separated metric filter for plotting")
+    pp.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite")
     pp.set_defaults(func=_run_plot)
 
     # ingest
@@ -359,6 +432,34 @@ def _build_parser() -> argparse.ArgumentParser:
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
     ps.add_argument("--out", default=None, help="Output schema path")
     ps.set_defaults(func=_run_schema)
+
+    # pipeline
+    ppl = sub.add_parser("pipeline", help="Run/status staged CLI pipeline")
+    ppl_sub = ppl.add_subparsers(dest="pipeline_cmd", required=True)
+
+    ppl_run = ppl_sub.add_parser("run", help="Run staged pipeline on an input directory")
+    ppl_run.add_argument("input_dir", help="Input directory")
+    ppl_run.add_argument("--out", required=True, help="Output directory")
+    ppl_run.add_argument("--calibration", dest="calibration", default=None, help="Calibration YAML/JSON path")
+    ppl_run.add_argument("--metrics", default=None, help="Comma-separated metric list")
+    ppl_run.add_argument("--frame-size", type=int, default=2048)
+    ppl_run.add_argument("--hop-size", type=int, default=512)
+    ppl_run.add_argument("--sample-rate", type=int, default=None)
+    ppl_run.add_argument("--chunk-size", type=int, default=None)
+    ppl_run.add_argument("--seed", type=int, default=42)
+    ppl_run.add_argument("--plot", action="store_true", help="Run plot stage")
+    ppl_run.add_argument("--interactive", action="store_true", help="Interactive plot HTML in plot stage")
+    ppl_run.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in pipeline plots")
+    ppl_run.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite in pipeline plot stage")
+    ppl_run.add_argument("--ml-export", action="store_true", help="Run ML export stage")
+    ppl_run.add_argument("--project", default=None, help="Project name for provenance tagging")
+    ppl_run.add_argument("--stages", default=None, help="Explicit stage list: analyze,plot,ml_export,digest")
+    ppl_run.add_argument("--force", action="store_true", help="Recompute outputs even if present")
+    ppl_run.set_defaults(func=_run_pipeline_run)
+
+    ppl_status = ppl_sub.add_parser("status", help="Show pipeline manifest status")
+    ppl_status.add_argument("--manifest", required=True, help="Path to pipeline_manifest.json")
+    ppl_status.set_defaults(func=_run_pipeline_status)
 
     return parser
 

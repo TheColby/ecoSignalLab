@@ -5,12 +5,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
+import platform
+import socket
 from typing import Any
 
 import numpy as np
 
 from esl import __version__
-from esl.core.audio import AudioBuffer, read_audio, stream_audio
+from esl.core.audio import AudioBuffer, detect_signal_layout, read_audio, stream_audio
 from esl.core.calibration import calibration_to_dict
 from esl.core.config import AnalysisConfig
 from esl.core.context import AnalysisContext
@@ -53,6 +55,7 @@ def _assemble_result(
     result = {
         "esl_version": __version__,
         "analysis_time_utc": datetime.now(timezone.utc).isoformat(),
+        "analysis_time_local": datetime.now().astimezone().isoformat(),
         "config_hash": config_hash(config),
         "analysis_mode": mode,
         "metadata": {
@@ -64,11 +67,17 @@ def _assemble_result(
             "format_name": audio.format_name,
             "subtype": audio.subtype,
             "backend": audio.source_backend,
+            "channel_layout_hint": detect_signal_layout(audio.channels, audio.source_path),
             "frame_size": config.frame_size,
             "hop_size": config.hop_size,
             "seed": config.seed,
             "project": config.project,
             "variant": config.variant,
+            "runtime": {
+                "python": platform.python_version(),
+                "platform": platform.platform(),
+                "hostname": socket.gethostname(),
+            },
             "calibration": calibration_to_dict(config.calibration),
             "assumptions": assumptions,
             "warnings": warnings or [],

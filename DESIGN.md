@@ -28,6 +28,10 @@
 5. Export interoperability
 - Analysis outputs are schema-governed and exportable to scientific, industrial, and ML-centric formats.
 
+6. CLI-first orchestration
+- Staged pipelines (`analyze`, `plot`, `ml_export`, `digest`) are first-class in CLI mode.
+- No GUI dependency is required for production operation.
+
 ## Tradeoffs in v0.1.0
 
 - Broad codec support depends on local `ffmpeg` availability.

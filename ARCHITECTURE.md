@@ -18,6 +18,8 @@
   - project/variant index for design comparisons
 - `src/esl/schema`
   - output schema definition
+- `src/esl/pipeline`
+  - staged CLI pipeline runner and status manifest
 - `src/esl/cli`
   - command-line entrypoint
 
@@ -29,6 +31,16 @@
 4. `MetricRegistry` computes selected plugins.
 5. Result document assembled with provenance and metric specs.
 6. Optional exports/plots/ML artifacts/project indexing are emitted.
+
+## Staged pipeline flow
+
+`esl pipeline run` executes explicit stages:
+- `analyze`
+- `plot` (optional)
+- `ml_export` (optional)
+- `digest`
+
+Each run writes `pipeline_manifest.json` with per-stage status, timing, counts, and errors.
 
 ## Data model
 
