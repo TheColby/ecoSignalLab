@@ -3,11 +3,11 @@
 `esl` is designed as a unified SDK where environmental acoustics, architectural acoustics, and ML pipelines share one reproducible analysis contract.
 
 See also:
-- [`/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md`](/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/ALGORITHM_INDEX.md`](/Users/cleider/dev/ecoSignalLab/docs/ALGORITHM_INDEX.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
+- [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
+- [`docs/REFERENCES.md`](docs/REFERENCES.md)
+- [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
 
 ## Product Intent
 
@@ -144,10 +144,10 @@ sequenceDiagram
 
 ## Algorithm Citation Policy
 
-- Core references are centralized in [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md).
+- Core references are centralized in [`docs/REFERENCES.md`](docs/REFERENCES.md).
 - Code-level references are embedded near implementations in:
-  - [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/helpers.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/helpers.py)
-  - [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/builtin.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/builtin.py)
-  - [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py)
-  - [`/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py`](/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py)
-- Open-source attribution and license notes are tracked in [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md).
+  - [`src/esl/metrics/helpers.py`](src/esl/metrics/helpers.py)
+  - [`src/esl/metrics/builtin.py`](src/esl/metrics/builtin.py)
+  - [`src/esl/metrics/extended.py`](src/esl/metrics/extended.py)
+  - [`src/esl/viz/plotting.py`](src/esl/viz/plotting.py)
+- Open-source attribution and license notes are tracked in [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).

@@ -1,11 +1,11 @@
 # ARCHITECTURE
 
 See related docs:
-- [`/Users/cleider/dev/ecoSignalLab/DESIGN.md`](/Users/cleider/dev/ecoSignalLab/DESIGN.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/ALGORITHM_INDEX.md`](/Users/cleider/dev/ecoSignalLab/docs/ALGORITHM_INDEX.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- [`DESIGN.md`](DESIGN.md)
+- [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
+- [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
+- [`docs/REFERENCES.md`](docs/REFERENCES.md)
+- [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
 
 ## Package Layout
 
@@ -206,10 +206,10 @@ flowchart TB
 ## Citation and Attribution in Code
 
 Algorithm references are embedded near implementations in:
-- [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/helpers.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/helpers.py)
-- [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/builtin.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/builtin.py)
-- [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py)
-- [`/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py`](/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py)
-- [`/Users/cleider/dev/ecoSignalLab/src/esl/ml/export.py`](/Users/cleider/dev/ecoSignalLab/src/esl/ml/export.py)
+- [`src/esl/metrics/helpers.py`](src/esl/metrics/helpers.py)
+- [`src/esl/metrics/builtin.py`](src/esl/metrics/builtin.py)
+- [`src/esl/metrics/extended.py`](src/esl/metrics/extended.py)
+- [`src/esl/viz/plotting.py`](src/esl/viz/plotting.py)
+- [`src/esl/ml/export.py`](src/esl/ml/export.py)
 
-Open-source attribution details are maintained in [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md).
+Open-source attribution details are maintained in [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
