@@ -2,6 +2,20 @@
 
 `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
+## What this is
+
+- A CLI-first, production-grade SDK for environmental and architectural acoustic analysis.
+- A multi-channel, calibration-aware metric engine with reproducible outputs and provenance capture.
+- An ML-ready acoustic intelligence toolkit with tabular/tensor exports and anomaly/novelty tooling.
+- A plugin-extensible open-source platform for research and industrial interoperability.
+
+## What this is not
+
+- Not a DAW or audio editor for recording/mixing/mastering workflows.
+- Not a GUI-first desktop app (interactive plotting is supported; full GUI is optional).
+- Not a black-box vendor suite with opaque assumptions or locked data formats.
+- Not a substitute for formal compliance certification measurements without calibrated hardware/protocols.
+
 Core goals:
 - Multi-channel native (`1..N`) with ambisonic-compatible handling
 - Calibration-aware (`dBFS <-> SPL`, `dBA`, `dBC`, `dBZ`)
