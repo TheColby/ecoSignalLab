@@ -335,11 +335,14 @@ Project/variant analysis for design comparison:
 ```bash
 esl analyze A.wav --project restaurant_design --variant A --out-dir out
 esl analyze B.wav --project restaurant_design --variant B --out-dir out
+esl project compare --project restaurant_design --root out --baseline A
 ```
 
 Outputs:
 - `out/projects/restaurant_design/index.json`
 - `out/projects/restaurant_design/comparison.csv`
+- `out/projects/restaurant_design/comparison_report.json`
+- `out/projects/restaurant_design/comparison_deltas.csv`
 
 ## Documentation
 
