@@ -12,6 +12,8 @@ from esl.metrics.extended import extended_plugins
 if TYPE_CHECKING:
     from esl.core.context import AnalysisContext
 
+METRIC_CATALOG_VERSION = "esl-metrics-1.0.0"
+
 
 class MetricRegistry:
     """Runtime registry for builtin + external metric plugins."""

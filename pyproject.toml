@@ -76,10 +76,10 @@ dev = [
 esl = "esl.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/example/ecoSignalLab"
-Documentation = "https://github.com/example/ecoSignalLab"
-Repository = "https://github.com/example/ecoSignalLab"
-Issues = "https://github.com/example/ecoSignalLab/issues"
+Homepage = "https://github.com/TheColby/ecoSignalLab"
+Documentation = "https://github.com/TheColby/ecoSignalLab#readme"
+Repository = "https://github.com/TheColby/ecoSignalLab"
+Issues = "https://github.com/TheColby/ecoSignalLab/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

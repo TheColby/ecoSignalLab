@@ -69,11 +69,11 @@ python -m playwright install chromium
 
 - All documentation files should cross-link to related docs and source files where useful.
 - Algorithm-heavy sections should include links to:
-  - [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-  - [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+  - [`docs/REFERENCES.md`](REFERENCES.md)
+  - [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)
 
 ## Relevant Source Files
 
-- Builder implementation: [`/Users/cleider/dev/ecoSignalLab/src/esl/docsgen/builder.py`](/Users/cleider/dev/ecoSignalLab/src/esl/docsgen/builder.py)
-- CLI wiring: [`/Users/cleider/dev/ecoSignalLab/src/esl/cli/main.py`](/Users/cleider/dev/ecoSignalLab/src/esl/cli/main.py)
-- Script wrapper: [`/Users/cleider/dev/ecoSignalLab/scripts/build_docs.py`](/Users/cleider/dev/ecoSignalLab/scripts/build_docs.py)
+- Builder implementation: [`src/esl/docsgen/builder.py`](../src/esl/docsgen/builder.py)
+- CLI wiring: [`src/esl/cli/main.py`](../src/esl/cli/main.py)
+- Script wrapper: [`scripts/build_docs.py`](../scripts/build_docs.py)

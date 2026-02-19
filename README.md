@@ -12,12 +12,15 @@ Core goals:
 - Plugin-extensible metric engine
 
 See:
-- [`/Users/cleider/dev/ecoSignalLab/DESIGN.md`](/Users/cleider/dev/ecoSignalLab/DESIGN.md)
-- [`/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md`](/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](/Users/cleider/dev/ecoSignalLab/docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- [`DESIGN.md`](DESIGN.md)
+- [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
+- [`docs/SCHEMA.md`](docs/SCHEMA.md)
+- [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
+- [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
+- [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
+- [`docs/REFERENCES.md`](docs/REFERENCES.md)
+- [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
 
 ## System Visuals
 
@@ -286,19 +289,32 @@ mindmap
       Change-Point Confidence
 ```
 
-See full definitions in [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md), including mathematical equations, plain-English interpretation, and citation links.
+See full definitions in [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md), including mathematical equations, plain-English interpretation, and citation links.
 
 ## Reproducibility
 
 Each run emits:
+- `schema_version`
 - `config_hash` (SHA-256 over canonicalized config)
+- `pipeline_hash` (config + metric list + window/hop + library versions)
 - `esl_version`
 - UTC timestamp
 - local timestamp
 - seed value
 - runtime fingerprint (python/platform/hostname)
 - channel layout hint
+- decoder provenance (`decoder_used`, ffmpeg version, ffprobe stream summary when available)
+- resolved config snapshot + metric catalog/version
+- per-channel and aggregate channel summaries with validity flags
 - calibration assumptions
+
+## Recent Quality Updates
+
+- Internal/project docs now use repository-relative hyperlinks (no local filesystem paths).
+- JSON schema hardened with `schema_version`, `pipeline_hash`, metric catalog versioning, and decoder provenance.
+- CLI `schema` command now reports schema version and can write the current schema artifact.
+- Canonical ML `FrameTable` contract added for tabular (`CSV/Parquet`) and tensor (`NumPy/Torch`) export semantics.
+- Golden metric tests added for basic level metrics, loudness sanity, IR RT/EDT fit quality, NDSI sign behavior, and multichannel aggregation semantics.
 
 ## Calibration model
 
@@ -309,7 +325,7 @@ Calibration file supports:
 - `weighting`: `A|C|Z`
 - `calibration_tone_file`
 
-Example: [`/Users/cleider/dev/ecoSignalLab/examples/calibration.yaml`](/Users/cleider/dev/ecoSignalLab/examples/calibration.yaml)
+Example: [`examples/calibration.yaml`](examples/calibration.yaml)
 
 ## Project mode
 
@@ -326,15 +342,18 @@ Outputs:
 
 ## Documentation
 
-- System design: [`/Users/cleider/dev/ecoSignalLab/DESIGN.md`](/Users/cleider/dev/ecoSignalLab/DESIGN.md)
-- Architecture: [`/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md`](/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md)
-- Metrics reference: [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
-- Algorithm index: [`/Users/cleider/dev/ecoSignalLab/docs/ALGORITHM_INDEX.md`](/Users/cleider/dev/ecoSignalLab/docs/ALGORITHM_INDEX.md)
-- Ecosystem gap analysis: [`/Users/cleider/dev/ecoSignalLab/docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](/Users/cleider/dev/ecoSignalLab/docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
-- Documentation automation: [`/Users/cleider/dev/ecoSignalLab/docs/DOCS_AUTOMATION.md`](/Users/cleider/dev/ecoSignalLab/docs/DOCS_AUTOMATION.md)
-- References: [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-- Attribution: [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- System design: [`DESIGN.md`](DESIGN.md)
+- Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- Metrics reference: [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
+- Output schema contract: [`docs/SCHEMA.md`](docs/SCHEMA.md)
+- ML FrameTable contract: [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
+- Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
+- Algorithm index: [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
+- Ecosystem gap analysis: [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
+- Documentation automation: [`docs/DOCS_AUTOMATION.md`](docs/DOCS_AUTOMATION.md)
+- References: [`docs/REFERENCES.md`](docs/REFERENCES.md)
+- Attribution: [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
 
 ## License
 
-MIT. See [`/Users/cleider/dev/ecoSignalLab/LICENSE`](/Users/cleider/dev/ecoSignalLab/LICENSE).
+MIT. See [`LICENSE`](LICENSE).

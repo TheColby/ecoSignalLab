@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
+import math
 import platform
 import socket
 from typing import Any
@@ -16,9 +17,10 @@ from esl.core.audio import AudioBuffer, detect_signal_layout, read_audio, stream
 from esl.core.calibration import calibration_to_dict
 from esl.core.config import AnalysisConfig
 from esl.core.context import AnalysisContext
-from esl.core.utils import config_hash, set_seed
+from esl.core.utils import canonicalize, config_hash, library_versions, pipeline_hash, set_seed
 from esl.metrics.base import MetricResult
-from esl.metrics.registry import MetricRegistry, create_registry
+from esl.metrics.registry import METRIC_CATALOG_VERSION, MetricRegistry, create_registry
+from esl.schema import SCHEMA_VERSION
 
 
 def _serialize_metric(result: MetricResult, spec: dict[str, Any]) -> dict[str, Any]:
@@ -33,6 +35,104 @@ def _serialize_metric(result: MetricResult, spec: dict[str, Any]) -> dict[str, A
     }
 
 
+def _channel_summary(audio: AudioBuffer) -> dict[str, Any]:
+    x = np.asarray(audio.samples, dtype=np.float64)
+    if x.ndim != 2 or x.shape[0] == 0 or x.shape[1] == 0:
+        return {"channels": [], "aggregate": {}, "aggregation_rules": {}}
+
+    rms_ch = np.sqrt(np.mean(np.square(x), axis=0))
+    peak_ch = np.max(np.abs(x), axis=0)
+    dc_ch = np.mean(x, axis=0)
+    clip_ch = np.mean(np.abs(x) >= 0.999, axis=0)
+
+    channels = []
+    for i in range(x.shape[1]):
+        channels.append(
+            {
+                "id": f"ch{i + 1}",
+                "rms_dbfs": float(20.0 * np.log10(max(rms_ch[i], 1e-12))),
+                "peak_dbfs": float(20.0 * np.log10(max(peak_ch[i], 1e-12))),
+                "dc_offset": float(dc_ch[i]),
+                "clipping_ratio": float(clip_ch[i]),
+            }
+        )
+
+    agg_rms = float(np.sqrt(np.mean(np.square(rms_ch))))
+    aggregate = {
+        "rms_dbfs": float(20.0 * np.log10(max(agg_rms, 1e-12))),
+        "peak_dbfs": float(20.0 * np.log10(max(float(np.max(peak_ch)), 1e-12))),
+        "dc_offset": float(np.mean(dc_ch)),
+        "clipping_ratio": float(np.mean(clip_ch)),
+    }
+    aggregation_rules = {
+        "rms_dbfs": "20*log10(sqrt(mean(channel_rms_linear^2)))",
+        "peak_dbfs": "max(channel_peak_dbfs)",
+        "dc_offset": "mean(channel_dc_offset)",
+        "clipping_ratio": "mean(channel_clipping_ratio)",
+    }
+    return {"channels": channels, "aggregate": aggregate, "aggregation_rules": aggregation_rules}
+
+
+def _ir_detected(audio: AudioBuffer) -> bool:
+    if audio.samples.size == 0:
+        return False
+    mono = np.mean(audio.samples, axis=1)
+    if mono.size < 8:
+        return False
+    peak_idx = int(np.argmax(np.abs(mono)))
+    if peak_idx > max(1, mono.size // 8):
+        return False
+    tail = mono[peak_idx:]
+    if tail.size < 8:
+        return False
+    env = np.abs(tail)
+    first = float(np.mean(env[: max(4, min(64, env.size // 8))]))
+    last = float(np.mean(env[-max(4, min(64, env.size // 8)) :]))
+    return bool(first > 0.0 and last < first)
+
+
+def _validity_flags(
+    audio: AudioBuffer,
+    channel_summary: dict[str, Any],
+    calibration_applied: bool,
+    metrics: dict[str, MetricResult],
+) -> dict[str, Any]:
+    agg = channel_summary.get("aggregate", {})
+    clipping_ratio = float(agg.get("clipping_ratio", 0.0))
+    dc_offset = float(agg.get("dc_offset", 0.0))
+    snr_conf = float(metrics.get("snr_db").confidence) if "snr_db" in metrics else None
+    ir_detected = _ir_detected(audio)
+    ir_fit_r2: float | None = None
+    ir_dynamic_range_db: float | None = None
+    ir_tail_low_snr = False
+    if ir_detected:
+        rt_extra = metrics.get("rt60_s").extra if "rt60_s" in metrics else {}
+        fit = rt_extra.get("fit", {}) if isinstance(rt_extra, dict) else {}
+        ir_fit_r2 = float(fit["r2"]) if isinstance(fit, dict) and fit.get("r2") is not None else None
+        ir_dynamic_range_db = (
+            float(rt_extra["dynamic_range_db"])
+            if isinstance(rt_extra, dict) and rt_extra.get("dynamic_range_db") is not None
+            else None
+        )
+        if ir_dynamic_range_db is not None and ir_dynamic_range_db < 35.0:
+            ir_tail_low_snr = True
+        if ir_fit_r2 is not None and ir_fit_r2 < 0.85:
+            ir_tail_low_snr = True
+    return {
+        "clipping": clipping_ratio > 0.0,
+        "clipping_ratio": clipping_ratio,
+        "dc_offset_excessive": abs(dc_offset) > 1e-3,
+        "dc_offset": dc_offset,
+        "calibration_applied": bool(calibration_applied),
+        "ir_detected": ir_detected,
+        "ir_fit_r2": ir_fit_r2,
+        "ir_dynamic_range_db": ir_dynamic_range_db,
+        "ir_tail_low_snr": ir_tail_low_snr,
+        "snr_confidence": snr_conf,
+        "snr_confidence_low": bool(snr_conf is not None and snr_conf < 0.7),
+    }
+
+
 def _assemble_result(
     config: AnalysisConfig,
     audio: AudioBuffer,
@@ -42,6 +142,14 @@ def _assemble_result(
     warnings: list[str] | None = None,
 ) -> dict[str, Any]:
     selected = config.metrics or registry.names()
+    lib_versions = library_versions()
+    p_hash = pipeline_hash(
+        config=config,
+        metric_names=list(selected),
+        frame_size=config.frame_size,
+        hop_size=config.hop_size,
+        library_version_map=lib_versions,
+    )
     metric_payload: dict[str, Any] = {}
     for name in selected:
         spec = asdict(registry.get(name).spec)
@@ -51,13 +159,28 @@ def _assemble_result(
     if config.calibration is None:
         assumptions.append("No calibration provided; SPL fields are dBFS-derived proxies.")
     assumptions.append("All timestamps are in seconds from start of input stream.")
+    channel_summary = _channel_summary(audio)
+    validity = _validity_flags(
+        audio=audio,
+        channel_summary=channel_summary,
+        calibration_applied=config.calibration is not None,
+        metrics=metrics,
+    )
 
     result = {
+        "schema_version": SCHEMA_VERSION,
         "esl_version": __version__,
         "analysis_time_utc": datetime.now(timezone.utc).isoformat(),
         "analysis_time_local": datetime.now().astimezone().isoformat(),
         "config_hash": config_hash(config),
+        "pipeline_hash": p_hash,
         "analysis_mode": mode,
+        "metric_catalog": {
+            "version": METRIC_CATALOG_VERSION,
+            "selected_metrics": list(selected),
+            "count": len(selected),
+        },
+        "library_versions": lib_versions,
         "metadata": {
             "input_path": str(Path(audio.source_path).resolve()),
             "sample_rate": audio.sample_rate,
@@ -73,11 +196,21 @@ def _assemble_result(
             "seed": config.seed,
             "project": config.project,
             "variant": config.variant,
+            "decoder": {
+                "decoder_used": audio.decoder_provenance.get("decoder_used", audio.source_backend),
+                "ffmpeg_version": audio.decoder_provenance.get("ffmpeg_version"),
+                "ffprobe": audio.decoder_provenance.get("ffprobe"),
+            },
             "runtime": {
                 "python": platform.python_version(),
                 "platform": platform.platform(),
                 "hostname": socket.gethostname(),
             },
+            "config_snapshot": canonicalize(asdict(config)),
+            "resolved_metric_list": list(selected),
+            "metric_catalog_version": METRIC_CATALOG_VERSION,
+            "channel_metrics": channel_summary,
+            "validity_flags": validity,
             "calibration": calibration_to_dict(config.calibration),
             "assumptions": assumptions,
             "warnings": warnings or [],

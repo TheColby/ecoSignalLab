@@ -138,12 +138,43 @@ def schroeder_decay(ir: np.ndarray) -> np.ndarray:
 def fit_decay_time(decay_db: np.ndarray, t: np.ndarray, lo_db: float, hi_db: float) -> float:
     """Fit RT-style decay time using linear regression on decay segment."""
     # ISO 3382-family style RT extrapolation: RT60 = -60 / slope(decay segment).
+    return float(fit_decay_diagnostics(decay_db, t, lo_db, hi_db)["rt60_s"])
+
+
+def fit_decay_diagnostics(
+    decay_db: np.ndarray,
+    t: np.ndarray,
+    lo_db: float,
+    hi_db: float,
+) -> dict[str, float | int | list[float]]:
+    """Return linear-fit diagnostics used for RT-style extrapolation."""
     mask = (decay_db <= lo_db) & (decay_db >= hi_db)
-    if np.count_nonzero(mask) < 8:
-        return float("nan")
+    points = int(np.count_nonzero(mask))
+    if points < 8:
+        return {
+            "rt60_s": float("nan"),
+            "slope_db_per_s": float("nan"),
+            "intercept_db": float("nan"),
+            "r2": float("nan"),
+            "num_points": points,
+            "fit_range_db": [float(lo_db), float(hi_db)],
+        }
+
     x = t[mask]
     y = decay_db[mask]
     a, b = np.polyfit(x, y, deg=1)
-    if a >= 0:
-        return float("nan")
-    return float(-60.0 / a)
+    y_hat = a * x + b
+
+    ss_res = float(np.sum(np.square(y - y_hat)))
+    ss_tot = float(np.sum(np.square(y - np.mean(y))))
+    r2 = float(1.0 - (ss_res / max(ss_tot, 1e-20)))
+    rt60 = float(-60.0 / a) if a < 0 else float("nan")
+
+    return {
+        "rt60_s": rt60,
+        "slope_db_per_s": float(a),
+        "intercept_db": float(b),
+        "r2": r2,
+        "num_points": points,
+        "fit_range_db": [float(lo_db), float(hi_db)],
+    }

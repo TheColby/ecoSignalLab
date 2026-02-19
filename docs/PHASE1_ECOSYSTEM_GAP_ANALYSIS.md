@@ -289,8 +289,8 @@ Canonical schema source in this repository:
 ## Visual Synthesis
 
 Reference set:
-- [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-- [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- [`docs/REFERENCES.md`](REFERENCES.md)
+- [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)
 
 ```mermaid
 flowchart LR
@@ -376,6 +376,6 @@ flowchart LR
 ## Hyperlinked Deliverables
 
 - Comparative matrix and gap ranking: this document
-- Stable taxonomy and formulas: [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
-- System-level design rationale: [`/Users/cleider/dev/ecoSignalLab/DESIGN.md`](/Users/cleider/dev/ecoSignalLab/DESIGN.md)
-- Runtime and module architecture: [`/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md`](/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md)
+- Stable taxonomy and formulas: [`docs/METRICS_REFERENCE.md`](METRICS_REFERENCE.md)
+- System-level design rationale: [`DESIGN.md`](../DESIGN.md)
+- Runtime and module architecture: [`ARCHITECTURE.md`](../ARCHITECTURE.md)

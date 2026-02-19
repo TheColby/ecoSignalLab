@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import json
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import gcd
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Any, Generator, Iterable
 
 import numpy as np
 import soundfile as sf
@@ -36,6 +36,7 @@ class AudioBuffer:
     format_name: str
     subtype: str | None
     source_backend: str
+    decoder_provenance: dict[str, Any] = field(default_factory=dict)
 
     @property
     def num_samples(self) -> int:
@@ -93,35 +94,73 @@ def _read_native(path: Path, target_sr: int | None = None) -> AudioBuffer:
         format_name=info.format,
         subtype=info.subtype,
         source_backend="soundfile",
+        decoder_provenance={
+            "decoder_used": "soundfile",
+            "ffmpeg_version": None,
+            "ffprobe": None,
+        },
     )
 
 
-def _ffprobe(path: Path) -> tuple[int, int]:
+def _ffmpeg_version() -> str | None:
+    cmd = ["ffmpeg", "-version"]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        return None
+    if proc.returncode != 0:
+        return None
+    first = (proc.stdout or "").splitlines()
+    return first[0].strip() if first else None
+
+
+def _ffprobe_summary(path: Path) -> dict[str, Any]:
     cmd = [
         "ffprobe",
         "-v",
         "error",
         "-show_entries",
-        "stream=sample_rate,channels",
+        "format=duration",
+        "-show_entries",
+        "stream=index,codec_name,codec_type,sample_rate,channels,channel_layout,duration",
         "-of",
         "json",
         str(path),
     ]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    except FileNotFoundError as exc:
+        raise RuntimeError("ffprobe executable not found on PATH") from exc
     if proc.returncode != 0:
         raise RuntimeError(f"ffprobe failed for {path}: {proc.stderr.strip()}")
     payload = json.loads(proc.stdout)
     streams = payload.get("streams") or []
     if not streams:
         raise RuntimeError(f"ffprobe found no streams for {path}")
-    stream0 = streams[0]
+    stream0 = next((s for s in streams if str(s.get("codec_type", "")).lower() == "audio"), streams[0])
     sr = int(stream0.get("sample_rate", 48000))
     ch = int(stream0.get("channels", 1))
-    return sr, ch
+    return {
+        "sample_rate": sr,
+        "channels": ch,
+        "codec_name": stream0.get("codec_name"),
+        "codec_type": stream0.get("codec_type"),
+        "channel_layout": stream0.get("channel_layout"),
+        "duration_s": (
+            float(stream0.get("duration"))
+            if stream0.get("duration") is not None
+            else float(payload.get("format", {}).get("duration"))
+            if payload.get("format", {}).get("duration") is not None
+            else None
+        ),
+        "stream_index": stream0.get("index"),
+    }
 
 
 def _read_ffmpeg(path: Path, target_sr: int | None = None) -> AudioBuffer:
-    src_sr, channels = _ffprobe(path)
+    probe = _ffprobe_summary(path)
+    src_sr = int(probe["sample_rate"])
+    channels = int(probe["channels"])
     sr = int(target_sr or src_sr)
     cmd = [
         "ffmpeg",
@@ -156,6 +195,11 @@ def _read_ffmpeg(path: Path, target_sr: int | None = None) -> AudioBuffer:
         format_name=path.suffix.lower().lstrip("."),
         subtype=None,
         source_backend="ffmpeg",
+        decoder_provenance={
+            "decoder_used": "ffmpeg",
+            "ffmpeg_version": _ffmpeg_version(),
+            "ffprobe": probe,
+        },
     )
 
 
@@ -203,6 +247,11 @@ def read_audio(path: str | Path, target_sr: int | None = None) -> AudioBuffer:
             format_name="SOFA",
             subtype=None,
             source_backend="h5py",
+            decoder_provenance={
+                "decoder_used": "h5py",
+                "ffmpeg_version": None,
+                "ffprobe": None,
+            },
         )
 
     try:

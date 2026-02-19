@@ -2,21 +2,36 @@
 
 from __future__ import annotations
 
+SCHEMA_VERSION = "0.2.0"
+
 
 def analysis_output_schema() -> dict:
     """Return JSON Schema (Draft 2020-12) for esl result documents."""
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://ecosignallab.dev/schema/analysis-output-0.1.0.json",
+        "$id": f"https://ecosignallab.dev/schema/analysis-output-{SCHEMA_VERSION}.json",
+        "x_schema_version": SCHEMA_VERSION,
         "title": "ecoSignalLab analysis output",
         "type": "object",
-        "required": ["esl_version", "analysis_time_utc", "config_hash", "metadata", "metrics"],
+        "required": [
+            "schema_version",
+            "esl_version",
+            "analysis_time_utc",
+            "config_hash",
+            "pipeline_hash",
+            "metadata",
+            "metrics",
+        ],
         "properties": {
+            "schema_version": {"type": "string", "const": SCHEMA_VERSION},
             "esl_version": {"type": "string"},
             "analysis_time_utc": {"type": "string", "format": "date-time"},
             "analysis_time_local": {"type": "string", "format": "date-time"},
             "config_hash": {"type": "string"},
+            "pipeline_hash": {"type": "string"},
             "analysis_mode": {"type": "string", "enum": ["full", "streaming"]},
+            "metric_catalog": {"type": "object"},
+            "library_versions": {"type": "object"},
             "metadata": {
                 "type": "object",
                 "required": [
@@ -37,6 +52,7 @@ def analysis_output_schema() -> dict:
                     "format_name": {"type": ["string", "null"]},
                     "subtype": {"type": ["string", "null"]},
                     "backend": {"type": ["string", "null"]},
+                    "decoder": {"type": ["object", "null"]},
                     "channel_layout_hint": {"type": ["string", "null"]},
                     "frame_size": {"type": "integer", "minimum": 1},
                     "hop_size": {"type": "integer", "minimum": 1},
@@ -44,6 +60,11 @@ def analysis_output_schema() -> dict:
                     "project": {"type": ["string", "null"]},
                     "variant": {"type": ["string", "null"]},
                     "runtime": {"type": ["object", "null"]},
+                    "config_snapshot": {"type": ["object", "null"]},
+                    "resolved_metric_list": {"type": "array", "items": {"type": "string"}},
+                    "metric_catalog_version": {"type": ["string", "null"]},
+                    "channel_metrics": {"type": ["object", "null"]},
+                    "validity_flags": {"type": ["object", "null"]},
                     "calibration": {"type": ["object", "null"]},
                     "assumptions": {"type": "array", "items": {"type": "string"}},
                     "warnings": {"type": "array", "items": {"type": "string"}},

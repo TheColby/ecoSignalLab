@@ -1,0 +1,21 @@
+{
+  "sine_amp_0_5_1khz_48k": {
+    "rms_dbfs": -9.030899869919436,
+    "peak_dbfs": -6.020599913279624,
+    "crest_factor_db": 3.010299956639812,
+    "dc_offset": 0.0,
+    "tolerance_db": 0.08,
+    "tolerance_dc": 0.0001
+  },
+  "loudness_tone_amp_0_1_1khz_48k": {
+    "integrated_lufs": -23.00374543450133,
+    "tolerance_lufs": 1.0,
+    "lra_max": 0.5
+  },
+  "ir_exponential_tau_0_3": {
+    "tau_s": 0.3,
+    "rt60_expected_s": 2.072326583694641,
+    "tolerance_s": 0.25,
+    "fit_r2_min": 0.95
+  }
+}

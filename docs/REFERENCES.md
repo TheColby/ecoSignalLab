@@ -5,7 +5,7 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 ## Citation Policy
 
 - All algorithmic implementations should cite the primary paper, standard, or authoritative technical note.
-- If implementation details are inspired by open-source projects, both the project and its license must be cited in `/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`.
+- If implementation details are inspired by open-source projects, both the project and its license must be cited in `docs/ATTRIBUTION.md`.
 - When in doubt, cite both the standards document and one high-quality implementation reference.
 
 ## Standards
@@ -81,7 +81,7 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 
 - Cite standards when implementing regulatory or measurement-compatible metrics.
 - Cite at least one paper for each nontrivial algorithm family.
-- Update `/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md` when code is adapted or re-implemented from an existing open-source project.
+- Update `docs/ATTRIBUTION.md` when code is adapted or re-implemented from an existing open-source project.
 
 ## Citation Workflow
 

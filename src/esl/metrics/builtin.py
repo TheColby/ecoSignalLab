@@ -19,7 +19,7 @@ from esl.metrics.base import MetricResult, MetricSpec
 from esl.metrics.helpers import (
     crest_factor_db,
     estimate_snr_db,
-    fit_decay_time,
+    fit_decay_diagnostics,
     frame_peak,
     frame_rms,
     frame_signal,
@@ -70,8 +70,10 @@ def _architectural_cache(ctx: AnalysisContext) -> dict[str, np.ndarray | float]:
     t = np.arange(len(decay), dtype=np.float64) / float(ctx.sample_rate)
 
     # ISO-style decay-window fits.
-    rt60 = fit_decay_time(decay, t, lo_db=-5.0, hi_db=-35.0)
-    edt = fit_decay_time(decay, t, lo_db=0.0, hi_db=-10.0)
+    rt60_fit = fit_decay_diagnostics(decay, t, lo_db=-5.0, hi_db=-35.0)
+    edt_fit = fit_decay_diagnostics(decay, t, lo_db=0.0, hi_db=-10.0)
+    rt60 = float(rt60_fit["rt60_s"])
+    edt = float(edt_fit["rt60_s"])
 
     e = np.square(ir)
     e_total = float(np.sum(e)) + 1e-20
@@ -86,7 +88,8 @@ def _architectural_cache(ctx: AnalysisContext) -> dict[str, np.ndarray | float]:
     d50 = float(e50 / e_total)
 
     dynamic_range = float(np.nanmax(decay) - np.nanmin(decay))
-    rt_conf = 1.0 if np.isfinite(rt60) and dynamic_range >= 35.0 else max(0.2, dynamic_range / 35.0)
+    fit_r2 = float(rt60_fit["r2"]) if np.isfinite(float(rt60_fit["r2"])) else 0.0
+    rt_conf = float(np.clip(0.5 * min(dynamic_range / 35.0, 1.0) + 0.5 * max(fit_r2, 0.0), 0.2, 1.0))
 
     cache = {
         "rt60": rt60,
@@ -97,6 +100,9 @@ def _architectural_cache(ctx: AnalysisContext) -> dict[str, np.ndarray | float]:
         "decay": decay,
         "time": t,
         "confidence": float(np.clip(rt_conf, 0.0, 1.0)),
+        "dynamic_range_db": dynamic_range,
+        "rt60_fit": rt60_fit,
+        "edt_fit": edt_fit,
     }
     ctx.cache[key] = cache
     return cache
@@ -293,7 +299,10 @@ class SNRMetric:
             series=snr_series.tolist(),
             timestamps_s=ts.tolist(),
             confidence=0.8,
-            extra={"method": "percentile_90_minus_10"},
+            extra={
+                "method": "percentile_90_minus_10",
+                "confidence_notes": "Percentile estimator; assumes representative noise floor in signal distribution.",
+            },
         )
 
 
@@ -629,7 +638,13 @@ class RT60Metric:
             units=self.spec.units,
             summary=summarize(np.array([v])),
             confidence=float(c["confidence"]),
-            extra={"value": v, "time": c["time"].tolist(), "decay_db": c["decay"].tolist()},
+            extra={
+                "value": v,
+                "time": c["time"].tolist(),
+                "decay_db": c["decay"].tolist(),
+                "dynamic_range_db": float(c["dynamic_range_db"]),
+                "fit": c["rt60_fit"],
+            },
         )
 
 
@@ -655,7 +670,7 @@ class EDTMetric:
             units=self.spec.units,
             summary=summarize(np.array([v])),
             confidence=float(c["confidence"]),
-            extra={"value": v},
+            extra={"value": v, "fit": c["edt_fit"]},
         )
 
 
