@@ -16,6 +16,25 @@
 - Not a black-box vendor suite with opaque assumptions or locked data formats.
 - Not a substitute for formal compliance certification measurements without calibrated hardware/protocols.
 
+## What Can I Do with vfX?
+
+- Analyze single files with calibrated, multi-channel metrics and full provenance output.
+- Run batch analysis over large datasets and export JSON/CSV/Parquet/HDF5/MAT.
+- Generate static and interactive plots, including similarity and novelty matrix views.
+- Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows.
+- Compare architectural design variants (`--project` / `--variant`) with delta reports.
+- Ingest online datasets (Freesound/HuggingFace), auto-analyze, and summarize.
+- Run regression validation across datasets to catch metric drifts.
+
+Typical flow:
+
+```bash
+esl analyze file.wav --json out.json --plot --ml-export
+esl batch input_dir --out out_dir --csv --parquet --hdf5
+esl project compare --project restaurant_design --root out_dir --baseline A
+esl validate input_dir --out validation_out --rules rules.json
+```
+
 Core goals:
 - Multi-channel native (`1..N`) with ambisonic-compatible handling
 - Calibration-aware (`dBFS <-> SPL`, `dBA`, `dBC`, `dBZ`)
