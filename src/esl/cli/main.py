@@ -327,6 +327,36 @@ def _run_project_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_validate(args: argparse.Namespace) -> int:
+    from esl.pipeline import ValidationRunConfig, run_validation
+
+    cfg = ValidationRunConfig(
+        input_dir=Path(args.input_dir),
+        output_dir=Path(args.out),
+        rules_path=args.rules,
+        calibration_path=args.calibration,
+        metrics=_metric_list(args.metrics) or None,
+        frame_size=args.frame_size,
+        hop_size=args.hop_size,
+        sample_rate=args.sample_rate,
+        chunk_size=args.chunk_size,
+        recursive=not args.no_recursive,
+        seed=args.seed,
+    )
+    report_path, report = run_validation(cfg)
+    print(f"validation_report: {report_path}")
+    print(
+        "summary:",
+        {
+            "files_checked": report.get("files_checked"),
+            "files_passed": report.get("files_passed"),
+            "files_failed": report.get("files_failed"),
+            "summary_csv": report.get("summary_csv"),
+        },
+    )
+    return 0 if int(report.get("files_failed", 0)) == 0 else 2
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     from esl.ingest import ingest
 
@@ -573,6 +603,21 @@ def _build_parser() -> argparse.ArgumentParser:
     pi.add_argument("--out", default="ingest")
     pi.add_argument("--auto-analyze", action="store_true")
     pi.set_defaults(func=_run_ingest)
+
+    # validate
+    pv = sub.add_parser("validate", help="Run dataset regression/quality validation checks")
+    pv.add_argument("input_dir", help="Input directory to validate")
+    pv.add_argument("--out", required=True, help="Output directory for validation reports")
+    pv.add_argument("--rules", default=None, help="Validation rules JSON/YAML path")
+    pv.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    pv.add_argument("--metrics", default=None, help="Comma-separated metric subset")
+    pv.add_argument("--frame-size", type=int, default=2048)
+    pv.add_argument("--hop-size", type=int, default=512)
+    pv.add_argument("--sample-rate", type=int, default=None)
+    pv.add_argument("--chunk-size", type=int, default=None)
+    pv.add_argument("--seed", type=int, default=42)
+    pv.add_argument("--no-recursive", action="store_true")
+    pv.set_defaults(func=_run_validate)
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")

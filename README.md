@@ -19,6 +19,7 @@ See:
 - [`docs/SCHEMA.md`](docs/SCHEMA.md)
 - [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
+- [`docs/VALIDATION.md`](docs/VALIDATION.md)
 - [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
 - [`docs/REFERENCES.md`](docs/REFERENCES.md)
 - [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
@@ -167,6 +168,16 @@ esl analyze file.wav \
 ```bash
 esl batch input_dir --out out_dir --csv --parquet --hdf5
 ```
+
+### Validation mode (regression harness)
+
+```bash
+esl validate input_dir --out validation_out --rules rules.json
+```
+
+Outputs:
+- `validation_out/validation_report.json`
+- `validation_out/validation_summary.csv`
 
 ### Staged pipeline mode (CLI-first)
 
@@ -352,6 +363,7 @@ Outputs:
 - Output schema contract: [`docs/SCHEMA.md`](docs/SCHEMA.md)
 - ML FrameTable contract: [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
+- Validation harness: [`docs/VALIDATION.md`](docs/VALIDATION.md)
 - Algorithm index: [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
 - Ecosystem gap analysis: [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
 - Documentation automation: [`docs/DOCS_AUTOMATION.md`](docs/DOCS_AUTOMATION.md)
