@@ -65,6 +65,15 @@ Install Chromium runtime for Playwright:
 python -m playwright install chromium
 ```
 
+## CI / Release Integration
+
+- CI validates HTML docs generation on each push/PR:
+  - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
+- Tag releases (`v*`) build HTML+PDF docs and publish release artifacts:
+  - [`.github/workflows/release.yml`](../.github/workflows/release.yml)
+- Maintainer runbook:
+  - [`docs/RELEASE.md`](RELEASE.md)
+
 ## Hyperlink and Citation Expectations
 
 - All documentation files should cross-link to related docs and source files where useful.

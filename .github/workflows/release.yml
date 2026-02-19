@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install package + release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev,io,docs]
+          pip install build
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install chromium
+
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(python - <<'PY'
+          from esl import __version__
+          print(__version__)
+          PY
+          )"
+          if [ "${TAG_VERSION}" != "${PKG_VERSION}" ]; then
+            echo "Tag version (${TAG_VERSION}) does not match package version (${PKG_VERSION})"
+            exit 1
+          fi
+
+      - name: Test suite
+        run: pytest
+
+      - name: Build docs (HTML + PDF)
+        run: esl docs --root . --out docs/build --formats html,pdf
+
+      - name: Export current schema artifact
+        run: |
+          SCHEMA_VERSION="$(python - <<'PY'
+          from esl.schema import SCHEMA_VERSION
+          print(SCHEMA_VERSION)
+          PY
+          )"
+          mkdir -p docs/schema
+          esl schema --out "docs/schema/analysis-output-${SCHEMA_VERSION}.json"
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Bundle release artifacts
+        run: |
+          tar -czf docs-build-html.tar.gz -C docs/build html
+          tar -czf docs-build-pdf.tar.gz -C docs/build pdf
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecoSignalLab-release-${{ github.ref_name || github.run_id }}
+          path: |
+            dist/*
+            docs-build-html.tar.gz
+            docs-build-pdf.tar.gz
+            docs/schema/analysis-output-*.json
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*
+            docs-build-html.tar.gz
+            docs-build-pdf.tar.gz
+            docs/schema/analysis-output-*.json

@@ -385,7 +385,7 @@ def plot_novelty_matrix(
         ax2.legend(loc="upper right", frameon=False)
 
     fig.suptitle("Novelty Matrix (Foote-style)", fontsize=13)
-    fig.tight_layout()
+    fig.subplots_adjust(top=0.92)
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
     return out_path

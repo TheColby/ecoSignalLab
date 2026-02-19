@@ -5,6 +5,8 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
 ## [0.2.0] - Unreleased
 
 ### Added
+- Tag-driven release automation:
+  - `.github/workflows/release.yml` (tests, docs HTML/PDF, schema export, dist packaging, GitHub release uploads)
 - Versioned schema publication artifact:
   - `docs/schema/analysis-output-0.2.0.json`
 - Schema compatibility test:
@@ -16,6 +18,8 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
 - Canonical ML FrameTable contract docs and exports:
   - `docs/ML_FEATURES.md`
   - `src/esl/ml/export.py` (`FrameTable`, tensor/tabular contract exports)
+- Maintainer release runbook:
+  - `docs/RELEASE.md`
 
 ### Changed
 - Hardened JSON output provenance and schema fields:
