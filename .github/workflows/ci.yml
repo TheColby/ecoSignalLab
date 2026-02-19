@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -25,5 +25,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev,io]
-      - name: Test
+      - name: Lint (fatal errors)
+        run: ruff check src tests --select F
+      - name: Type check (scoped strict)
+        run: |
+          mypy --follow-imports=skip \
+            src/esl/core/audio.py \
+            src/esl/core/utils.py \
+            src/esl/core/analyzer.py \
+            src/esl/ml/export.py \
+            src/esl/schema/spec.py \
+            src/esl/cli/main.py \
+            src/esl/__main__.py
+      - name: Test suite
         run: pytest
+      - name: Golden coverage floor
+        run: |
+          pytest -q tests/test_metrics_golden.py tests/test_ml_frametable.py --cov=esl --cov-report=term --cov-report=
+          coverage report \
+            --include='*/src/esl/core/analyzer.py,*/src/esl/metrics/builtin.py,*/src/esl/metrics/helpers.py,*/src/esl/ml/export.py' \
+            --fail-under=70
+      - name: Docs build (HTML)
+        run: esl docs --root . --out docs/build --formats html

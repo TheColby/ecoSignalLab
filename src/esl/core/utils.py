@@ -31,7 +31,7 @@ def set_seed(seed: int) -> None:
 
 def canonicalize(value: Any) -> Any:
     """Convert nested values into JSON-serializable canonical structures."""
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return canonicalize(asdict(value))
     if isinstance(value, dict):
         return {str(k): canonicalize(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
