@@ -141,28 +141,24 @@ def _run_analyze(args: argparse.Namespace) -> int:
     if cfg.verbosity >= 1:
         metrics = result.get("metrics", {})
 
-        def _mean(name: str) -> float | None:
+        def _fmt(name: str, unit: str = "") -> str:
             payload = metrics.get(name)
             if not isinstance(payload, dict):
-                return None
-            summary = payload.get("summary")
-            if not isinstance(summary, dict):
-                return None
-            value = summary.get("mean")
-            return float(value) if isinstance(value, (int, float)) else None
+                return "n/a"
+            val = payload.get("summary", {}).get("mean")
+            if not isinstance(val, (int, float)):
+                return "n/a"
+            return f"{float(val):.2f}{unit}"
 
-        print(f"json: {json_path}")
-        print(
-            "summary:",
-            {
-                "duration_s": round(float(result["metadata"]["duration_s"]), 3),
-                "channels": int(result["metadata"]["channels"]),
-                "sample_rate": int(result["metadata"]["sample_rate"]),
-                "spl_a_mean": _mean("spl_a_db"),
-                "snr_mean": _mean("snr_db"),
-                "rt60": _mean("rt60_s"),
-            },
-        )
+        meta = result.get("metadata", {})
+        print(f"\n✨ Analysis complete: {json_path}")
+        print("Summary:")
+        print(f"  Duration:    {float(meta.get('duration_s', 0)):.3f} s")
+        print(f"  Channels:    {int(meta.get('channels', 0))}")
+        print(f"  Sample Rate: {int(meta.get('sample_rate', 0))} Hz")
+        print(f"  SPL (A):     {_fmt('spl_a_db', ' dB')}")
+        print(f"  SNR:         {_fmt('snr_db', ' dB')}")
+        print(f"  RT60:        {_fmt('rt60_s', ' s')}")
 
     if cfg.debug >= 1:
         print(f"config_hash: {result.get('config_hash')}")
@@ -185,7 +181,9 @@ def _run_batch(args: argparse.Namespace) -> int:
 
     rows: list[dict[str, Any]] = []
     plot_artifacts: list[str] = []
-    for fp in files:
+    for i, fp in enumerate(files, 1):
+        if args.verbosity >= 1:
+            print(f"[{i}/{len(files)}] Analyzing: {fp.name}")
         rel = fp.relative_to(in_root)
         run_out = out_dir / rel.parent
         _mkdir(run_out)
@@ -256,7 +254,7 @@ def _run_batch(args: argparse.Namespace) -> int:
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
-    print(f"batch complete: {len(rows)} files -> {out_dir}")
+    print(f"✅ Batch complete: {len(rows)} files -> {out_dir}")
     print(f"index: {idx}")
     if args.plot and args.show:
         from esl.viz import spawn_plot_paths
