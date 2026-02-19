@@ -15,7 +15,7 @@ def _mock_result(
 ) -> dict:
     return {
         "schema_version": "0.2.0",
-        "esl_version": "0.1.0",
+        "esl_version": "0.2.0",
         "analysis_time_utc": "2026-02-19T12:00:00+00:00",
         "analysis_time_local": "2026-02-19T04:00:00-08:00",
         "config_hash": "cfg_hash",

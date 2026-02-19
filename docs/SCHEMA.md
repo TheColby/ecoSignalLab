@@ -82,7 +82,7 @@ For metric definitions and formulas, see [`METRICS_REFERENCE.md`](METRICS_REFERE
 ```json
 {
   "schema_version": "0.2.0",
-  "esl_version": "0.1.0",
+  "esl_version": "0.2.0",
   "pipeline_hash": "sha256...",
   "metadata": {
     "decoder": {
