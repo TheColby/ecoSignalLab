@@ -34,7 +34,6 @@ from esl.core.context import AnalysisContext
 from esl.metrics.base import MetricResult, MetricSpec
 from esl.metrics.helpers import (
     fit_decay_time,
-    frame_peak,
     frame_rms,
     frame_signal,
     novelty_from_spectrum,

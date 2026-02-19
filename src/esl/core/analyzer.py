@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-import math
 import platform
 import socket
 from typing import Any
@@ -100,13 +99,15 @@ def _validity_flags(
     agg = channel_summary.get("aggregate", {})
     clipping_ratio = float(agg.get("clipping_ratio", 0.0))
     dc_offset = float(agg.get("dc_offset", 0.0))
-    snr_conf = float(metrics.get("snr_db").confidence) if "snr_db" in metrics else None
+    snr_metric = metrics.get("snr_db")
+    snr_conf = float(snr_metric.confidence) if isinstance(snr_metric, MetricResult) else None
     ir_detected = _ir_detected(audio)
     ir_fit_r2: float | None = None
     ir_dynamic_range_db: float | None = None
     ir_tail_low_snr = False
     if ir_detected:
-        rt_extra = metrics.get("rt60_s").extra if "rt60_s" in metrics else {}
+        rt_metric = metrics.get("rt60_s")
+        rt_extra = rt_metric.extra if isinstance(rt_metric, MetricResult) else {}
         fit = rt_extra.get("fit", {}) if isinstance(rt_extra, dict) else {}
         ir_fit_r2 = float(fit["r2"]) if isinstance(fit, dict) and fit.get("r2") is not None else None
         ir_dynamic_range_db = (

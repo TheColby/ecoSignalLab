@@ -13,7 +13,7 @@ import csv
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -194,8 +194,9 @@ def run_isolation_forest(frame_matrix: np.ndarray, seed: int = 42) -> np.ndarray
     # Isolation Forest baseline following Liu et al. (2008).
     model = IsolationForest(random_state=seed, n_estimators=200, contamination="auto")
     model.fit(x)
-    score = -model.decision_function(x)
-    return score.astype(np.float64)
+    raw_score = cast(np.ndarray, model.decision_function(x))
+    score = np.asarray(-raw_score, dtype=np.float64)
+    return cast(np.ndarray, score)
 
 
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> None:

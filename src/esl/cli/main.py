@@ -140,9 +140,16 @@ def _run_analyze(args: argparse.Namespace) -> int:
 
     if cfg.verbosity >= 1:
         metrics = result.get("metrics", {})
+
         def _mean(name: str) -> float | None:
-            m = metrics.get(name, {})
-            return m.get("summary", {}).get("mean")
+            payload = metrics.get(name)
+            if not isinstance(payload, dict):
+                return None
+            summary = payload.get("summary")
+            if not isinstance(summary, dict):
+                return None
+            value = summary.get("mean")
+            return float(value) if isinstance(value, (int, float)) else None
 
         print(f"json: {json_path}")
         print(
