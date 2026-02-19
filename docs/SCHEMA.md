@@ -3,7 +3,8 @@
 This document defines the JSON output contract for `esl analyze`, including schema versioning and provenance fields.
 
 - Canonical source: `src/esl/schema/spec.py`
-- CLI access: `esl schema` or `esl schema --out docs/analysis_output_schema.json`
+- Published artifact: `docs/schema/analysis-output-0.2.0.json`
+- CLI access: `esl schema` or `esl schema --out docs/schema/analysis-output-0.2.0.json`
 
 ## Versioning Rules
 
