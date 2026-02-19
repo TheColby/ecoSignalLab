@@ -11,6 +11,8 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - `tests/test_schema_artifact.py`
 - FFmpeg decode provenance integration test:
   - `tests/test_ffmpeg_provenance.py`
+- Documentation link regression tests:
+  - `tests/test_docs_links.py`
 - Canonical ML FrameTable contract docs and exports:
   - `docs/ML_FEATURES.md`
   - `src/esl/ml/export.py` (`FrameTable`, tensor/tabular contract exports)
