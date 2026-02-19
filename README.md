@@ -197,6 +197,26 @@ esl analyze file.wav \
   --variant designA
 ```
 
+### Multi-resolution profile analyze
+
+```bash
+esl analyze file.wav \
+  --profile configs/multi_resolution.json \
+  --out-dir out_profiles \
+  --json out_profiles/file_profile.json
+```
+
+Profile file example:
+
+```json
+{
+  "profiles": [
+    {"name": "short", "frame_size": 1024, "hop_size": 256, "metrics": ["rms_dbfs", "snr_db"]},
+    {"name": "long", "frame_size": 4096, "hop_size": 1024, "metrics": ["rms_dbfs", "snr_db", "rt60_s"]}
+  ]
+}
+```
+
 ### Batch mode
 
 ```bash
@@ -224,6 +244,36 @@ Pipeline mode persists:
 - `pipeline_manifest.json` (stage status, timing, counts, errors)
 - `pipeline_analysis_index.json` (analysis artifact index)
 - `pipeline_digest.csv` and `pipeline_digest.json` (dataset-level summary)
+
+### Streaming chunk analysis + alerts
+
+```bash
+esl stream input.wav \
+  --out stream_out \
+  --chunk-size 131072 \
+  --metrics spl_a_db,ndsi,novelty_curve \
+  --rules rules/stream_alerts.yaml
+```
+
+### Spatial analyze + beam map
+
+```bash
+esl spatial analyze multichannel.wav \
+  --array-config configs/arrays/stereo_pair.json \
+  --beam-map \
+  --out-dir spatial_out
+```
+
+### Calibration drift check
+
+```bash
+esl calibrate check \
+  --tone calib/1k_94db.wav \
+  --dbfs-reference -20.0 \
+  --max-drift-db 1.0 \
+  --history calib/history.csv \
+  --out calib/check_report.json
+```
 
 ### Plot from existing JSON
 

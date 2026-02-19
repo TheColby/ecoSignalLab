@@ -50,6 +50,10 @@ def _mkdir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def _safe_name(text: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in text).strip("_") or "profile"
+
+
 def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: Path) -> AnalysisConfig:
     calibration = load_calibration(args.calibration) if args.calibration else None
     return AnalysisConfig(
@@ -71,6 +75,137 @@ def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: 
     )
 
 
+def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out_dir: Path) -> int:
+    from esl import __version__
+    from esl.core.profiles import load_resolution_profiles, with_resolution_profile
+
+    profiles = load_resolution_profiles(args.profile)
+    input_stem = base_cfg.input_path.stem
+    runs: list[dict[str, Any]] = []
+
+    for prof in profiles:
+        run_cfg = with_resolution_profile(base_cfg, prof)
+        result = analyze(run_cfg)
+        run_name = _safe_name(prof.name)
+        run_json = out_dir / f"{input_stem}__{run_name}.json"
+        save_json(result, run_json)
+
+        if args.plot:
+            from esl.viz import plot_analysis
+
+            plot_analysis(
+                result,
+                output_dir=out_dir / f"{input_stem}__{run_name}_plots",
+                audio_path=base_cfg.input_path,
+                interactive=args.interactive,
+                include_metrics=_metric_list(args.plot_metrics),
+                include_spectral=not args.no_spectral,
+                include_similarity_matrix=args.similarity_matrix,
+                include_novelty_matrix=args.novelty_matrix,
+            )
+        if args.ml_export:
+            from esl.ml import export_ml_features
+
+            export_ml_features(
+                result,
+                output_dir=out_dir / f"{input_stem}__{run_name}_ml",
+                prefix=f"{input_stem}__{run_name}",
+                seed=run_cfg.seed,
+            )
+
+        if run_cfg.project and run_cfg.variant:
+            record_project_variant(result, project=run_cfg.project, variant=run_cfg.variant, root=out_dir)
+
+        def _mean(name: str) -> float | None:
+            payload = result.get("metrics", {}).get(name)
+            if not isinstance(payload, dict):
+                return None
+            summary = payload.get("summary")
+            if not isinstance(summary, dict):
+                return None
+            value = summary.get("mean")
+            return float(value) if isinstance(value, (int, float)) else None
+
+        runs.append(
+            {
+                "name": prof.name,
+                "frame_size": run_cfg.frame_size,
+                "hop_size": run_cfg.hop_size,
+                "sample_rate": run_cfg.sample_rate,
+                "chunk_size": run_cfg.chunk_size,
+                "metrics": list(run_cfg.metrics),
+                "json": str(run_json),
+                "summary": {
+                    "duration_s": round(float(result["metadata"]["duration_s"]), 6),
+                    "channels": int(result["metadata"]["channels"]),
+                    "sample_rate": int(result["metadata"]["sample_rate"]),
+                    "spl_a_mean": _mean("spl_a_db"),
+                    "snr_mean": _mean("snr_db"),
+                    "rt60": _mean("rt60_s"),
+                },
+            }
+        )
+
+    profile_index: dict[str, Any] = {
+        "profile_version": "esl-profile-1.0.0",
+        "esl_version": __version__,
+        "profile_source": str(Path(args.profile).resolve()),
+        "input": str(base_cfg.input_path.resolve()),
+        "created_runs": len(runs),
+        "runs": runs,
+    }
+    index_path = Path(args.json) if args.json else out_dir / f"{input_stem}_profile.json"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(json.dumps(profile_index, indent=2), encoding="utf-8")
+
+    if args.csv:
+        summary_csv = Path(args.csv)
+        summary_csv.parent.mkdir(parents=True, exist_ok=True)
+        with summary_csv.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "name",
+                    "frame_size",
+                    "hop_size",
+                    "sample_rate",
+                    "chunk_size",
+                    "json",
+                    "duration_s",
+                    "channels",
+                    "result_sample_rate",
+                    "spl_a_mean",
+                    "snr_mean",
+                    "rt60",
+                ],
+            )
+            writer.writeheader()
+            for run in runs:
+                summary = run["summary"]
+                writer.writerow(
+                    {
+                        "name": run["name"],
+                        "frame_size": run["frame_size"],
+                        "hop_size": run["hop_size"],
+                        "sample_rate": run["sample_rate"],
+                        "chunk_size": run["chunk_size"],
+                        "json": run["json"],
+                        "duration_s": summary["duration_s"],
+                        "channels": summary["channels"],
+                        "result_sample_rate": summary["sample_rate"],
+                        "spl_a_mean": summary["spl_a_mean"],
+                        "snr_mean": summary["snr_mean"],
+                        "rt60": summary["rt60"],
+                    }
+                )
+
+    if base_cfg.verbosity >= 1:
+        print(f"profile source: {args.profile}")
+        print(f"profile runs: {len(runs)}")
+        print(f"profile index: {index_path}")
+    return 0
+
+
 def _run_analyze(args: argparse.Namespace) -> int:
     input_path = Path(args.input)
     if not input_path.exists():
@@ -80,6 +215,9 @@ def _run_analyze(args: argparse.Namespace) -> int:
     _mkdir(out_dir)
 
     cfg = _build_analysis_config(args, input_path=input_path, out_dir=out_dir)
+    if args.profile:
+        return _run_profile_analyze(args, base_cfg=cfg, out_dir=out_dir)
+
     result = analyze(cfg)
 
     stem = input_path.stem
@@ -357,6 +495,182 @@ def _run_validate(args: argparse.Namespace) -> int:
     return 0 if int(report.get("files_failed", 0)) == 0 else 2
 
 
+def _run_stream(args: argparse.Namespace) -> int:
+    from esl.core.streaming import StreamRunConfig, run_stream_analysis
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+    out_dir = Path(args.out)
+    calibration = load_calibration(args.calibration) if args.calibration else None
+    cfg = StreamRunConfig(
+        input_path=input_path,
+        output_dir=out_dir,
+        metrics=_metric_list(args.metrics),
+        frame_size=args.frame_size,
+        hop_size=args.hop_size,
+        sample_rate=args.sample_rate,
+        chunk_size=args.chunk_size,
+        calibration=calibration,
+        seed=args.seed,
+        rules_path=args.rules,
+        max_chunks=args.max_chunks,
+    )
+    report_path, report = run_stream_analysis(cfg)
+    if args.verbosity >= 1:
+        print(f"stream report: {report_path}")
+        print(
+            "summary:",
+            {
+                "chunks_processed": report.get("chunks_processed"),
+                "alert_count": report.get("alert_count"),
+                "metrics": report.get("metrics"),
+                "alerts_csv": report.get("artifacts", {}).get("alerts_csv"),
+            },
+        )
+    if args.debug >= 1:
+        print(f"chunk_size: {args.chunk_size} sample_rate: {report.get('sample_rate')}")
+    if args.debug >= 2:
+        print(json.dumps(report.get("rules", {}), indent=2))
+    return 0
+
+
+def _run_spatial_analyze(args: argparse.Namespace) -> int:
+    from esl.core.spatial import (
+        SPATIAL_DEFAULT_METRICS,
+        load_array_config,
+        run_spatial_analysis,
+        stereo_beam_map,
+        write_beam_map_csv,
+    )
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+    out_dir = Path(args.out_dir)
+    _mkdir(out_dir)
+    calibration = load_calibration(args.calibration) if args.calibration else None
+    array_config = load_array_config(args.array_config)
+
+    metric_list = _metric_list(args.metrics) or list(SPATIAL_DEFAULT_METRICS)
+    if args.doa and "doa_azimuth_proxy_deg" not in metric_list:
+        metric_list.append("doa_azimuth_proxy_deg")
+    if args.doa and "itd_s" not in metric_list:
+        metric_list.append("itd_s")
+
+    cfg = AnalysisConfig(
+        input_path=input_path,
+        output_dir=out_dir,
+        frame_size=args.frame_size,
+        hop_size=args.hop_size,
+        sample_rate=args.sample_rate,
+        chunk_size=args.chunk_size,
+        metrics=metric_list,
+        calibration=calibration,
+        verbosity=args.verbosity,
+        debug=args.debug,
+        seed=args.seed,
+        project=args.project,
+        variant=args.variant,
+    )
+    result = run_spatial_analysis(cfg, array_config=array_config)
+    json_path = Path(args.json) if args.json else out_dir / f"{input_path.stem}_spatial.json"
+    save_json(result, json_path)
+
+    beam_map_csv: Path | None = None
+    if args.beam_map:
+        spacing = 0.2
+        if isinstance(array_config, dict) and isinstance(array_config.get("mic_spacing_m"), (int, float)):
+            spacing = float(array_config["mic_spacing_m"])
+        rows = stereo_beam_map(
+            input_path,
+            mic_spacing_m=spacing,
+            azimuth_step_deg=args.azimuth_step_deg,
+            target_sr=args.sample_rate,
+        )
+        beam_map_csv = (
+            Path(args.beam_map_csv)
+            if args.beam_map_csv
+            else out_dir / f"{input_path.stem}_beam_map.csv"
+        )
+        write_beam_map_csv(rows, beam_map_csv)
+
+    if args.verbosity >= 1:
+        print(f"json: {json_path}")
+        if beam_map_csv:
+            print(f"beam_map_csv: {beam_map_csv}")
+        print(
+            "summary:",
+            {
+                "channels": result.get("metadata", {}).get("channels"),
+                "layout": result.get("metadata", {}).get("channel_layout_hint"),
+                "metrics": len(result.get("metrics", {})),
+            },
+        )
+    return 0
+
+
+def _run_calibrate_check(args: argparse.Namespace) -> int:
+    from esl.core.calibration_check import CalibrationCheckConfig, run_calibration_check
+
+    tone_path = Path(args.tone)
+    if not tone_path.exists():
+        raise FileNotFoundError(f"Tone file not found: {tone_path}")
+
+    profile = load_calibration(args.calibration) if args.calibration else None
+    dbfs_reference = (
+        float(args.dbfs_reference)
+        if args.dbfs_reference is not None
+        else float(profile.dbfs_reference if profile is not None else 0.0)
+    )
+    spl_reference_db = (
+        float(args.spl_reference_db)
+        if args.spl_reference_db is not None
+        else float(profile.spl_reference_db if profile is not None else 94.0)
+    )
+    weighting = (
+        str(args.weighting).upper()
+        if args.weighting is not None
+        else str(profile.weighting if profile is not None else "Z").upper()
+    )
+    mic_sensitivity_mv_pa = (
+        float(args.mic_sensitivity_mv_pa)
+        if args.mic_sensitivity_mv_pa is not None
+        else profile.mic_sensitivity_mv_pa
+        if profile is not None
+        else None
+    )
+
+    out_path = Path(args.out)
+    cfg = CalibrationCheckConfig(
+        tone_path=tone_path,
+        output_path=out_path,
+        dbfs_reference=dbfs_reference,
+        spl_reference_db=spl_reference_db,
+        weighting=weighting,
+        mic_sensitivity_mv_pa=mic_sensitivity_mv_pa,
+        calibration_profile=profile,
+        device_id=args.device_id,
+        history_csv=Path(args.history) if args.history else None,
+        max_drift_db=float(args.max_drift_db),
+        sample_rate=args.sample_rate,
+    )
+    report_path, report, within_tolerance = run_calibration_check(cfg)
+    print(f"calibration_report: {report_path}")
+    print(
+        "summary:",
+        {
+            "device_id": report.get("device_id"),
+            "measured_dbfs": report.get("measured_dbfs"),
+            "dbfs_reference": report.get("dbfs_reference"),
+            "drift_db": report.get("drift_db"),
+            "max_drift_db": report.get("max_drift_db"),
+            "within_tolerance": report.get("within_tolerance"),
+        },
+    )
+    return 0 if within_tolerance else 2
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     from esl.ingest import ingest
 
@@ -533,6 +847,14 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--sample-rate", type=int, default=None)
     pa.add_argument("--chunk-size", type=int, default=None)
     pa.add_argument("--metrics", default=None, help="Comma-separated metric list")
+    pa.add_argument(
+        "--profile",
+        default=None,
+        help=(
+            "Multi-resolution profile YAML/JSON path. "
+            "Runs multiple analysis resolutions and writes a profile index JSON."
+        ),
+    )
     pa.add_argument("--seed", type=int, default=42)
     pa.add_argument("--out-dir", default=".")
     pa.set_defaults(func=_run_analyze)
@@ -618,6 +940,91 @@ def _build_parser() -> argparse.ArgumentParser:
     pv.add_argument("--seed", type=int, default=42)
     pv.add_argument("--no-recursive", action="store_true")
     pv.set_defaults(func=_run_validate)
+
+    # stream
+    pst = sub.add_parser("stream", help="Run streaming-style chunk analysis with alert rules")
+    pst.add_argument("input", help="Input audio file for chunked streaming analysis")
+    pst.add_argument("--out", default="stream_out", help="Output directory")
+    pst.add_argument("--rules", default=None, help="Alert rules JSON/YAML path")
+    pst.add_argument("--metrics", default="spl_a_db,ndsi,novelty_curve", help="Comma-separated metric list")
+    pst.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    pst.add_argument("--frame-size", type=int, default=2048)
+    pst.add_argument("--hop-size", type=int, default=512)
+    pst.add_argument("--sample-rate", type=int, default=None)
+    pst.add_argument("--chunk-size", type=int, default=131072)
+    pst.add_argument("--seed", type=int, default=42)
+    pst.add_argument("--max-chunks", type=int, default=None, help="Optional cap on processed chunks")
+    pst.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    pst.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
+    )
+    pst.set_defaults(func=_run_stream)
+
+    # spatial
+    psp = sub.add_parser("spatial", help="Spatial and ambisonic analysis commands")
+    psp_sub = psp.add_subparsers(dest="spatial_cmd", required=True)
+
+    psp_an = psp_sub.add_parser("analyze", help="Analyze spatial metrics and optional beam map")
+    psp_an.add_argument("input", help="Input audio file path")
+    psp_an.add_argument("--json", default=None, help="JSON output path (default: <out-dir>/<stem>_spatial.json)")
+    psp_an.add_argument("--array-config", default=None, help="Array config JSON/YAML path")
+    psp_an.add_argument("--metrics", default=None, help="Comma-separated spatial metric list")
+    psp_an.add_argument("--doa", action="store_true", help="Force inclusion of DOA/ITD metrics")
+    psp_an.add_argument("--beam-map", action="store_true", help="Generate stereo delay-and-sum beam map CSV")
+    psp_an.add_argument("--beam-map-csv", default=None, help="Beam map CSV output path")
+    psp_an.add_argument("--azimuth-step-deg", type=int, default=5, help="Beam map azimuth step in degrees")
+    psp_an.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    psp_an.add_argument("--project", default=None, help="Project name")
+    psp_an.add_argument("--variant", default=None, help="Variant name")
+    psp_an.add_argument("--frame-size", type=int, default=2048)
+    psp_an.add_argument("--hop-size", type=int, default=512)
+    psp_an.add_argument("--sample-rate", type=int, default=None)
+    psp_an.add_argument("--chunk-size", type=int, default=None)
+    psp_an.add_argument("--seed", type=int, default=42)
+    psp_an.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    psp_an.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
+    )
+    psp_an.add_argument("--out-dir", default=".")
+    psp_an.set_defaults(func=_run_spatial_analyze)
+
+    # calibrate
+    pcal = sub.add_parser("calibrate", help="Calibration tooling")
+    pcal_sub = pcal.add_subparsers(dest="calibrate_cmd", required=True)
+
+    pcal_check = pcal_sub.add_parser("check", help="Check calibration drift from a tone recording")
+    pcal_check.add_argument("--tone", required=True, help="Calibration tone audio file")
+    pcal_check.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    pcal_check.add_argument("--dbfs-reference", type=float, default=None, help="Expected tone level in dBFS")
+    pcal_check.add_argument("--spl-reference-db", type=float, default=None, help="Reference SPL for dbfs mapping")
+    pcal_check.add_argument("--weighting", default=None, help="Weighting hint (A/C/Z)")
+    pcal_check.add_argument("--mic-sensitivity-mv-pa", type=float, default=None, help="Mic sensitivity metadata")
+    pcal_check.add_argument("--sample-rate", type=int, default=None, help="Optional resample rate for tone read")
+    pcal_check.add_argument("--max-drift-db", type=float, default=1.0, help="Pass/fail absolute drift threshold")
+    pcal_check.add_argument("--device-id", default=None, help="Device identifier for history tracking")
+    pcal_check.add_argument("--history", default=None, help="History CSV path to append checks")
+    pcal_check.add_argument("--out", default="calibration_check.json", help="Calibration report JSON path")
+    pcal_check.set_defaults(func=_run_calibrate_check)
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
