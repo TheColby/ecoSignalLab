@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to `ecoSignalLab` (`esl`) are documented here.
+
+## [0.2.0] - Unreleased
+
+### Added
+- Versioned schema publication artifact:
+  - `docs/schema/analysis-output-0.2.0.json`
+- Schema compatibility test:
+  - `tests/test_schema_artifact.py`
+- FFmpeg decode provenance integration test:
+  - `tests/test_ffmpeg_provenance.py`
+- Canonical ML FrameTable contract docs and exports:
+  - `docs/ML_FEATURES.md`
+  - `src/esl/ml/export.py` (`FrameTable`, tensor/tabular contract exports)
+
+### Changed
+- Hardened JSON output provenance and schema fields:
+  - `schema_version`, `pipeline_hash`, `metric_catalog`, `library_versions`
+  - decoder provenance (`decoder_used`, `ffmpeg_version`, `ffprobe` summary)
+  - config snapshot, resolved metric list, channel summaries, validity flags
+- CLI quality and consistency:
+  - clearer `--verbosity` / `--debug` help semantics
+  - consistent output switch coverage including batch `--mat`
+  - `schema` command reports schema version
+- CI quality gates (`.github/workflows/ci.yml`):
+  - fatal lint gate
+  - scoped strict mypy gate for touched core files
+  - full pytest gate
+  - golden test coverage floor gate
+  - docs HTML build gate
+
+### Fixed
+- Documentation internal links no longer depend on local absolute filesystem paths.
+- Project metadata URLs now point to the real GitHub repository.

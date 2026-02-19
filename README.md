@@ -14,6 +14,7 @@ Core goals:
 See:
 - [`DESIGN.md`](DESIGN.md)
 - [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- [`CHANGELOG.md`](CHANGELOG.md)
 - [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
 - [`docs/SCHEMA.md`](docs/SCHEMA.md)
 - [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
