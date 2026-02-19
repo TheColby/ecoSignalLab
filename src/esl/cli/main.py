@@ -24,7 +24,7 @@ from esl.io import (
     save_soundcheck_csv,
 )
 from esl.metrics.registry import create_registry
-from esl.project import record_project_variant
+from esl.project import compare_project_variants, record_project_variant
 from esl.schema import SCHEMA_VERSION, analysis_output_schema
 
 
@@ -308,6 +308,25 @@ def _run_schema(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_project_compare(args: argparse.Namespace) -> int:
+    report = compare_project_variants(
+        project=args.project,
+        root=Path(args.root),
+        baseline_variant=args.baseline,
+        metrics=_metric_list(args.metrics) or None,
+        output_json=args.json_out,
+        output_csv=args.csv_out,
+    )
+    print(f"project: {report.get('project')}")
+    print(f"baseline_variant: {report.get('baseline_variant')}")
+    print(f"variants: {len(report.get('variants', []))}")
+    print(f"metrics: {len(report.get('metrics', []))}")
+    artifacts = report.get("artifacts", {})
+    print(f"json: {artifacts.get('json')}")
+    print(f"csv: {artifacts.get('csv')}")
+    return 0
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     from esl.ingest import ingest
 
@@ -559,6 +578,19 @@ def _build_parser() -> argparse.ArgumentParser:
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
     ps.add_argument("--out", default=None, help="Output schema path (prints schema_version and path)")
     ps.set_defaults(func=_run_schema)
+
+    # project
+    pproj = sub.add_parser("project", help="Project mode reports and comparisons")
+    pproj_sub = pproj.add_subparsers(dest="project_cmd", required=True)
+
+    pproj_cmp = pproj_sub.add_parser("compare", help="Compare project variants from project index")
+    pproj_cmp.add_argument("--project", required=True, help="Project name")
+    pproj_cmp.add_argument("--root", default=".", help="Root containing projects/<name>/index.json")
+    pproj_cmp.add_argument("--baseline", default=None, help="Baseline variant (default: first recorded)")
+    pproj_cmp.add_argument("--metrics", default=None, help="Comma-separated metric subset")
+    pproj_cmp.add_argument("--json", dest="json_out", default=None, help="Comparison JSON output path")
+    pproj_cmp.add_argument("--csv", dest="csv_out", default=None, help="Comparison CSV output path")
+    pproj_cmp.set_defaults(func=_run_project_compare)
 
     # pipeline
     ppl = sub.add_parser("pipeline", help="Run/status staged CLI pipeline")
