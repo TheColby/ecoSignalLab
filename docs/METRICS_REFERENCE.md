@@ -147,3 +147,120 @@ All formulas below reflect current `esl` implementation, including metrics label
 - Many architectural/spatial metrics are explicitly marked as proxies when full geometry, microphone directivity, or standards-calibrated workflows are unavailable.
 - Calibration-dependent metrics are still emitted without calibration, but values are interpreted as dBFS-derived proxies unless calibration metadata is provided.
 - Metric IDs are stable API surface for JSON/CSV/Parquet/HDF5/ML exports.
+
+## Visual Metric Topology
+
+Cross-reference details:
+- Core bibliography: [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
+- Open-source attribution: [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+
+```mermaid
+mindmap
+  root((Metric Topology))
+    Level + Loudness
+      SPL A C Z
+      Leq Percentiles SEL LAE
+      LUFS LRA True Peak
+    Spectral + Temporal
+      STFT Features
+      Octave Bands
+      ZCR
+    Ecoacoustics
+      BAI ACI
+      NDSI ADI AEI Entropy
+    Spatial
+      Coherence IACC
+      ILD IPD ITD DOA
+      FOA Diffuseness
+    Architectural
+      RT EDT T20 T30
+      C50 C80 D50 Ts
+      LF LFC Bass Ratio STI proxy
+    Anomaly
+      Novelty Change Z
+      Isolation Forest
+      OCSVM
+      Reconstruction Error
+```
+
+```mermaid
+flowchart LR
+    A["Raw Signal"] --> B["Frame + STFT"]
+    B --> C["Magnitude / Power"]
+    C --> D["Spectral Features"]
+    C --> E["Ecoacoustic Indices"]
+    C --> F["Novelty"]
+    C --> G["Similarity Matrix"]
+    D --> H["Anomaly Feature Matrix"]
+```
+
+```mermaid
+flowchart TD
+    A["Calibration Profile"] --> B["dBFS Reference"]
+    A --> C["SPL Reference"]
+    B --> D["Offset"]
+    C --> D
+    D --> E["SPL / dBA / dBC Output"]
+    A --> F["Calibration Tone"]
+    F --> G["Drift Estimation"]
+    G --> E
+```
+
+```mermaid
+flowchart LR
+    A["Impulse Response"] --> B["Schroeder Decay"]
+    B --> C["Regression Windows"]
+    C --> D["RT60 EDT T20 T30"]
+    A --> E["Early-Late Split"]
+    E --> F["C50 C80 D50"]
+    A --> G["Energy Moment"]
+    G --> H["Ts"]
+```
+
+```mermaid
+flowchart LR
+    A["Stereo/Multichannel Frames"] --> B["Cross-Correlation"]
+    B --> C["IACC / ITD"]
+    A --> D["RMS Ratio"]
+    D --> E["ILD"]
+    A --> F["Cross-Spectrum Angle"]
+    F --> G["IPD"]
+    C --> H["DOA Proxy"]
+```
+
+```mermaid
+flowchart TD
+    A["Feature Matrix"] --> B["Isolation Forest"]
+    A --> C["One-Class SVM"]
+    A --> D["Low-rank Reconstruction"]
+    B --> E["IF Score"]
+    C --> F["OCSVM Score"]
+    D --> G["AE Proxy Error"]
+    A --> H["Novelty Z-Score"]
+    H --> I["Change Point Confidence"]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Measured
+    Measured --> Proxy: "Missing calibration or geometry"
+    Measured --> StandardAligned: "Calibration and assumptions available"
+    Proxy --> Reported
+    StandardAligned --> Reported
+    Reported --> [*]
+```
+
+## Citation Coverage Matrix
+
+- STFT, spectral descriptors, and novelty: see [D1], [N1], [N3], [N4] in [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
+- Loudness / true-peak: see [S1], [S2]
+- Room acoustics: see [S3], [S4], [A1]
+- Spatial delay estimation: see [P1]
+- Ecoacoustic index families: see [E1], [E2], [E3]
+- Anomaly detection models: see [M1], [M2], [M3]
+
+## Open-Source Attribution Pointers
+
+- K-weighting implementation context and attribution notes: [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py)
+- Novelty/similarity algorithm attribution notes: [`/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py`](/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py)
+- Full attribution log: [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)

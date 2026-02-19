@@ -1,4 +1,13 @@
-"""Built-in metric plugins for esl."""
+"""Built-in metric plugins for esl.
+
+References:
+- Spectral descriptors and STFT-based feature extraction:
+  Klapuri & Davy (2007), \"Signal Processing Methods for Music Transcription\".
+- Spectral flux novelty and change detection:
+  Dixon (2006), DAFx.
+- Room acoustics decay metrics:
+  ISO 3382-1 / ISO 3382-2 and Schroeder (1965).
+"""
 
 from __future__ import annotations
 
@@ -39,6 +48,7 @@ def _frame_weighted_level_db(ctx: AnalysisContext, weighting: str) -> tuple[np.n
 
 
 def _spectral_cache(ctx: AnalysisContext) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # Shared STFT cache for spectral descriptors and novelty features.
     key = "spectral"
     if key not in ctx.cache:
         ctx.cache[key] = spectral_features(ctx.mono(), ctx.sample_rate, ctx.frame_size, ctx.hop_size)
@@ -55,9 +65,11 @@ def _architectural_cache(ctx: AnalysisContext) -> dict[str, np.ndarray | float]:
     ir = mono[peak_idx:]
     if ir.size < max(16, int(0.1 * ctx.sample_rate)):
         ir = mono
+    # Energy decay via Schroeder reverse integration.
     decay = schroeder_decay(ir)
     t = np.arange(len(decay), dtype=np.float64) / float(ctx.sample_rate)
 
+    # ISO-style decay-window fits.
     rt60 = fit_decay_time(decay, t, lo_db=-5.0, hi_db=-35.0)
     edt = fit_decay_time(decay, t, lo_db=0.0, hi_db=-10.0)
 
@@ -552,6 +564,7 @@ class NoveltyCurveMetric:
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         _, t, mag = _spectral_cache(ctx)
+        # Positive spectral-flux novelty (Dixon 2006).
         nov = novelty_from_spectrum(mag)
         return MetricResult(
             name=self.spec.name,
@@ -579,6 +592,7 @@ class SpectralChangeMetric:
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         _, t, mag = _spectral_cache(ctx)
+        # Z-normalized novelty; thresholding approach inspired by MIR onset/change practice.
         nov = novelty_from_spectrum(mag)
         z = (nov - np.mean(nov)) / (np.std(nov) + 1e-12)
         events = np.where(z > 2.5)[0].tolist()

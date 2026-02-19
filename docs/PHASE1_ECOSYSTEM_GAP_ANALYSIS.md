@@ -285,3 +285,97 @@ Canonical schema source in this repository:
 - SoundCheck test sequence automation: https://www.listeninc.com/products/soundcheck-software/soundcheck-features-and-functionality/soundcheck-test-sequences/
 - SoundCheck Python/TCP integration: https://support.listeninc.com/hc/en-us/articles/115002735086-Can-SoundCheck-be-Externally-Controlled-Using-a-Python-Script
 - SoundCheck specs/export integration: https://www.listeninc.com/products/soundcheck-software/specs/soundcheck-technical-specifications/
+
+## Visual Synthesis
+
+Reference set:
+- [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
+- [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+
+```mermaid
+flowchart LR
+    A["DSP Toolchains\nSoX FFmpeg librosa torchaudio"] --> E["esl Opportunity"]
+    B["Ecoacoustics\nscikit-maad soundecology seewave warbleR"] --> E
+    C["Architectural Simulation\nTreble Odeon CATT EASE Revit"] --> E
+    D["Industrial Measurement\nHEAD APx SoundCheck"] --> E
+    E --> F["Unified Contract + Calibration + Reproducibility"]
+```
+
+```mermaid
+quadrantChart
+    title Ecosystem Gap Positioning
+    x-axis Low Integration --> High Integration
+    y-axis Low Reproducibility --> High Reproducibility
+    quadrant-1 Strategic Target
+    quadrant-2 Research Legacy
+    quadrant-3 Utility Scripts
+    quadrant-4 Vendor Silos
+    "Ad hoc scripts": [0.2, 0.2]
+    "librosa-only stacks": [0.35, 0.45]
+    "scikit-maad eco pipelines": [0.45, 0.5]
+    "industrial closed suites": [0.7, 0.7]
+    "esl target": [0.9, 0.95]
+```
+
+```mermaid
+flowchart TD
+    A["Simulation Export"] --> B["Source Adapter"]
+    B --> C["Artifact Resolver"]
+    C --> D["Semantic Normalization"]
+    D --> E["Assumption Capture JSON"]
+    E --> F["Metric Engine"]
+    F --> G["Variant Comparison"]
+```
+
+```mermaid
+erDiagram
+    PROJECT ||--o{ VARIANT : has
+    VARIANT ||--o{ RUN : produces
+    RUN ||--|| METADATA : contains
+    RUN ||--o{ METRIC_PAYLOAD : contains
+    METRIC_PAYLOAD ||--|| METRIC_SPEC : references
+
+    PROJECT {
+      string name
+      string description
+    }
+    VARIANT {
+      string variant_id
+      string source_tool
+      string export_profile
+    }
+    RUN {
+      string config_hash
+      string esl_version
+      string analysis_time_utc
+    }
+```
+
+```mermaid
+flowchart LR
+    A["Ingestion\nFreesound HF HTTP"] --> B["Metadata Capture"]
+    B --> C["Auto Analysis"]
+    C --> D["Frame/Clip Features"]
+    D --> E["Anomaly Models"]
+    E --> F["Dataset Summary + Alerts"]
+```
+
+```mermaid
+flowchart LR
+    A["Metric Plugins"] --> B["Declared Contracts"]
+    B --> C["Streaming Capability"]
+    B --> D["Calibration Dependency"]
+    B --> E["ML Compatibility"]
+    B --> F["Confidence Logic"]
+    C --> G["Safe Orchestration"]
+    D --> G
+    E --> G
+    F --> G
+```
+
+## Hyperlinked Deliverables
+
+- Comparative matrix and gap ranking: this document
+- Stable taxonomy and formulas: [`/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
+- System-level design rationale: [`/Users/cleider/dev/ecoSignalLab/DESIGN.md`](/Users/cleider/dev/ecoSignalLab/DESIGN.md)
+- Runtime and module architecture: [`/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md`](/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md)

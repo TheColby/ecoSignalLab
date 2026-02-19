@@ -1,4 +1,16 @@
-"""Shared helper functions for metric computations."""
+"""Shared helper functions for metric computations.
+
+Algorithm references:
+- STFT framing/spectral analysis:
+  Allen & Rabiner (1977), \"A unified approach to short-time Fourier analysis and synthesis\"
+  IEEE Proc. 65(11):1558-1564. doi:10.1109/PROC.1977.10770
+- Spectral-flux novelty:
+  Dixon (2006), \"Onset detection revisited\", DAFx.
+- Schroeder energy decay integration:
+  Schroeder (1965), JASA 37(3):409.
+- Reverberation-time line fitting conventions:
+  ISO 3382-1:2009; ISO 3382-2:2008.
+"""
 
 from __future__ import annotations
 
@@ -61,6 +73,7 @@ def spectral_features(
     hop_size: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return frequency bins, times, magnitude spectrum."""
+    # Canonical STFT decomposition (Allen & Rabiner, 1977).
     nperseg = min(frame_size, max(8, len(mono)))
     noverlap = min(nperseg - 1, max(0, nperseg - hop_size))
     f, t, z = stft(
@@ -102,6 +115,7 @@ def estimate_snr_db(series_db: np.ndarray) -> np.ndarray:
 
 def novelty_from_spectrum(mag: np.ndarray) -> np.ndarray:
     """Novelty curve from positive spectral flux."""
+    # Positive spectral flux as a lightweight onset/novelty function (Dixon, 2006).
     diff = np.diff(mag, axis=1, prepend=mag[:, :1])
     flux = np.sum(np.maximum(diff, 0.0), axis=0)
     return flux
@@ -109,6 +123,7 @@ def novelty_from_spectrum(mag: np.ndarray) -> np.ndarray:
 
 def schroeder_decay(ir: np.ndarray) -> np.ndarray:
     """Energy decay curve (dB) from impulse response."""
+    # Reverse cumulative energy integration after Schroeder (1965).
     # Normalize and sanitize to avoid overflow on unstable decoded/filtered IR tails.
     x = np.nan_to_num(np.asarray(ir, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
     peak = float(np.max(np.abs(x))) if x.size else 0.0
@@ -122,6 +137,7 @@ def schroeder_decay(ir: np.ndarray) -> np.ndarray:
 
 def fit_decay_time(decay_db: np.ndarray, t: np.ndarray, lo_db: float, hi_db: float) -> float:
     """Fit RT-style decay time using linear regression on decay segment."""
+    # ISO 3382-family style RT extrapolation: RT60 = -60 / slope(decay segment).
     mask = (decay_db <= lo_db) & (decay_db >= hi_db)
     if np.count_nonzero(mask) < 8:
         return float("nan")

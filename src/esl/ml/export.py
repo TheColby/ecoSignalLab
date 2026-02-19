@@ -1,4 +1,11 @@
-"""ML-oriented feature exports and anomaly helpers."""
+"""ML-oriented feature exports and anomaly helpers.
+
+References:
+- Isolation Forest:
+  Liu, Ting, Zhou (2008), \"Isolation Forest\", ICDM.
+- One-class representation and anomaly framing background:
+  Pimentel et al. (2014), Signal Processing 99:215-249.
+"""
 
 from __future__ import annotations
 
@@ -74,6 +81,7 @@ def run_isolation_forest(frame_matrix: np.ndarray, seed: int = 42) -> np.ndarray
         inds = np.where(np.isnan(x))
         x[inds] = np.take(col_means, inds[1])
 
+    # Isolation Forest baseline following Liu et al. (2008).
     model = IsolationForest(random_state=seed, n_estimators=200, contamination="auto")
     model.fit(x)
     score = -model.decision_function(x)
