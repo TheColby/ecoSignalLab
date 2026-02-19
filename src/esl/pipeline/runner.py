@@ -13,7 +13,7 @@ from typing import Any
 
 from esl.core import AnalysisConfig, analyze, load_calibration
 from esl.core.audio import iter_supported_files
-from esl.core.utils import config_hash
+from esl.core.utils import config_hash, library_versions, pipeline_hash
 from esl.io import save_json
 from esl.metrics.registry import create_registry
 
@@ -129,6 +129,13 @@ def _init_manifest(cfg: PipelineRunConfig) -> dict[str, Any]:
         "updated_utc": _now_utc_iso(),
         "status": "running",
         "config_hash": config_hash(pipeline_cfg),
+        "pipeline_hash": pipeline_hash(
+            config=pipeline_cfg,
+            metric_names=list(cfg.metrics or []),
+            frame_size=cfg.frame_size,
+            hop_size=cfg.hop_size,
+            library_version_map=library_versions(),
+        ),
         "config": pipeline_cfg,
         "stages": {},
         "artifacts": {},

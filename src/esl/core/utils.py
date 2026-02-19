@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import platform
 import random
+from importlib import metadata
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -50,3 +52,36 @@ def config_hash(config: Any) -> str:
     """Create stable content hash for configuration provenance."""
     payload = json.dumps(canonicalize(config), sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def library_versions(
+    package_names: list[str] | None = None,
+) -> dict[str, str | None]:
+    """Collect runtime library versions used in provenance hashing."""
+    names = package_names or ["numpy", "scipy", "soundfile", "pandas", "matplotlib", "h5py"]
+    out: dict[str, str | None] = {"python": platform.python_version()}
+    for name in names:
+        try:
+            out[name] = metadata.version(name)
+        except Exception:
+            out[name] = None
+    return out
+
+
+def pipeline_hash(
+    config: Any,
+    metric_names: list[str],
+    frame_size: int,
+    hop_size: int,
+    library_version_map: dict[str, str | None] | None = None,
+) -> str:
+    """Hash full analysis pipeline semantics for strict provenance."""
+    payload = {
+        "config": canonicalize(config),
+        "metrics": sorted(metric_names),
+        "frame_size": int(frame_size),
+        "hop_size": int(hop_size),
+        "library_versions": canonicalize(library_version_map or library_versions()),
+    }
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()

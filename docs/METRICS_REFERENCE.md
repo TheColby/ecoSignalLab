@@ -23,6 +23,94 @@ Scope:
 
 All formulas below reflect current `esl` implementation, including metrics labeled as "proxy".
 
+## Metric Contract Matrix
+
+This matrix is the stable, ML-facing contract for every built-in metric ID.
+Definitions are anchored to the equation tables by category.
+
+| Metric ID | Units | Window/Hop | Streamable | Cal. Dep. | Aggregation semantics | Definition |
+|---|---:|---|---:|---:|---|---|
+| `acoustic_complexity_index` | ratio | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `acoustic_entropy` | ratio | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `adi` | ratio | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `aei` | ratio | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `ambisonic_diffuseness` | ratio | `0/0` | no | no | First four channels interpreted as FOA WXYZ. | [Spatial](#spatial-ambisonic-metrics) |
+| `ambisonic_energy_vector_azimuth_deg` | deg | `0/0` | no | no | First four channels interpreted as FOA WXYZ. | [Spatial](#spatial-ambisonic-metrics) |
+| `ambisonic_energy_vector_elevation_deg` | deg | `0/0` | no | no | First four channels interpreted as FOA WXYZ. | [Spatial](#spatial-ambisonic-metrics) |
+| `autoencoder_recon_error` | mse | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Anomaly / Novelty](#anomaly-novelty-metrics) |
+| `bass_ratio` | ratio | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `bioacoustic_index` | a.u. | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `c50_db` | dB | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `c80_db` | dB | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `calibration_drift_db` | dB | `0/0` | no | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `change_point_confidence` | ratio | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Anomaly / Novelty](#anomaly-novelty-metrics) |
+| `clipping_event_count` | count | `0/0` | yes | no | All samples over all channels in one pool. | [Basic](#basic-quality-control-metrics) |
+| `clipping_ratio` | ratio | `0/0` | yes | no | All samples over all channels in one pool. | [Basic](#basic-quality-control-metrics) |
+| `completeness_ratio` | ratio | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `crest_factor_db` | dB | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `d50` | ratio | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `dc_offset` | linear | `0/0` | yes | no | All samples over all channels in one pool. | [Basic](#basic-quality-control-metrics) |
+| `diurnal_coverage_ratio` | ratio | `0/0` | no | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `doa_azimuth_proxy_deg` | deg | `2048/512` | yes | no | First two channels (L/R pair); mono duplicates ch1. | [Spatial](#spatial-ambisonic-metrics) |
+| `dropout_ratio` | ratio | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `eco_octave_trends` | dB/s | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `edt_s` | s | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `g_strength_db` | dB | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `iacc` | ratio | `2048/512` | yes | no | First two channels (L/R pair); mono duplicates ch1. | [Spatial](#spatial-ambisonic-metrics) |
+| `ild_db` | dB | `2048/512` | yes | no | First two channels (L/R pair); mono duplicates ch1. | [Spatial](#spatial-ambisonic-metrics) |
+| `integrated_lufs` | LUFS | `0/0` | no | no | Multichannel loudness combines per-channel powers equally. | [Level & Loudness](#level-loudness-metrics) |
+| `interchannel_coherence` | ratio | `2048/512` | yes | no | Mean adjacent-channel correlation per frame. | [Spatial](#spatial-ambisonic-metrics) |
+| `ipd_rad` | rad | `2048/512` | yes | no | First two channels (L/R pair); mono duplicates ch1. | [Spatial](#spatial-ambisonic-metrics) |
+| `isolation_forest_score` | score | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Anomaly / Novelty](#anomaly-novelty-metrics) |
+| `itd_s` | s | `2048/512` | yes | no | First two channels (L/R pair); mono duplicates ch1. | [Spatial](#spatial-ambisonic-metrics) |
+| `l10_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `l50_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `l90_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `l95_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `lae_db` | dBA | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `leq_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `lf_ratio` | ratio | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `lfc_ratio` | ratio | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `lmax_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `lmin_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `loudness_range_lu` | LU | `0/0` | no | no | Multichannel loudness combines per-channel powers equally. | [Level & Loudness](#level-loudness-metrics) |
+| `lpeak_dbfs` | dBFS | `0/0` | yes | no | All samples over all channels in one pool. | [Level & Loudness](#level-loudness-metrics) |
+| `momentary_lufs` | LUFS | `0/0` | no | no | Multichannel loudness combines per-channel powers equally. | [Level & Loudness](#level-loudness-metrics) |
+| `ndsi` | ratio | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Ecoacoustics](#ecoacoustics-metrics) |
+| `novelty_curve` | a.u. | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Anomaly / Novelty](#anomaly-novelty-metrics) |
+| `ocsvm_score` | score | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Anomaly / Novelty](#anomaly-novelty-metrics) |
+| `octave_band_level_db` | dB | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Spectral](#spectral-metrics) |
+| `peak_dbfs` | dBFS | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `rms_dbfs` | dBFS | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `rt60_s` | s | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `sel_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `short_term_lufs` | LUFS | `0/0` | no | no | Multichannel loudness combines per-channel powers equally. | [Level & Loudness](#level-loudness-metrics) |
+| `silence_ratio` | ratio | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `site_comparability_score` | ratio | `0/0` | no | yes | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `snr_db` | dB | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Noise & SNR](#noise-snr-metrics) |
+| `spectral_bandwidth_hz` | Hz | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Spectral](#spectral-metrics) |
+| `spectral_centroid_hz` | Hz | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Spectral](#spectral-metrics) |
+| `spectral_change_detection` | zscore | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Anomaly / Novelty](#anomaly-novelty-metrics) |
+| `spectral_flatness` | ratio | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Spectral](#spectral-metrics) |
+| `spectral_rolloff_hz` | Hz | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Spectral](#spectral-metrics) |
+| `spl_a_db` | dBA | `2048/512` | no | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `spl_c_db` | dBC | `2048/512` | no | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `spl_z_db` | dB | `2048/512` | yes | yes | Frame-level features aggregate channels jointly. | [Level & Loudness](#level-loudness-metrics) |
+| `sti_proxy` | ratio | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `t20_s` | s | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `t30_s` | s | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `third_octave_band_level_db` | dB | `2048/512` | no | no | Mono downmix (channel mean) before analysis. | [Spectral](#spectral-metrics) |
+| `true_peak_dbfs` | dBFS | `0/0` | no | no | Multichannel loudness combines per-channel powers equally. | [Level & Loudness](#level-loudness-metrics) |
+| `ts_ms` | ms | `0/0` | no | no | Mono downmix (channel mean) before analysis. | [Architectural Acoustics](#architectural-acoustics-intelligibility-metrics) |
+| `uptime_ratio` | ratio | `2048/512` | yes | no | Frame-level features aggregate channels jointly. | [Basic](#basic-quality-control-metrics) |
+| `zero_crossing_rate` | ratio | `2048/512` | yes | no | Mono downmix (channel mean) before analysis. | [Temporal](#temporal-metrics) |
+
+## Streaming Semantics
+
+- `streaming_capable = yes`: metric can be merged from chunk-local computations in `chunk_size` mode.
+- `streaming_capable = no`: `esl` falls back to full-file analysis for correctness.
+- Architectural, many ecoacoustic, and model-based anomaly metrics are intentionally non-streaming.
+
 ## Basic + Quality Control Metrics
 
 | Metric ID | Units | Mathematical definition | Plain English |
@@ -151,8 +239,8 @@ All formulas below reflect current `esl` implementation, including metrics label
 ## Visual Metric Topology
 
 Cross-reference details:
-- Core bibliography: [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
-- Open-source attribution: [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- Core bibliography: [`docs/REFERENCES.md`](REFERENCES.md)
+- Open-source attribution: [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)
 
 ```mermaid
 mindmap
@@ -252,7 +340,7 @@ stateDiagram-v2
 
 ## Citation Coverage Matrix
 
-- STFT, spectral descriptors, and novelty: see [D1], [N1], [N3], [N4] in [`/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`](/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md)
+- STFT, spectral descriptors, and novelty: see [D1], [N1], [N3], [N4] in [`docs/REFERENCES.md`](REFERENCES.md)
 - Loudness / true-peak: see [S1], [S2]
 - Room acoustics: see [S3], [S4], [A1]
 - Spatial delay estimation: see [P1]
@@ -261,6 +349,6 @@ stateDiagram-v2
 
 ## Open-Source Attribution Pointers
 
-- K-weighting implementation context and attribution notes: [`/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py`](/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py)
-- Novelty/similarity algorithm attribution notes: [`/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py`](/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py)
-- Full attribution log: [`/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md`](/Users/cleider/dev/ecoSignalLab/docs/ATTRIBUTION.md)
+- K-weighting implementation context and attribution notes: [`src/esl/metrics/extended.py`](../src/esl/metrics/extended.py)
+- Novelty/similarity algorithm attribution notes: [`src/esl/viz/plotting.py`](../src/esl/viz/plotting.py)
+- Full attribution log: [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)

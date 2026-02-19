@@ -25,7 +25,7 @@ from esl.io import (
 )
 from esl.metrics.registry import create_registry
 from esl.project import record_project_variant
-from esl.schema import analysis_output_schema
+from esl.schema import SCHEMA_VERSION, analysis_output_schema
 
 
 def _metric_list(raw: str | None) -> list[str]:
@@ -195,6 +195,8 @@ def _run_batch(args: argparse.Namespace) -> int:
             save_parquet(result, run_out / f"{fp.stem}.parquet")
         if args.hdf5:
             save_hdf5(result, run_out / f"{fp.stem}.h5")
+        if args.mat:
+            save_mat(result, run_out / f"{fp.stem}.mat")
 
         rows.append(
             {
@@ -291,9 +293,11 @@ def _run_schema(args: argparse.Namespace) -> int:
         p = Path(args.out)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(schema, indent=2), encoding="utf-8")
+        print(f"schema_version: {SCHEMA_VERSION}")
         print(str(p))
     else:
         print(json.dumps(schema, indent=2))
+        print(f"schema_version: {SCHEMA_VERSION}", file=sys.stderr)
     return 0
 
 
@@ -404,24 +408,59 @@ def _run_docs(args: argparse.Namespace) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="esl", description="ecoSignalLab CLI")
+    parser = argparse.ArgumentParser(
+        prog="esl",
+        description="ecoSignalLab CLI for acoustic analysis, ML export, and reproducible reporting.",
+        epilog=(
+            "Decode behavior: native formats use soundfile first; compressed formats fall back to ffmpeg/ffprobe.\n"
+            "Calibration file keys: dbfs_reference, spl_reference_db, weighting (A|C|Z), "
+            "mic_sensitivity_mv_pa, calibration_tone_file."
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     # analyze
     pa = sub.add_parser("analyze", help="Analyze an audio file")
-    pa.add_argument("input", help="Input audio file path")
-    pa.add_argument("--json", dest="json", default=None, help="JSON output path")
+    pa.add_argument(
+        "input",
+        help=(
+            "Input audio file path.\n"
+            "Decoding: soundfile for native formats; ffmpeg fallback for compressed formats."
+        ),
+    )
+    pa.add_argument("--json", dest="json", default=None, help="JSON output path (default: <out-dir>/<stem>.json)")
     pa.add_argument("--csv", dest="csv", default=None, help="Summary CSV output path")
-    pa.add_argument("--series-csv", dest="series_csv", default=None, help="Series CSV output path")
-    pa.add_argument("--parquet", dest="parquet", default=None, help="Parquet output path")
+    pa.add_argument("--series-csv", dest="series_csv", default=None, help="Frame/series CSV output path")
+    pa.add_argument("--parquet", dest="parquet", default=None, help="Summary Parquet output path")
     pa.add_argument("--hdf5", dest="hdf5", default=None, help="HDF5 output path")
-    pa.add_argument("--mat", dest="mat", default=None, help="MATLAB MAT output path")
+    pa.add_argument("--mat", dest="mat", default=None, help="MATLAB .mat output path")
     pa.add_argument("--head-csv", dest="head_csv", default=None, help="HEAD-compatible CSV path")
     pa.add_argument("--apx-csv", dest="apx_csv", default=None, help="APx-compatible CSV path")
     pa.add_argument("--soundcheck-csv", dest="soundcheck_csv", default=None, help="SoundCheck-compatible CSV path")
-    pa.add_argument("--calibration", dest="calibration", default=None, help="Calibration YAML/JSON path")
-    pa.add_argument("--verbosity", type=int, default=1, choices=[0, 1, 2, 3])
-    pa.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
+    pa.add_argument(
+        "--calibration",
+        dest="calibration",
+        default=None,
+        help=(
+            "Calibration YAML/JSON path.\n"
+            "Supports 0 dBFS to SPL mapping, weighting (A/C/Z), mic sensitivity, and calibration tone."
+        ),
+    )
+    pa.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    pa.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
+    )
     pa.add_argument("--plot", action="store_true", help="Generate plots")
     pa.add_argument("--interactive", action="store_true", help="Generate Plotly interactive plots")
     pa.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
@@ -447,8 +486,20 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("input_dir", help="Input directory")
     pb.add_argument("--out", required=True, help="Output directory")
     pb.add_argument("--calibration", dest="calibration", default=None)
-    pb.add_argument("--verbosity", type=int, default=1, choices=[0, 1, 2, 3])
-    pb.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
+    pb.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    pb.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
+    )
     pb.add_argument("--plot", action="store_true")
     pb.add_argument("--interactive", action="store_true")
     pb.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
@@ -469,8 +520,9 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--csv", action="store_true", help="Write CSV per file")
     pb.add_argument("--parquet", action="store_true", help="Write Parquet per file")
     pb.add_argument("--hdf5", action="store_true", help="Write HDF5 per file")
+    pb.add_argument("--mat", action="store_true", help="Write MATLAB .mat per file")
     pb.add_argument("--no-recursive", action="store_true")
-    pb.add_argument("--out-dir", default=".")
+    pb.add_argument("--out-dir", default=".", help=argparse.SUPPRESS)
     pb.set_defaults(func=_run_batch)
 
     # plot
@@ -498,7 +550,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
-    ps.add_argument("--out", default=None, help="Output schema path")
+    ps.add_argument("--out", default=None, help="Output schema path (prints schema_version and path)")
     ps.set_defaults(func=_run_schema)
 
     # pipeline

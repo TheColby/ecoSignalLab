@@ -8,12 +8,12 @@ Principle: `esl` does not intentionally copy uncredited code. Where implementati
 
 | `esl` Location | Algorithm / Component | Source / Project | License | Attribution Notes |
 |---|---|---|---|---|
-| `/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py` | BS.1770-style K-weighting coefficient pattern | [pyloudnorm](https://github.com/csteinmetz1/pyloudnorm), ITU-R BS.1770 | MIT (pyloudnorm), ITU spec | Coefficient values and loudness gating conventions are implementation-aligned with public references. esl integration/orchestration code is original. |
-| `/Users/cleider/dev/ecoSignalLab/src/esl/viz/plotting.py` | Foote-style novelty kernel and novelty curve pipeline | [Foote 2000](https://dl.acm.org/doi/10.1145/336597.336612), [FMP notebooks](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html) | Academic publications / educational resources | Re-implemented from published algorithm descriptions and educational formulations; not a direct code copy. |
-| `/Users/cleider/dev/ecoSignalLab/src/esl/metrics/helpers.py` | STFT-based features and spectral flux novelty | SciPy STFT docs, Dixon (2006) | BSD-3-Clause (SciPy docs/project) | Uses canonical DSP formulas implemented with SciPy APIs. |
-| `/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py` | GCC-PHAT ITD estimation | Knapp & Carter (1976), common open implementations | Academic publication | Implemented from standard published method. |
-| `/Users/cleider/dev/ecoSignalLab/src/esl/ml/export.py` and `/Users/cleider/dev/ecoSignalLab/src/esl/metrics/extended.py` | Isolation Forest and One-Class SVM | scikit-learn estimators | BSD-3-Clause | Uses scikit-learn public APIs, no vendored model code. |
-| `/Users/cleider/dev/ecoSignalLab/src/esl/docsgen/builder.py` | Mermaid rendering + browser PDF conversion | Mermaid docs, Playwright docs | MIT (Mermaid), Apache-2.0 (Playwright) | Uses documented runtime APIs; no vendored third-party runtime code. |
+| `src/esl/metrics/extended.py` | BS.1770-style K-weighting coefficient pattern | [pyloudnorm](https://github.com/csteinmetz1/pyloudnorm), ITU-R BS.1770 | MIT (pyloudnorm), ITU spec | Coefficient values and loudness gating conventions are implementation-aligned with public references. esl integration/orchestration code is original. |
+| `src/esl/viz/plotting.py` | Foote-style novelty kernel and novelty curve pipeline | [Foote 2000](https://dl.acm.org/doi/10.1145/336597.336612), [FMP notebooks](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html) | Academic publications / educational resources | Re-implemented from published algorithm descriptions and educational formulations; not a direct code copy. |
+| `src/esl/metrics/helpers.py` | STFT-based features and spectral flux novelty | SciPy STFT docs, Dixon (2006) | BSD-3-Clause (SciPy docs/project) | Uses canonical DSP formulas implemented with SciPy APIs. |
+| `src/esl/metrics/extended.py` | GCC-PHAT ITD estimation | Knapp & Carter (1976), common open implementations | Academic publication | Implemented from standard published method. |
+| `src/esl/ml/export.py` and `src/esl/metrics/extended.py` | Isolation Forest and One-Class SVM | scikit-learn estimators | BSD-3-Clause | Uses scikit-learn public APIs, no vendored model code. |
+| `src/esl/docsgen/builder.py` | Mermaid rendering + browser PDF conversion | Mermaid docs, Playwright docs | MIT (Mermaid), Apache-2.0 (Playwright) | Uses documented runtime APIs; no vendored third-party runtime code. |
 
 ## Third-Party Runtime Dependencies
 
@@ -37,7 +37,7 @@ Principle: `esl` does not intentionally copy uncredited code. Where implementati
 Before merging algorithmic changes:
 
 1. Add paper/standard citations in code comments near the algorithm.
-2. Add or update citation entries in `/Users/cleider/dev/ecoSignalLab/docs/REFERENCES.md`.
+2. Add or update citation entries in `docs/REFERENCES.md`.
 3. If code structure was adapted from another project, add an entry in this file with source URL and license.
 4. Verify no third-party code is copied without explicit license compatibility and attribution.
 
