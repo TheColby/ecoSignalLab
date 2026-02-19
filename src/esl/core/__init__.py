@@ -1,9 +1,16 @@
 """Core analysis engine components."""
 
-from .analyzer import analyze
 from .audio import read_audio, stream_audio
 from .calibration import load_calibration
 from .config import AnalysisConfig, BatchConfig, CalibrationProfile, IngestConfig
+
+
+def analyze(*args, **kwargs):
+    """Lazy import wrapper to avoid core<->metrics import cycles."""
+    from .analyzer import analyze as _analyze
+
+    return _analyze(*args, **kwargs)
+
 
 __all__ = [
     "analyze",

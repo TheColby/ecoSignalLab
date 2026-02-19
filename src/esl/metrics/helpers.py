@@ -109,7 +109,12 @@ def novelty_from_spectrum(mag: np.ndarray) -> np.ndarray:
 
 def schroeder_decay(ir: np.ndarray) -> np.ndarray:
     """Energy decay curve (dB) from impulse response."""
-    e = np.square(ir)
+    # Normalize and sanitize to avoid overflow on unstable decoded/filtered IR tails.
+    x = np.nan_to_num(np.asarray(ir, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    peak = float(np.max(np.abs(x))) if x.size else 0.0
+    if peak > 0.0:
+        x = x / peak
+    e = np.square(x)
     rev_cumsum = np.cumsum(e[::-1])[::-1]
     rev_cumsum /= max(rev_cumsum[0], 1e-20)
     return power_db(rev_cumsum)

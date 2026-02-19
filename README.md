@@ -122,15 +122,19 @@ Large files:
 
 ## Built-in metric families
 
-- Basic: RMS, peak
-- Level/loudness: SPL (A/C/Z), crest factor
-- Noise/SNR: percentile SNR estimator
-- Spectral: centroid, bandwidth, flatness, rolloff
+`esl` now ships **74 built-in metrics** by default:
+
+- Basic + QC: RMS/peak, clipping ratio/events, DC offset, dropout/silence, uptime/completeness/diurnal/site-comparability proxies
+- Level + loudness: SPL A/C/Z, Leq/Lmax/Lmin/L10/L50/L90/L95, SEL/LAE, crest factor, LUFS (integrated/short-term/momentary), LRA, true peak, calibration drift
+- Noise + SNR: robust percentile SNR estimator
+- Spectral: centroid, bandwidth, flatness, rolloff, octave and third-octave band levels
 - Temporal: zero crossing rate
-- Ecoacoustics: bioacoustic index, acoustic complexity index
-- Spatial: interchannel coherence
-- Architectural acoustics: RT60, EDT, C50, C80, D50
-- Anomaly/novelty: spectral flux novelty, change detection
+- Ecoacoustics: bioacoustic index, ACI, NDSI, ADI, AEI, acoustic entropy, eco-octave trends
+- Spatial + ambisonic: interchannel coherence, IACC/ILD/IPD/ITD, DOA azimuth proxy, FOA diffuseness and energy-vector azimuth/elevation
+- Architectural acoustics + intelligibility: RT60, EDT, T20, T30, C50, C80, D50, Ts, G-strength proxy, LF/LFC proxies, bass ratio, STI proxy
+- Anomaly + novelty: novelty curve, spectral change z-score, isolation-forest score, one-class-SVM score, autoencoder reconstruction-error proxy, change-point confidence
+
+See full definitions in [`docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md), including mathematical equations and plain-English interpretation for every metric ID.
 
 ## Reproducibility
 
@@ -172,6 +176,7 @@ Outputs:
 
 - System design: [`DESIGN.md`](/Users/cleider/dev/ecoSignalLab/DESIGN.md)
 - Architecture: [`ARCHITECTURE.md`](/Users/cleider/dev/ecoSignalLab/ARCHITECTURE.md)
+- Metrics reference: [`docs/METRICS_REFERENCE.md`](/Users/cleider/dev/ecoSignalLab/docs/METRICS_REFERENCE.md)
 - Phase 1 ecosystem analysis: [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](/Users/cleider/dev/ecoSignalLab/docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
 
 ## License

@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from importlib.metadata import entry_points
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
-from esl.core.context import AnalysisContext
 from esl.metrics.base import MetricPlugin, MetricResult, MetricSpec
 from esl.metrics.builtin import builtin_plugins
+from esl.metrics.extended import extended_plugins
+
+if TYPE_CHECKING:
+    from esl.core.context import AnalysisContext
 
 
 class MetricRegistry:
@@ -60,6 +63,8 @@ def create_registry(with_external: bool = True) -> MetricRegistry:
     """Create registry preloaded with built-in metrics."""
     reg = MetricRegistry()
     for plugin in builtin_plugins():
+        reg.register(plugin)
+    for plugin in extended_plugins():
         reg.register(plugin)
     if with_external:
         try:
