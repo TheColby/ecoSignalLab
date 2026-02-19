@@ -263,43 +263,27 @@ Large files:
 `esl` ships **74 built-in metrics** by default.
 
 ```mermaid
-mindmap
-  root((esl Metrics))
-    Basic + QC
-      RMS / Peak
-      Clipping
-      DC / Dropout / Silence
-      Uptime / Completeness
-    Level + Loudness
-      SPL A C Z
-      Leq Lmax Lmin Percentiles
-      LUFS + LRA + True Peak
-      SEL / LAE / Calibration Drift
-    Noise + SNR
-      Percentile SNR
-    Spectral + Temporal
-      Centroid / Bandwidth / Flatness / Rolloff
-      Octave / Third-Octave
-      Zero Crossing
-    Ecoacoustics
-      BAI / ACI
-      NDSI / ADI / AEI / Entropy
-      Eco Octave Trends
-    Spatial + Ambisonic
-      Interchannel Coherence
-      IACC ILD IPD ITD
-      DOA Proxy
-      FOA Diffuseness + Energy Vector
-    Architectural + Intelligibility
-      RT60 EDT T20 T30
-      C50 C80 D50 Ts G LF LFC Bass Ratio
-      STI Proxy
-    Anomaly + Novelty
-      Novelty Curve + Change Z
-      Isolation Forest
-      OCSVM
-      Autoencoder Proxy
-      Change-Point Confidence
+flowchart TB
+    M["esl Metrics (74 built-ins)"]
+    M --> B["Basic + QC"]
+    M --> L["Level + Loudness"]
+    M --> N["Noise + SNR"]
+    M --> S["Spectral + Temporal"]
+    M --> E["Ecoacoustics"]
+    M --> P["Spatial + Ambisonic"]
+    M --> A["Architectural + Intelligibility"]
+    M --> X["Anomaly + Novelty"]
+    B --> B1["RMS / Peak / Crest"]
+    B --> B2["Clipping / DC / Silence / Dropout"]
+    L --> L1["SPL A/C/Z, Leq/Lmax/Lmin"]
+    L --> L2["LUFS / LRA / True Peak / SEL"]
+    N --> N1["SNR Percentile / Stationarity"]
+    S --> S1["Centroid / Bandwidth / Flatness / Rolloff"]
+    S --> S2["Octave / Third-Octave / ZCR"]
+    E --> E1["BAI / ACI / NDSI / ADI / AEI / Entropy"]
+    P --> P1["IACC / ILD / IPD / ITD / Coherence / FOA"]
+    A --> A1["RT60 / EDT / T20 / T30 / C50 / C80 / D50 / Ts"]
+    X --> X1["Novelty Curve / Isolation Forest / OCSVM / AE Proxy"]
 ```
 
 See full definitions in [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md), including mathematical equations, plain-English interpretation, and citation links.
