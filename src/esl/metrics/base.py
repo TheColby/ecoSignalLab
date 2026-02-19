@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
-from esl.core.context import AnalysisContext
+if TYPE_CHECKING:
+    from esl.core.context import AnalysisContext
 
 
 @dataclass(slots=True)
