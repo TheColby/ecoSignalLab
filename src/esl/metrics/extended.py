@@ -1,4 +1,22 @@
-"""Extended metric plugins for standards, ecoacoustics, spatial, QC, anomaly, and campaign proxies."""
+"""Extended metric plugins for standards, ecoacoustics, spatial, QC, anomaly, and campaign proxies.
+
+Attribution and references:
+- Loudness gating and K-weighted program loudness concepts:
+  ITU-R BS.1770-4 and EBU Tech 3341 (LRA).
+- K-weighting filter coefficient pattern is implementation-aligned with common
+  open-source practice (e.g., pyloudnorm's BS.1770 realization), while this file's
+  surrounding orchestration and metric contract plumbing is original to esl.
+- RT/clarity/definition conventions:
+  ISO 3382-1:2009 and ISO 3382-2:2008.
+- NDSI / ACI / ADI / AEI ecoacoustic families:
+  Kasten et al. (2012), Pieretti et al. (2011), Villanueva-Rivera et al. ecosystem docs.
+- GCC-PHAT time-delay estimation:
+  Knapp & Carter (1976), IEEE TASSP 24(4):320-327.
+- Isolation Forest:
+  Liu, Ting, Zhou (2008), ICDM.
+- One-Class SVM:
+  Schölkopf et al. (2001), Neural Computation 13(7):1443-1471.
+"""
 
 from __future__ import annotations
 
@@ -125,6 +143,8 @@ def _bandpass_rt(ir: np.ndarray, sr: int, center_hz: float) -> float:
     if hi <= lo:
         return float("nan")
     try:
+        # Butterworth + zero-phase filtering is a practical RT-band proxy workflow.
+        # Reference for Butterworth filters: Butterworth (1930), Wireless Engineer.
         b, a = butter(4, [lo / nyq, hi / nyq], btype="band")
         y = filtfilt(b, a, ir)
     except Exception:
@@ -146,6 +166,8 @@ def _k_weight_signal(x: np.ndarray, sr: int) -> tuple[np.ndarray, int]:
         y = x.astype(np.float64)
 
     # BS.1770-style K-weighting biquads (commonly used digital coefficients).
+    # Attribution: these coefficient values follow the widely used realization seen in
+    # open implementations such as pyloudnorm, derived from ITU-R BS.1770 design intent.
     b1 = np.array([1.53512485958697, -2.69169618940638, 1.19839281085285], dtype=np.float64)
     a1 = np.array([1.0, -1.69065929318241, 0.73248077421585], dtype=np.float64)
     b2 = np.array([1.0, -2.0, 1.0], dtype=np.float64)
@@ -176,6 +198,7 @@ def _block_loudness(y: np.ndarray, sr: int, win_s: float, hop_s: float) -> tuple
         block = y[start : start + win]
         # Channel weights default to 1 for general N-channel workflows.
         e = float(np.sum(np.mean(np.square(block), axis=0)))
+        # ITU-R BS.1770 loudness block equation constant.
         l = float(-0.691 + 10.0 * np.log10(max(e, EPS)))
         energies.append(e)
         loudness.append(l)
@@ -193,6 +216,7 @@ def _loudness_cache(ctx: AnalysisContext) -> dict[str, Any]:
     t_m, e_m, l_m = _block_loudness(y, sr, win_s=0.4, hop_s=0.1)  # momentary
     t_s, e_s, l_s = _block_loudness(y, sr, win_s=3.0, hop_s=0.1)  # short-term
 
+    # Absolute and relative loudness gating aligned with BS.1770-style workflows.
     mask_abs = l_m > -70.0
     if np.any(mask_abs):
         l_ungated = float(-0.691 + 10.0 * np.log10(max(float(np.mean(e_m[mask_abs])), EPS)))
@@ -224,6 +248,7 @@ def _loudness_cache(ctx: AnalysisContext) -> dict[str, Any]:
 
 
 def _true_peak_dbfs(ctx: AnalysisContext, oversample: int = 4) -> float:
+    # True peak via oversampling is the practical approximation used in loudness standards.
     peaks = []
     for c in range(ctx.channels):
         osig = resample_poly(ctx.signal[:, c], oversample, 1)
@@ -271,6 +296,7 @@ def _fractional_octave_levels(ctx: AnalysisContext, fraction: int) -> tuple[np.n
 
 
 def _ndsi(ctx: AnalysisContext) -> float:
+    # NDSI popularized in soundscape ecology literature (e.g., Kasten et al., 2012).
     f, _, mag = _spectral_cache(ctx)
     p = np.square(mag)
     anthro = np.sum(p[(f >= 1000.0) & (f < 2000.0)])
@@ -296,14 +322,15 @@ def _adi_aei(ctx: AnalysisContext) -> tuple[float, float]:
         return 0.0, 0.0
     q = arr / arr_sum
 
-    # ADI proxy: normalized Shannon entropy in [0,1].
+    # ADI proxy uses Shannon entropy over eco-frequency occupancy bins.
     adi = float(-np.sum(q * np.log(q + EPS)) / np.log(len(q)))
-    # AEI proxy: Simpson evenness in [0,1].
+    # AEI proxy uses Simpson-style evenness.
     aei = float((1.0 / np.sum(np.square(q) + EPS)) / len(q))
     return adi, aei
 
 
 def _acoustic_entropy(ctx: AnalysisContext) -> float:
+    # Composite entropy: normalized spectral entropy times normalized temporal entropy.
     f, _, mag = _spectral_cache(ctx)
     pf = np.mean(np.square(mag), axis=1)
     pf = pf / (np.sum(pf) + EPS)
@@ -338,6 +365,7 @@ def _max_norm_xcorr(a: np.ndarray, b: np.ndarray, max_lag: int) -> float:
 
 
 def _gcc_phat_itd(a: np.ndarray, b: np.ndarray, sr: int, max_tau_s: float = 0.001) -> float:
+    # GCC-PHAT time-delay estimation after Knapp & Carter (1976).
     n = 1
     target = len(a) + len(b)
     while n < target:
@@ -513,6 +541,10 @@ def _campaign_proxy_cache(ctx: AnalysisContext) -> dict[str, Any]:
 # -----------------------------------------------------------------------------
 # Standards SPL and loudness
 # -----------------------------------------------------------------------------
+# References:
+# - ITU-R BS.1770-4 (integrated/short-term/momentary loudness and true-peak context)
+# - EBU Tech 3341 (LRA definition context)
+# - IEC 61672-1 (A/C/Z weighting intent in level reporting)
 
 
 class LeqMetric:
@@ -775,6 +807,10 @@ class TruePeakMetric:
 # -----------------------------------------------------------------------------
 # Intelligibility and architectural extensions
 # -----------------------------------------------------------------------------
+# References:
+# - ISO 3382-1 / ISO 3382-2 (room-acoustic parameter conventions)
+# - Schroeder (1965) for decay integration
+# - IEC 60268-16 context for STI family (proxy here, not full standard STI)
 
 
 class STIProxyMetric:
@@ -996,6 +1032,10 @@ class BassRatioMetric:
 # -----------------------------------------------------------------------------
 # Ecoacoustics extension set
 # -----------------------------------------------------------------------------
+# References:
+# - Pieretti et al. (2011) ACI
+# - Kasten et al. (2012) NDSI family context
+# - Sueur et al. (2008) acoustic diversity/entropy context
 
 
 class NDSIMetric:
@@ -1125,6 +1165,10 @@ class EcoOctaveTrendMetric:
 # -----------------------------------------------------------------------------
 # Spatial and ambisonic extensions
 # -----------------------------------------------------------------------------
+# References:
+# - Knapp & Carter (1976) GCC-PHAT
+# - Blauert, \"Spatial Hearing\" (interaural cue interpretation)
+# - Ambisonic energy/intensity vector conventions (first-order proxy formulation)
 
 
 class IACCMetric:
@@ -1358,6 +1402,9 @@ class DOAAzimuthProxyMetric:
 # -----------------------------------------------------------------------------
 # Quality-control metrics
 # -----------------------------------------------------------------------------
+# References:
+# - Practical QC conventions from measurement workflows (clipping, dropouts, DC bias)
+# - IEC meter and instrumentation practice context (non-normative here)
 
 
 class ClippingRatioMetric:
@@ -1482,6 +1529,10 @@ class CalibrationDriftMetric:
 # -----------------------------------------------------------------------------
 # Model-backed anomaly metrics
 # -----------------------------------------------------------------------------
+# References:
+# - Liu et al. (2008) Isolation Forest
+# - Schölkopf et al. (2001) One-Class SVM
+# - Pimentel et al. (2014) novelty/anomaly survey context
 
 
 class IsolationForestScoreMetric:
@@ -1505,6 +1556,7 @@ class IsolationForestScoreMetric:
         try:
             from sklearn.ensemble import IsolationForest
 
+            # Isolation Forest: Liu, Ting, Zhou (ICDM 2008).
             model = IsolationForest(random_state=ctx.config.seed, n_estimators=200, contamination="auto")
             model.fit(X)
             score = -model.decision_function(X)
@@ -1543,6 +1595,7 @@ class OCSVMScoreMetric:
         try:
             from sklearn.svm import OneClassSVM
 
+            # One-Class SVM: Schölkopf et al. (Neural Computation, 2001).
             model = OneClassSVM(kernel="rbf", gamma="scale", nu=0.05)
             model.fit(X)
             score = -model.decision_function(X)
@@ -1636,6 +1689,8 @@ class ChangePointConfidenceMetric:
 # -----------------------------------------------------------------------------
 # Fractional octave outputs
 # -----------------------------------------------------------------------------
+# References:
+# - ISO octave/third-octave center-frequency conventions (implementation-proxy bands)
 
 
 class OctaveBandLevelMetric:
@@ -1695,6 +1750,8 @@ class ThirdOctaveBandLevelMetric:
 # -----------------------------------------------------------------------------
 # Campaign-level proxy metrics (single-file inference)
 # -----------------------------------------------------------------------------
+# References:
+# - Field recording QA literature and passive acoustic monitoring workflow conventions.
 
 
 class UptimeRatioMetric:

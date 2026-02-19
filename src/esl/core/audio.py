@@ -1,4 +1,11 @@
-"""Audio decoding, streaming, and format handling."""
+"""Audio decoding, streaming, and format handling.
+
+References:
+- Polyphase resampling foundation:
+  Crochiere & Rabiner (1983), \"Multirate Digital Signal Processing\".
+- Practical implementation API:
+  SciPy `signal.resample_poly` documentation.
+"""
 
 from __future__ import annotations
 
@@ -68,6 +75,7 @@ def _resample_if_needed(samples: np.ndarray, src_sr: int, dst_sr: int | None) ->
     g = gcd(src_sr, dst_sr)
     up = dst_sr // g
     down = src_sr // g
+    # Polyphase resampling (multirate DSP standard approach).
     out = np.zeros((int(np.ceil(samples.shape[0] * dst_sr / src_sr)), samples.shape[1]), dtype=np.float32)
     for c in range(samples.shape[1]):
         out[:, c] = resample_poly(samples[:, c], up, down).astype(np.float32)

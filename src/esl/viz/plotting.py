@@ -1,4 +1,14 @@
-"""Visualization engine for static and interactive acoustic plots."""
+"""Visualization engine for static and interactive acoustic plots.
+
+References:
+- STFT and spectrogram formulations:
+  Allen & Rabiner (1977), Proc. IEEE.
+- Mel-scale filterbank conventions:
+  Davis & Mermelstein (1980), IEEE TASSP 28(4):357-366.
+- Self-similarity matrix + checkerboard novelty segmentation:
+  Foote (2000), ACM Multimedia; and the FMP notebooks by Müller
+  ([https://www.audiolabs-erlangen.de/resources/MIR/FMP/]).
+"""
 
 from __future__ import annotations
 
@@ -41,6 +51,7 @@ def _mel_to_hz(m: np.ndarray) -> np.ndarray:
 
 
 def _mel_filterbank(sr: int, n_fft: int, n_mels: int = 64, fmin: float = 20.0, fmax: float | None = None) -> np.ndarray:
+    # Triangular mel filterbank following classic MFCC-style design (Davis & Mermelstein, 1980).
     if fmax is None:
         fmax = sr / 2.0
     m_min, m_max = _hz_to_mel(np.array([fmin, fmax]))
@@ -186,6 +197,7 @@ def _compute_similarity_matrix(
     feat = np.log1p(mel.T)  # [frames, mel]
     feat = feat - np.mean(feat, axis=1, keepdims=True)
     feat = feat / np.maximum(np.linalg.norm(feat, axis=1, keepdims=True), 1e-12)
+    # Cosine-similarity self-similarity matrix.
     ssm = np.dot(feat, feat.T)
     ssm = np.clip(ssm, 0.0, 1.0)
     return t, ssm
@@ -227,7 +239,7 @@ def _checkerboard_kernel(L: int, sigma_scale: float = 0.5) -> np.ndarray:
     sign[L + 1 :, L + 1 :] = 1.0
     sign[:L, L + 1 :] = -1.0
     sign[L + 1 :, :L] = -1.0
-    # center row and center column remain zero by design.
+    # Center row and center column remain zero by design (Foote novelty kernel).
     return gauss * sign
 
 
@@ -240,11 +252,15 @@ def compute_novelty_matrix(
     kernel_sigma_scale: float = 0.5,
 ) -> dict[str, np.ndarray]:
     """
-    Compute novelty-matrix components:
+    Compute novelty-matrix components (Foote-style):
     - self-similarity matrix
     - checkerboard kernel
     - novelty curve
     - novelty peaks
+
+    Attribution:
+    - This implementation follows the published algorithmic pattern and the
+      educational formulation shown in the FMP notebooks, re-implemented for esl.
     """
     t, ssm = _compute_similarity_matrix(audio_path, n_fft=n_fft, hop=hop, n_mels=n_mels)
     n_frames = int(ssm.shape[0])

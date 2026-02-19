@@ -11,6 +11,7 @@ from typing import Any
 
 from esl.core import AnalysisConfig, IngestConfig, analyze, load_calibration
 from esl.core.audio import iter_supported_files
+from esl.docsgen import build_docs
 from esl.io import (
     save_apx_csv,
     save_csv,
@@ -28,6 +29,12 @@ from esl.schema import analysis_output_schema
 
 
 def _metric_list(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+
+def _csv_list(raw: str | None) -> list[str]:
     if not raw:
         return []
     return [x.strip() for x in raw.split(",") if x.strip()]
@@ -382,6 +389,20 @@ def _run_pipeline_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_docs(args: argparse.Namespace) -> int:
+    formats = {x.lower() for x in _csv_list(args.formats)}
+    report = build_docs(
+        root=Path(args.root),
+        output_root=Path(args.out),
+        formats=formats,
+        title=args.title,
+    )
+    print(f"docs root: {report.root}")
+    print(f"html artifacts: {len(report.html_pages)} -> {report.output_root / 'html'}")
+    print(f"pdf artifacts: {len(report.pdf_pages)} -> {report.output_root / 'pdf'}")
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="esl", description="ecoSignalLab CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -511,6 +532,14 @@ def _build_parser() -> argparse.ArgumentParser:
     ppl_status = ppl_sub.add_parser("status", help="Show pipeline manifest status")
     ppl_status.add_argument("--manifest", required=True, help="Path to pipeline_manifest.json")
     ppl_status.set_defaults(func=_run_pipeline_status)
+
+    # docs
+    pd = sub.add_parser("docs", help="Build documentation into hyperlink-rich HTML/PDF")
+    pd.add_argument("--root", default=".", help="Repository root to scan for markdown docs")
+    pd.add_argument("--out", default="docs/build", help="Output directory for generated docs")
+    pd.add_argument("--formats", default="html,pdf", help="Comma-separated formats: html,pdf")
+    pd.add_argument("--title", default="ecoSignalLab Documentation", help="Site/report title")
+    pd.set_defaults(func=_run_docs)
 
     return parser
 

@@ -39,6 +39,7 @@ dependencies = [
   "scipy>=1.10",
   "soundfile>=0.12",
   "pandas>=2.0",
+  "markdown>=3.6",
   "pyyaml>=6.0",
   "matplotlib>=3.7",
   "h5py>=3.10",
@@ -57,6 +58,9 @@ io = [
 ]
 plot = [
   "plotly>=5.18",
+]
+docs = [
+  "playwright>=1.48",
 ]
 mat = [
   "scipy>=1.10",
