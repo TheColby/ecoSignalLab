@@ -75,6 +75,10 @@ def _run_analyze(args: argparse.Namespace) -> int:
     input_path = Path(args.input)
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
+    if input_path.is_dir():
+        raise IsADirectoryError(
+            f"'{input_path}' is a directory. Use the 'batch' command for directory analysis."
+        )
 
     out_dir = Path(args.out_dir)
     _mkdir(out_dir)
@@ -152,17 +156,15 @@ def _run_analyze(args: argparse.Namespace) -> int:
             return float(value) if isinstance(value, (int, float)) else None
 
         print(f"json: {json_path}")
-        print(
-            "summary:",
-            {
-                "duration_s": round(float(result["metadata"]["duration_s"]), 3),
-                "channels": int(result["metadata"]["channels"]),
-                "sample_rate": int(result["metadata"]["sample_rate"]),
-                "spl_a_mean": _mean("spl_a_db"),
-                "snr_mean": _mean("snr_db"),
-                "rt60": _mean("rt60_s"),
-            },
-        )
+        m = result["metadata"]
+        summary_line = f"summary: {float(m['duration_s']):.3f}s | {int(m['channels'])}ch | {int(m['sample_rate'])}Hz"
+        if (v := _mean("spl_a_db")) is not None:
+            summary_line += f" | spl_a: {v:.1f}dB"
+        if (v := _mean("snr_db")) is not None:
+            summary_line += f" | snr: {v:.1f}dB"
+        if (v := _mean("rt60_s")) is not None:
+            summary_line += f" | rt60: {v:.2f}s"
+        print(summary_line)
 
     if cfg.debug >= 1:
         print(f"config_hash: {result.get('config_hash')}")
@@ -185,7 +187,11 @@ def _run_batch(args: argparse.Namespace) -> int:
 
     rows: list[dict[str, Any]] = []
     plot_artifacts: list[str] = []
-    for fp in files:
+    total = len(files)
+    for i, fp in enumerate(files, 1):
+        if args.verbosity >= 1:
+            print(f"[{i}/{total}] Analyzing {fp.name}...")
+
         rel = fp.relative_to(in_root)
         run_out = out_dir / rel.parent
         _mkdir(run_out)
