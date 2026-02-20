@@ -279,28 +279,24 @@ def _run_analyze(args: argparse.Namespace) -> int:
     if cfg.verbosity >= 1:
         metrics = result.get("metrics", {})
 
-        def _mean(name: str) -> float | None:
+        def _fmt(name: str, unit: str) -> str:
             payload = metrics.get(name)
             if not isinstance(payload, dict):
-                return None
+                return "N/A"
             summary = payload.get("summary")
             if not isinstance(summary, dict):
-                return None
-            value = summary.get("mean")
-            return float(value) if isinstance(value, (int, float)) else None
+                return "N/A"
+            val = summary.get("mean")
+            return f"{float(val):.2f} {unit}" if isinstance(val, (int, float)) else "N/A"
 
-        print(f"json: {json_path}")
-        print(
-            "summary:",
-            {
-                "duration_s": round(float(result["metadata"]["duration_s"]), 3),
-                "channels": int(result["metadata"]["channels"]),
-                "sample_rate": int(result["metadata"]["sample_rate"]),
-                "spl_a_mean": _mean("spl_a_db"),
-                "snr_mean": _mean("snr_db"),
-                "rt60": _mean("rt60_s"),
-            },
-        )
+        print(f"✨ Analysis complete: {json_path}")
+        print("📊 Summary:")
+        print(f"   - Duration:    {float(result['metadata']['duration_s']):.3f} s")
+        print(f"   - Channels:    {int(result['metadata']['channels'])}")
+        print(f"   - Sample Rate: {int(result['metadata']['sample_rate'])} Hz")
+        print(f"   - SPL (A):     {_fmt('spl_a_db', 'dBA')}")
+        print(f"   - SNR:         {_fmt('snr_db', 'dB')}")
+        print(f"   - RT60:        {_fmt('rt60_s', 's')}")
 
     if cfg.debug >= 1:
         print(f"config_hash: {result.get('config_hash')}")
@@ -323,7 +319,13 @@ def _run_batch(args: argparse.Namespace) -> int:
 
     rows: list[dict[str, Any]] = []
     plot_artifacts: list[str] = []
-    for fp in files:
+    num_files = len(files)
+
+    for i, fp in enumerate(files):
+        if args.verbosity >= 1:
+            msg = f"🔄 [{i+1}/{num_files}] Analyzing: {fp.name}..."
+            print(msg.ljust(80), end="\r", flush=True)
+
         rel = fp.relative_to(in_root)
         run_out = out_dir / rel.parent
         _mkdir(run_out)
@@ -394,8 +396,10 @@ def _run_batch(args: argparse.Namespace) -> int:
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
-    print(f"batch complete: {len(rows)} files -> {out_dir}")
-    print(f"index: {idx}")
+    if args.verbosity >= 1:
+        print(" " * 80, end="\r")  # Clear progress line
+    print(f"✅ Batch complete: {len(rows)} files analyzed -> {out_dir}")
+    print(f"🚀 Index: {idx}")
     if args.plot and args.show:
         from esl.viz import spawn_plot_paths
 
@@ -482,16 +486,16 @@ def _run_validate(args: argparse.Namespace) -> int:
         seed=args.seed,
     )
     report_path, report = run_validation(cfg)
-    print(f"validation_report: {report_path}")
-    print(
-        "summary:",
-        {
-            "files_checked": report.get("files_checked"),
-            "files_passed": report.get("files_passed"),
-            "files_failed": report.get("files_failed"),
-            "summary_csv": report.get("summary_csv"),
-        },
-    )
+    passed = int(report.get("files_passed", 0))
+    failed = int(report.get("files_failed", 0))
+    total = int(report.get("files_checked", 0))
+
+    print(f"✨ Validation report: {report_path}")
+    print("📊 Summary:")
+    print(f"   - Files Checked: {total}")
+    print(f"   - Files Passed:  {passed}  {'✅' if failed == 0 else ''}")
+    print(f"   - Files Failed:  {failed}  {'❌' if failed > 0 else ''}")
+    print(f"   - Summary CSV:   {report.get('summary_csv')}")
     return 0 if int(report.get("files_failed", 0)) == 0 else 2
 
 
@@ -518,16 +522,14 @@ def _run_stream(args: argparse.Namespace) -> int:
     )
     report_path, report = run_stream_analysis(cfg)
     if args.verbosity >= 1:
-        print(f"stream report: {report_path}")
-        print(
-            "summary:",
-            {
-                "chunks_processed": report.get("chunks_processed"),
-                "alert_count": report.get("alert_count"),
-                "metrics": report.get("metrics"),
-                "alerts_csv": report.get("artifacts", {}).get("alerts_csv"),
-            },
-        )
+        metrics_list = report.get("metrics")
+        metrics_str = ", ".join(str(m) for m in metrics_list) if isinstance(metrics_list, list) else "N/A"
+        print(f"📡 Stream analysis complete: {report_path}")
+        print("📊 Summary:")
+        print(f"   - Chunks Processed: {report.get('chunks_processed')}")
+        print(f"   - Alert Count:     {report.get('alert_count')}")
+        print(f"   - Metrics:         {metrics_str}")
+        print(f"   - Alerts CSV:      {report.get('artifacts', {}).get('alerts_csv')}")
     if args.debug >= 1:
         print(f"chunk_size: {args.chunk_size} sample_rate: {report.get('sample_rate')}")
     if args.debug >= 2:
