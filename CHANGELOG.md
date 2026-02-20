@@ -5,6 +5,10 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
 ## [0.2.0] - Unreleased
 
 ### Added
+- `moments` extraction workflow:
+  - `esl moments extract` for timestamped moment CSV + clip export
+  - `src/esl/core/moments.py`
+  - `docs/MOMENTS_EXTRACTION.md`
 - Tag-driven release automation:
   - `.github/workflows/release.yml` (tests, docs HTML/PDF, schema export, dist packaging, GitHub release uploads)
 - Versioned schema publication artifact:
@@ -18,6 +22,9 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
 - Canonical ML FrameTable contract docs and exports:
   - `docs/ML_FEATURES.md`
   - `src/esl/ml/export.py` (`FrameTable`, tensor/tabular contract exports)
+- Similarity/novelty feature vector expansion:
+  - optional librosa-rich feature extraction (`esl features extract`)
+  - external vector-driven similarity/novelty plotting
 - Maintainer release runbook:
   - `docs/RELEASE.md`
 

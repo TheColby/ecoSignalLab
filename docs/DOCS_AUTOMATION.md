@@ -77,6 +77,8 @@ python -m playwright install chromium
 ## Hyperlink and Citation Expectations
 
 - All documentation files should cross-link to related docs and source files where useful.
+- Workflow docs should link to the interesting-moments extraction guide:
+  - [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - Algorithm-heavy sections should include links to:
   - [`docs/REFERENCES.md`](REFERENCES.md)
   - [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)

@@ -49,3 +49,8 @@ Semantics:
 - expected bounds/flag
 - status (`pass`/`fail`)
 - failure message
+
+## Related Docs
+
+- [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
+- [`SCHEMA.md`](SCHEMA.md)

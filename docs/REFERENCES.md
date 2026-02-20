@@ -7,6 +7,7 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - All algorithmic implementations should cite the primary paper, standard, or authoritative technical note.
 - If implementation details are inspired by open-source projects, both the project and its license must be cited in `docs/ATTRIBUTION.md`.
 - When in doubt, cite both the standards document and one high-quality implementation reference.
+- Novelty/segmentation citations should also be reflected in workflow docs such as [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md).
 
 ## Standards
 

@@ -3,6 +3,7 @@
 This file tracks algorithmic inspiration, adapted implementation patterns, and third-party code context for `esl`.
 
 Principle: `esl` does not intentionally copy uncredited code. Where implementation details are inspired by prior work, we document the source and licensing context here.
+Operational extraction workflow reference: [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 
 ## Attributed Implementations and Inspirations
 
@@ -12,6 +13,7 @@ Principle: `esl` does not intentionally copy uncredited code. Where implementati
 | `src/esl/viz/plotting.py` | Foote-style novelty kernel and novelty curve pipeline | [Foote 2000](https://dl.acm.org/doi/10.1145/336597.336612), [FMP notebooks](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html) | Academic publications / educational resources | Re-implemented from published algorithm descriptions and educational formulations; not a direct code copy. |
 | `src/esl/metrics/helpers.py` | STFT-based features and spectral flux novelty | SciPy STFT docs, Dixon (2006) | BSD-3-Clause (SciPy docs/project) | Uses canonical DSP formulas implemented with SciPy APIs. |
 | `src/esl/viz/feature_vectors.py` | librosa-backed frame feature extraction (MFCC/chroma/contrast/tonnetz/etc.) | [librosa documentation](https://librosa.org/doc/latest/index.html), classic MIR feature literature | ISC (librosa), academic publications | Uses public librosa APIs and standard feature definitions; integration/combination logic in esl is original. |
+| `src/esl/core/moments.py` | Alert-window merging + ffmpeg/soundfile clip export | ffmpeg docs, soundfile docs, novelty-detection literature context | LGPL/GPL distribution dependent (ffmpeg binary), BSD-3-Clause (soundfile) | Uses subprocess integration and file I/O APIs; no vendored third-party extraction code. |
 | `src/esl/metrics/extended.py` | GCC-PHAT ITD estimation | Knapp & Carter (1976), common open implementations | Academic publication | Implemented from standard published method. |
 | `src/esl/ml/export.py` and `src/esl/metrics/extended.py` | Isolation Forest and One-Class SVM | scikit-learn estimators | BSD-3-Clause | Uses scikit-learn public APIs, no vendored model code. |
 | `src/esl/docsgen/builder.py` | Mermaid rendering + browser PDF conversion | Mermaid docs, Playwright docs | MIT (Mermaid), Apache-2.0 (Playwright) | Uses documented runtime APIs; no vendored third-party runtime code. |

@@ -723,6 +723,51 @@ def _run_features_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_moments_extract(args: argparse.Namespace) -> int:
+    from esl.core.moments import MomentsExtractConfig, run_moments_extract
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+    calibration = load_calibration(args.calibration) if args.calibration else None
+
+    cfg = MomentsExtractConfig(
+        input_path=input_path,
+        output_dir=Path(args.out),
+        rules_path=args.rules,
+        metrics=_metric_list(args.metrics) or None,
+        calibration=calibration,
+        frame_size=args.frame_size,
+        hop_size=args.hop_size,
+        sample_rate=args.sample_rate,
+        chunk_size=args.chunk_size,
+        seed=args.seed,
+        max_chunks=args.max_chunks,
+        stream_report_path=args.stream_report,
+        pre_roll_s=float(args.pre_roll),
+        post_roll_s=float(args.post_roll),
+        merge_gap_s=float(args.merge_gap),
+        min_alerts_per_chunk=int(args.min_alerts_per_chunk),
+        max_clips=args.max_clips,
+        csv_out=args.csv,
+        clips_dir=args.clips_dir,
+        report_out=args.report,
+    )
+    report_path, report = run_moments_extract(cfg)
+    print(f"moments_report: {report_path}")
+    print(
+        "summary:",
+        {
+            "clips_written": report.get("clips_written"),
+            "windows_selected": report.get("windows_selected"),
+            "csv_path": report.get("csv_path"),
+            "clips_dir": report.get("clips_dir"),
+            "stream_report_path": report.get("stream_report_path"),
+        },
+    )
+    return 0
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     from esl.ingest import ingest
 
@@ -1130,6 +1175,37 @@ def _build_parser() -> argparse.ArgumentParser:
     pfeat_ex.add_argument("--sample-rate", type=int, default=None)
     pfeat_ex.add_argument("--meta-json", default=None, help="Optional metadata JSON sidecar path")
     pfeat_ex.set_defaults(func=_run_features_extract)
+
+    # moments
+    pmom = sub.add_parser("moments", help="Find and export interesting timestamped moments as clips")
+    pmom_sub = pmom.add_subparsers(dest="moments_cmd", required=True)
+
+    pmom_ex = pmom_sub.add_parser("extract", help="Extract moments to WAV clips + CSV from alert criteria")
+    pmom_ex.add_argument("input", help="Input audio file path")
+    pmom_ex.add_argument("--out", default="moments_out", help="Output directory")
+    pmom_ex.add_argument("--stream-report", default=None, help="Optional precomputed stream_report.json")
+    pmom_ex.add_argument("--rules", default=None, help="Alert rules JSON/YAML path (used when stream report not provided)")
+    pmom_ex.add_argument(
+        "--metrics",
+        default="novelty_curve,spectral_change_detection,isolation_forest_score,spl_a_db",
+        help="Comma-separated metrics for detection pass",
+    )
+    pmom_ex.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    pmom_ex.add_argument("--frame-size", type=int, default=2048)
+    pmom_ex.add_argument("--hop-size", type=int, default=512)
+    pmom_ex.add_argument("--sample-rate", type=int, default=None)
+    pmom_ex.add_argument("--chunk-size", type=int, default=131072, help="Detection chunk size in samples")
+    pmom_ex.add_argument("--seed", type=int, default=42)
+    pmom_ex.add_argument("--max-chunks", type=int, default=None, help="Optional cap for detection chunks")
+    pmom_ex.add_argument("--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk")
+    pmom_ex.add_argument("--post-roll", type=float, default=3.0, help="Seconds after each detected chunk")
+    pmom_ex.add_argument("--merge-gap", type=float, default=2.0, help="Merge windows separated by <= this many seconds")
+    pmom_ex.add_argument("--min-alerts-per-chunk", type=int, default=1, help="Minimum alerts needed for chunk selection")
+    pmom_ex.add_argument("--max-clips", type=int, default=None, help="Maximum number of clips to export")
+    pmom_ex.add_argument("--csv", default=None, help="Output CSV path (default: <out>/moments.csv)")
+    pmom_ex.add_argument("--clips-dir", default=None, help="Output clips directory (default: <out>/clips)")
+    pmom_ex.add_argument("--report", default=None, help="Output moments report JSON path")
+    pmom_ex.set_defaults(func=_run_moments_extract)
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")

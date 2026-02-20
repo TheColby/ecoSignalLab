@@ -50,3 +50,5 @@ def test_python_module_help_entrypoint() -> None:
     proc = subprocess.run([sys.executable, "-m", "esl", "--help"], capture_output=True, text=True, env=env, check=False)
     assert proc.returncode == 0
     assert "ecoSignalLab CLI" in proc.stdout
+    assert "features" in proc.stdout
+    assert "moments" in proc.stdout

@@ -7,6 +7,7 @@ This runbook describes how to cut an `esl` release and publish build artifacts (
 - Working tree is clean.
 - `CHANGELOG.md` has updated release notes.
 - `pyproject.toml` and `src/esl/version.py` contain the target version.
+- Docs links are current, including workflow references like [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md).
 - Tests pass locally:
 
 ```bash

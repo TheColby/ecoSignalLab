@@ -6,11 +6,12 @@ See related docs:
 - [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
 - [`docs/REFERENCES.md`](docs/REFERENCES.md)
 - [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
+- [`docs/MOMENTS_EXTRACTION.md`](docs/MOMENTS_EXTRACTION.md)
 
 ## Package Layout
 
 - `src/esl/core`
-  - analysis orchestration, audio I/O, calibration, context, config
+  - analysis orchestration, audio I/O, calibration, context, config, moments extraction
 - `src/esl/metrics`
   - metric contracts, helpers, built-ins, extended set, registry
 - `src/esl/io`

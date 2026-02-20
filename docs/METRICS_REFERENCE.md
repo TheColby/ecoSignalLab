@@ -6,6 +6,7 @@ Scope:
 - 74 built-in metrics (core + extended)
 - Mathematical definition (implementation-aligned)
 - Plain-English interpretation
+- Operational extraction workflow: [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 
 ## Notation
 
@@ -352,3 +353,7 @@ stateDiagram-v2
 - K-weighting implementation context and attribution notes: [`src/esl/metrics/extended.py`](../src/esl/metrics/extended.py)
 - Novelty/similarity algorithm attribution notes: [`src/esl/viz/plotting.py`](../src/esl/viz/plotting.py)
 - Full attribution log: [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)
+
+## Related Workflows
+
+- Interesting moments extraction (clip export + timestamp CSV): [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)

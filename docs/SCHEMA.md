@@ -105,9 +105,21 @@ For metric definitions and formulas, see [`METRICS_REFERENCE.md`](METRICS_REFERE
 }
 ```
 
+## Moments Extraction Artifacts
+
+`esl moments extract` emits additional operational artifacts that are not part of the
+`esl analyze` JSON schema contract:
+
+- `moments_report.json` (extraction run metadata, selected windows, clip export summary)
+- `moments.csv` (timestamped moment table)
+- `clips/moment_XXXX.wav` (exported segments)
+
+See [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md) for field-level definitions.
+
 ## Related Docs
 
 - [`METRICS_REFERENCE.md`](METRICS_REFERENCE.md)
 - [`ML_FEATURES.md`](ML_FEATURES.md)
 - [`NOVELTY_ANOMALY.md`](NOVELTY_ANOMALY.md)
+- [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`REFERENCES.md`](REFERENCES.md)

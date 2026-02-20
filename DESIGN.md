@@ -8,6 +8,7 @@ See also:
 - [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
 - [`docs/REFERENCES.md`](docs/REFERENCES.md)
 - [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
+- [`docs/MOMENTS_EXTRACTION.md`](docs/MOMENTS_EXTRACTION.md)
 
 ## Product Intent
 

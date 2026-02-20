@@ -52,6 +52,7 @@ See:
 - [`docs/SCHEMA.md`](docs/SCHEMA.md)
 - [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
+- [`docs/MOMENTS_EXTRACTION.md`](docs/MOMENTS_EXTRACTION.md)
 - [`docs/VALIDATION.md`](docs/VALIDATION.md)
 - [`docs/RELEASE.md`](docs/RELEASE.md)
 - [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
@@ -111,6 +112,9 @@ flowchart LR
     E["esl ingest"] --> E1["Online dataset ingestion"]
     F["esl schema"] --> F1["Output JSON schema"]
     G["esl docs"] --> G1["Build HTML/PDF documentation"]
+    H["esl stream"] --> H1["Chunk analysis + alerts"]
+    I["esl moments extract"] --> I1["Timestamp CSV + clip export"]
+    J["esl features extract"] --> J1["Frame-level feature vectors"]
 ```
 
 ```mermaid
@@ -274,6 +278,20 @@ esl calibrate check \
   --max-drift-db 1.0 \
   --history calib/history.csv \
   --out calib/check_report.json
+```
+
+### Interesting moments extraction (clips + timestamp CSV)
+
+```bash
+esl moments extract input_24h.wav \
+  --out out/moments \
+  --rules rules_24h.yaml \
+  --metrics novelty_curve,spectral_change_detection,isolation_forest_score,spl_a_db \
+  --chunk-size 2880000 \
+  --sample-rate 96000 \
+  --pre-roll 3 \
+  --post-roll 3 \
+  --merge-gap 2
 ```
 
 ### Plot from existing JSON
@@ -446,6 +464,7 @@ Outputs:
 - ML FrameTable contract: [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
   - Includes committed novelty plot example set: [`docs/examples/novelty_plot_set/`](docs/examples/novelty_plot_set)
+- Moments extraction workflow: [`docs/MOMENTS_EXTRACTION.md`](docs/MOMENTS_EXTRACTION.md)
 - Validation harness: [`docs/VALIDATION.md`](docs/VALIDATION.md)
 - Release process: [`docs/RELEASE.md`](docs/RELEASE.md)
 - Algorithm index: [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)

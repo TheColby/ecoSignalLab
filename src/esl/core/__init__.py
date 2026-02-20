@@ -3,6 +3,7 @@
 from .audio import read_audio, stream_audio
 from .calibration import load_calibration
 from .config import AnalysisConfig, BatchConfig, CalibrationProfile, IngestConfig
+from .moments import MomentsExtractConfig, run_moments_extract
 
 
 def analyze(*args, **kwargs):
@@ -21,4 +22,6 @@ __all__ = [
     "BatchConfig",
     "CalibrationProfile",
     "IngestConfig",
+    "MomentsExtractConfig",
+    "run_moments_extract",
 ]

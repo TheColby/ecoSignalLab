@@ -379,3 +379,4 @@ flowchart LR
 - Stable taxonomy and formulas: [`docs/METRICS_REFERENCE.md`](METRICS_REFERENCE.md)
 - System-level design rationale: [`DESIGN.md`](../DESIGN.md)
 - Runtime and module architecture: [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+- Interesting moments extraction workflow: [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
