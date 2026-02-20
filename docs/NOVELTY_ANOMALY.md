@@ -82,6 +82,33 @@ CLI:
 - `esl plot results.json --novelty-matrix --sim-feature-set librosa`
 - `esl plot results.json --novelty-matrix --feature-vectors vectors.csv`
 
+## Committed Example Plot Set
+
+The repository includes a generated novelty plot set example at:
+- [`docs/examples/novelty_plot_set/`](examples/novelty_plot_set)
+
+Generation command used:
+
+```bash
+esl plot examples/sample_run/output/demo_stereo.json \
+  --out docs/examples/novelty_plot_set \
+  --audio examples/sample_run/input/demo_stereo.wav \
+  --no-spectral \
+  --novelty-matrix
+```
+
+Artifacts:
+- [`novelty_matrix.png`](examples/novelty_plot_set/novelty_matrix.png)
+- [`novelty_curve.png`](examples/novelty_plot_set/novelty_curve.png)
+- [`spl_a_over_time.png`](examples/novelty_plot_set/spl_a_over_time.png)
+- [`snr_over_time.png`](examples/novelty_plot_set/snr_over_time.png)
+- [`rt60_decay_curve.png`](examples/novelty_plot_set/rt60_decay_curve.png)
+
+Preview:
+
+![Novelty matrix example](examples/novelty_plot_set/novelty_matrix.png)
+![Novelty curve example](examples/novelty_plot_set/novelty_curve.png)
+
 ## Model-Based Anomaly Metrics
 
 - `isolation_forest_score`

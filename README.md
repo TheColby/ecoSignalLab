@@ -445,6 +445,7 @@ Outputs:
 - Output schema contract: [`docs/SCHEMA.md`](docs/SCHEMA.md)
 - ML FrameTable contract: [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
+  - Includes committed novelty plot example set: [`docs/examples/novelty_plot_set/`](docs/examples/novelty_plot_set)
 - Validation harness: [`docs/VALIDATION.md`](docs/VALIDATION.md)
 - Release process: [`docs/RELEASE.md`](docs/RELEASE.md)
 - Algorithm index: [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)
