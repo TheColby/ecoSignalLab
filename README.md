@@ -167,6 +167,7 @@ Optional extras:
 
 ```bash
 pip install -e .[dev,ml,plot,io,docs]
+pip install -e .[features]   # librosa-rich feature vectors/similarity
 ```
 
 System dependencies:
@@ -286,7 +287,20 @@ Plot controls:
 - `--no-spectral` (skip spectrogram/mel/log/waterfall/LTSA suite)
 - `--similarity-matrix` (generate self-similarity matrix plot)
 - `--novelty-matrix` (generate Foote-style novelty matrix plot)
+- `--sim-feature-set auto|core|librosa|all` (feature backend for similarity/novelty)
+- `--feature-vectors vectors.npz` (drive similarity/novelty from external vectors)
 - `--show --show-limit 12` (spawn generated plots via system viewer/browser)
+
+### Extract feature vectors (for similarity/anomaly workflows)
+
+```bash
+esl features extract input.wav \
+  --out vectors.npz \
+  --feature-set all \
+  --frame-size 1024 \
+  --hop-size 256 \
+  --meta-json vectors_meta.json
+```
 
 ### Ingest datasets
 

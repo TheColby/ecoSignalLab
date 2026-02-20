@@ -59,6 +59,9 @@ io = [
 plot = [
   "plotly>=5.18",
 ]
+features = [
+  "librosa>=0.10",
+]
 docs = [
   "playwright>=1.48",
 ]

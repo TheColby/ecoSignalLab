@@ -24,6 +24,11 @@ import numpy as np
 from scipy.signal import find_peaks, stft
 
 from esl.core.audio import read_audio
+from esl.viz.feature_vectors import (
+    extract_feature_vectors,
+    load_feature_vectors,
+    similarity_matrix_from_features,
+)
 
 
 def _ensure_dir(path: Path) -> None:
@@ -178,34 +183,53 @@ def _plot_spectral_suite(audio_path: str | Path, out_dir: Path) -> list[Path]:
 
 def _compute_similarity_matrix(
     audio_path: str | Path,
+    *,
     n_fft: int = 1024,
     hop: int = 256,
     n_mels: int = 64,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute frame-level self-similarity matrix from log-mel features."""
-    buf = read_audio(audio_path)
-    mono = np.mean(buf.samples, axis=1)
-    nperseg = min(n_fft, max(16, len(mono)))
-    noverlap = min(nperseg - 1, max(0, nperseg - hop))
-    _, t, z = stft(mono, fs=buf.sample_rate, nperseg=nperseg, noverlap=noverlap, boundary=None)
-    if z.size == 0:
-        return np.array([0.0]), np.zeros((1, 1), dtype=np.float64)
+    feature_set: str = "auto",
+    feature_vectors_path: str | Path | None = None,
+) -> tuple[np.ndarray, np.ndarray, str]:
+    """Compute frame-level self-similarity matrix from extracted feature vectors."""
+    if feature_vectors_path:
+        vec = load_feature_vectors(feature_vectors_path)
+    else:
+        vec = extract_feature_vectors(
+            audio_path=audio_path,
+            feature_set=feature_set,
+            frame_size=n_fft,
+            hop_size=hop,
+            n_mels=n_mels,
+        )
+    if vec.matrix.size == 0:
+        return np.array([0.0]), np.zeros((1, 1), dtype=np.float64), vec.backend
+    ssm = similarity_matrix_from_features(vec.matrix)
+    frame_count = min(ssm.shape[0], vec.times_s.size if vec.times_s.size else ssm.shape[0])
+    if frame_count <= 0:
+        return np.array([0.0]), np.zeros((1, 1), dtype=np.float64), vec.backend
+    t = vec.times_s[:frame_count] if vec.times_s.size else np.arange(frame_count, dtype=np.float64)
+    return t.astype(np.float64), ssm[:frame_count, :frame_count].astype(np.float64), vec.backend
 
-    mag = np.abs(z)
-    fb = _mel_filterbank(buf.sample_rate, n_fft=nperseg, n_mels=n_mels)
-    mel = np.dot(fb, np.square(mag))  # [mel, frames]
-    feat = np.log1p(mel.T)  # [frames, mel]
-    feat = feat - np.mean(feat, axis=1, keepdims=True)
-    feat = feat / np.maximum(np.linalg.norm(feat, axis=1, keepdims=True), 1e-12)
-    # Cosine-similarity self-similarity matrix.
-    ssm = np.dot(feat, feat.T)
-    ssm = np.clip(ssm, 0.0, 1.0)
-    return t, ssm
 
-
-def _plot_similarity_matrix(audio_path: str | Path, out_dir: Path) -> Path:
+def _plot_similarity_matrix(
+    audio_path: str | Path,
+    out_dir: Path,
+    *,
+    n_fft: int = 1024,
+    hop: int = 256,
+    n_mels: int = 64,
+    feature_set: str = "auto",
+    feature_vectors_path: str | Path | None = None,
+) -> Path:
     """Render self-similarity matrix plot."""
-    t, ssm = _compute_similarity_matrix(audio_path)
+    t, ssm, backend = _compute_similarity_matrix(
+        audio_path,
+        n_fft=n_fft,
+        hop=hop,
+        n_mels=n_mels,
+        feature_set=feature_set,
+        feature_vectors_path=feature_vectors_path,
+    )
     out_path = out_dir / "similarity_matrix.png"
     fig, ax = plt.subplots(figsize=(8, 7))
     if t.size > 1:
@@ -217,7 +241,7 @@ def _plot_similarity_matrix(audio_path: str | Path, out_dir: Path) -> Path:
         im = ax.imshow(ssm, origin="lower", aspect="auto", cmap="viridis", vmin=0.0, vmax=1.0)
         ax.set_xlabel("Frame")
         ax.set_ylabel("Frame")
-    ax.set_title("Self-Similarity Matrix")
+    ax.set_title(f"Self-Similarity Matrix ({backend})")
     fig.colorbar(im, ax=ax, label="Similarity")
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -250,6 +274,8 @@ def compute_novelty_matrix(
     n_mels: int = 64,
     kernel_size: int = 32,
     kernel_sigma_scale: float = 0.5,
+    feature_set: str = "auto",
+    feature_vectors_path: str | Path | None = None,
 ) -> dict[str, np.ndarray]:
     """
     Compute novelty-matrix components (Foote-style):
@@ -262,7 +288,14 @@ def compute_novelty_matrix(
     - This implementation follows the published algorithmic pattern and the
       educational formulation shown in the FMP notebooks, re-implemented for esl.
     """
-    t, ssm = _compute_similarity_matrix(audio_path, n_fft=n_fft, hop=hop, n_mels=n_mels)
+    t, ssm, _ = _compute_similarity_matrix(
+        audio_path,
+        n_fft=n_fft,
+        hop=hop,
+        n_mels=n_mels,
+        feature_set=feature_set,
+        feature_vectors_path=feature_vectors_path,
+    )
     n_frames = int(ssm.shape[0])
     if n_frames <= 1:
         return {
@@ -312,6 +345,8 @@ def plot_novelty_matrix(
     n_mels: int = 64,
     kernel_size: int = 32,
     kernel_sigma_scale: float = 0.5,
+    feature_set: str = "auto",
+    feature_vectors_path: str | Path | None = None,
 ) -> Path:
     """Render novelty matrix figure (SSM + kernel + novelty curve)."""
     out_dir = Path(output_dir)
@@ -323,6 +358,8 @@ def plot_novelty_matrix(
         n_mels=n_mels,
         kernel_size=kernel_size,
         kernel_sigma_scale=kernel_sigma_scale,
+        feature_set=feature_set,
+        feature_vectors_path=feature_vectors_path,
     )
     t = data["times_s"]
     ssm = data["ssm"]
@@ -487,6 +524,8 @@ def plot_analysis(
     include_spectral: bool = True,
     include_similarity_matrix: bool = False,
     include_novelty_matrix: bool = False,
+    similarity_feature_set: str = "auto",
+    feature_vectors_path: str | Path | None = None,
 ) -> list[str]:
     """Create standard static and optional interactive plots."""
     out = Path(output_dir)
@@ -497,19 +536,34 @@ def plot_analysis(
     artifacts.extend(_plot_metric_lines(result, out, include_metrics=include_set))
 
     source_audio = audio_path or result.get("metadata", {}).get("input_path")
+    matrix_source = source_audio or "__feature_vectors__"
     if source_audio and include_spectral:
         try:
             artifacts.extend(_plot_spectral_suite(source_audio, out))
         except Exception:
             pass
-    if source_audio and include_similarity_matrix:
+    if include_similarity_matrix and (source_audio or feature_vectors_path):
         try:
-            artifacts.append(_plot_similarity_matrix(source_audio, out))
+            artifacts.append(
+                _plot_similarity_matrix(
+                    matrix_source,
+                    out,
+                    feature_set=similarity_feature_set,
+                    feature_vectors_path=feature_vectors_path,
+                )
+            )
         except Exception:
             pass
-    if source_audio and include_novelty_matrix:
+    if include_novelty_matrix and (source_audio or feature_vectors_path):
         try:
-            artifacts.append(plot_novelty_matrix(source_audio, out))
+            artifacts.append(
+                plot_novelty_matrix(
+                    matrix_source,
+                    out,
+                    feature_set=similarity_feature_set,
+                    feature_vectors_path=feature_vectors_path,
+                )
+            )
         except Exception:
             pass
 
@@ -530,6 +584,8 @@ def plot_from_json(
     include_spectral: bool = True,
     include_similarity_matrix: bool = False,
     include_novelty_matrix: bool = False,
+    similarity_feature_set: str = "auto",
+    feature_vectors_path: str | Path | None = None,
 ) -> list[str]:
     """Load analysis JSON and produce plots."""
     payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
@@ -542,4 +598,6 @@ def plot_from_json(
         include_spectral=include_spectral,
         include_similarity_matrix=include_similarity_matrix,
         include_novelty_matrix=include_novelty_matrix,
+        similarity_feature_set=similarity_feature_set,
+        feature_vectors_path=feature_vectors_path,
     )

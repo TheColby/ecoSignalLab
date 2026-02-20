@@ -35,16 +35,22 @@ Event extraction:
 ## Similarity Matrix Plot
 
 Method:
-- STFT on mono signal (`n_fft=1024`, `hop=256`)
-- Mel projection (`n_mels=64`)
-- log compression: `log1p`
-- per-frame centering + L2 normalization
-- cosine self-similarity:
+- Frame-level feature vectors `X[t,:]` are extracted from mono downmix.
+- Default `feature_set=auto`:
+  - uses librosa-rich features when available (`log-mel`, MFCC(+delta,+delta2), chroma, spectral contrast, tonnetz, spectral and temporal descriptors)
+  - falls back to built-in scipy core feature stack when librosa is unavailable
+- You can force `feature_set`:
+  - `core`, `librosa`, `all`, or `auto`
+- Optional external feature vectors can be provided (`.npz`, `.npy`, `.csv`) and used directly.
+- Per-frame centering + L2 normalization.
+- Cosine self-similarity:
   - `S = X * X^T`, clipped to `[0,1]`
 
 CLI:
 - `esl analyze ... --similarity-matrix --plot`
 - `esl plot results.json --similarity-matrix`
+- `esl plot results.json --similarity-matrix --sim-feature-set all`
+- `esl plot results.json --similarity-matrix --feature-vectors vectors.npz`
 
 ## Novelty Matrix Plot (Foote-style)
 
@@ -73,6 +79,8 @@ flowchart LR
 CLI:
 - `esl analyze input.wav --plot --novelty-matrix`
 - `esl plot results.json --novelty-matrix`
+- `esl plot results.json --novelty-matrix --sim-feature-set librosa`
+- `esl plot results.json --novelty-matrix --feature-vectors vectors.csv`
 
 ## Model-Based Anomaly Metrics
 

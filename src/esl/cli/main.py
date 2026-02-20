@@ -102,6 +102,8 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
                 include_spectral=not args.no_spectral,
                 include_similarity_matrix=args.similarity_matrix,
                 include_novelty_matrix=args.novelty_matrix,
+                similarity_feature_set=args.sim_feature_set,
+                feature_vectors_path=args.feature_vectors,
             )
         if args.ml_export:
             from esl.ml import export_ml_features
@@ -254,6 +256,8 @@ def _run_analyze(args: argparse.Namespace) -> int:
             include_spectral=not args.no_spectral,
             include_similarity_matrix=args.similarity_matrix,
             include_novelty_matrix=args.novelty_matrix,
+            similarity_feature_set=args.sim_feature_set,
+            feature_vectors_path=args.feature_vectors,
         )
         if cfg.verbosity >= 1:
             print(f"plots: {len(plots)} files -> {plot_dir}")
@@ -368,6 +372,8 @@ def _run_batch(args: argparse.Namespace) -> int:
                 include_spectral=not args.no_spectral,
                 include_similarity_matrix=args.similarity_matrix,
                 include_novelty_matrix=args.novelty_matrix,
+                similarity_feature_set=args.sim_feature_set,
+                feature_vectors_path=args.feature_vectors,
             )
             plot_artifacts.extend(plots)
 
@@ -420,6 +426,8 @@ def _run_plot(args: argparse.Namespace) -> int:
         include_spectral=not args.no_spectral,
         include_similarity_matrix=args.similarity_matrix,
         include_novelty_matrix=args.novelty_matrix,
+        similarity_feature_set=args.sim_feature_set,
+        feature_vectors_path=args.feature_vectors,
     )
     print(f"generated {len(plots)} plot files in {args.out}")
     if args.show:
@@ -671,6 +679,50 @@ def _run_calibrate_check(args: argparse.Namespace) -> int:
     return 0 if within_tolerance else 2
 
 
+def _run_features_extract(args: argparse.Namespace) -> int:
+    from esl.viz.feature_vectors import extract_feature_vectors, save_feature_vectors
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+    vectors = extract_feature_vectors(
+        audio_path=input_path,
+        feature_set=args.feature_set,
+        frame_size=args.frame_size,
+        hop_size=args.hop_size,
+        n_mels=args.n_mels,
+        sample_rate=args.sample_rate,
+    )
+    out_path = save_feature_vectors(vectors, args.out)
+    meta = {
+        "input_path": str(input_path.resolve()),
+        "output_path": str(out_path.resolve()),
+        "feature_set": args.feature_set,
+        "backend": vectors.backend,
+        "frames": int(vectors.matrix.shape[0]),
+        "features": int(vectors.matrix.shape[1]),
+        "sample_rate": int(vectors.sample_rate),
+        "frame_size": int(vectors.frame_size),
+        "hop_size": int(vectors.hop_size),
+        "feature_names": vectors.feature_names,
+    }
+    if args.meta_json:
+        meta_path = Path(args.meta_json)
+        meta_path.parent.mkdir(parents=True, exist_ok=True)
+        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        print(f"meta_json: {meta_path}")
+    print(f"feature_vectors: {out_path}")
+    print(
+        "summary:",
+        {
+            "backend": vectors.backend,
+            "frames": vectors.matrix.shape[0],
+            "features": vectors.matrix.shape[1],
+        },
+    )
+    return 0
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     from esl.ingest import ingest
 
@@ -837,6 +889,17 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--no-spectral", action="store_true", help="Skip spectrogram/mel/log/waterfall/LTSA plots")
     pa.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
     pa.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plot")
+    pa.add_argument(
+        "--sim-feature-set",
+        default="auto",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature set for similarity/novelty matrices: auto|core|librosa|all",
+    )
+    pa.add_argument(
+        "--feature-vectors",
+        default=None,
+        help="Optional feature vectors (.npz/.npy/.csv) for similarity/novelty matrix plots",
+    )
     pa.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
     pa.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pa.add_argument("--ml-export", action="store_true", help="Export ML-ready features")
@@ -884,6 +947,17 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--no-spectral", action="store_true", help="Skip spectral plots in batch mode")
     pb.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plots")
     pb.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plots")
+    pb.add_argument(
+        "--sim-feature-set",
+        default="auto",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature set for similarity/novelty matrices: auto|core|librosa|all",
+    )
+    pb.add_argument(
+        "--feature-vectors",
+        default=None,
+        help="Optional feature vectors (.npz/.npy/.csv) for similarity/novelty matrix plots",
+    )
     pb.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
     pb.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pb.add_argument("--ml-export", action="store_true")
@@ -913,6 +987,17 @@ def _build_parser() -> argparse.ArgumentParser:
     pp.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite")
     pp.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
     pp.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plot")
+    pp.add_argument(
+        "--sim-feature-set",
+        default="auto",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature set for similarity/novelty matrices: auto|core|librosa|all",
+    )
+    pp.add_argument(
+        "--feature-vectors",
+        default=None,
+        help="Optional feature vectors (.npz/.npy/.csv) for similarity/novelty matrix plots",
+    )
     pp.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
     pp.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pp.set_defaults(func=_run_plot)
@@ -1025,6 +1110,26 @@ def _build_parser() -> argparse.ArgumentParser:
     pcal_check.add_argument("--history", default=None, help="History CSV path to append checks")
     pcal_check.add_argument("--out", default="calibration_check.json", help="Calibration report JSON path")
     pcal_check.set_defaults(func=_run_calibrate_check)
+
+    # features
+    pfeat = sub.add_parser("features", help="Feature vector extraction commands")
+    pfeat_sub = pfeat.add_subparsers(dest="features_cmd", required=True)
+
+    pfeat_ex = pfeat_sub.add_parser("extract", help="Extract frame-level feature vectors")
+    pfeat_ex.add_argument("input", help="Input audio file path")
+    pfeat_ex.add_argument("--out", required=True, help="Output feature vectors (.npz/.npy/.csv)")
+    pfeat_ex.add_argument(
+        "--feature-set",
+        default="auto",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature extraction set: auto|core|librosa|all",
+    )
+    pfeat_ex.add_argument("--frame-size", type=int, default=1024)
+    pfeat_ex.add_argument("--hop-size", type=int, default=256)
+    pfeat_ex.add_argument("--n-mels", type=int, default=64)
+    pfeat_ex.add_argument("--sample-rate", type=int, default=None)
+    pfeat_ex.add_argument("--meta-json", default=None, help="Optional metadata JSON sidecar path")
+    pfeat_ex.set_defaults(func=_run_features_extract)
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
