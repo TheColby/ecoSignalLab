@@ -37,6 +37,10 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - clearer `--verbosity` / `--debug` help semantics
   - consistent output switch coverage including batch `--mat`
   - `schema` command reports schema version
+- Moments extraction selection and windowing controls:
+  - `--single`, `--top-k`, `--all`, `--rank-metric`
+  - event-centered clip window options: `--event-window`, `--window-before`, `--window-after`
+  - ranking metadata exported in `moments.csv` and `moments_report.json`
 - CI quality gates (`.github/workflows/ci.yml`):
   - fatal lint gate
   - scoped strict mypy gate for touched core files

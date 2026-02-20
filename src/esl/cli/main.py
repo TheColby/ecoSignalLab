@@ -731,6 +731,22 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
         raise FileNotFoundError(f"Input file not found: {input_path}")
     calibration = load_calibration(args.calibration) if args.calibration else None
 
+    selection_mode = "all"
+    top_k: int | None = None
+    if bool(args.single):
+        selection_mode = "single"
+        top_k = 1
+    elif args.top_k is not None:
+        if int(args.top_k) < 1:
+            raise ValueError("--top-k must be >= 1")
+        selection_mode = "top_k"
+        top_k = int(args.top_k)
+    elif args.max_clips is not None:
+        if int(args.max_clips) < 1:
+            raise ValueError("--max-clips must be >= 1")
+        selection_mode = "top_k"
+        top_k = int(args.max_clips)
+
     cfg = MomentsExtractConfig(
         input_path=input_path,
         output_dir=Path(args.out),
@@ -748,6 +764,12 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
         post_roll_s=float(args.post_roll),
         merge_gap_s=float(args.merge_gap),
         min_alerts_per_chunk=int(args.min_alerts_per_chunk),
+        selection_mode=selection_mode,
+        top_k=top_k,
+        rank_metric=str(args.rank_metric),
+        event_window_s=(float(args.event_window) if args.event_window is not None else None),
+        window_before_s=(float(args.window_before) if args.window_before is not None else None),
+        window_after_s=(float(args.window_after) if args.window_after is not None else None),
         max_clips=args.max_clips,
         csv_out=args.csv,
         clips_dir=args.clips_dir,
@@ -760,6 +782,8 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
         {
             "clips_written": report.get("clips_written"),
             "windows_selected": report.get("windows_selected"),
+            "selection_mode": report.get("selection_mode"),
+            "rank_metric": report.get("rank_metric"),
             "csv_path": report.get("csv_path"),
             "clips_dir": report.get("clips_dir"),
             "stream_report_path": report.get("stream_report_path"),
@@ -1201,7 +1225,20 @@ def _build_parser() -> argparse.ArgumentParser:
     pmom_ex.add_argument("--post-roll", type=float, default=3.0, help="Seconds after each detected chunk")
     pmom_ex.add_argument("--merge-gap", type=float, default=2.0, help="Merge windows separated by <= this many seconds")
     pmom_ex.add_argument("--min-alerts-per-chunk", type=int, default=1, help="Minimum alerts needed for chunk selection")
-    pmom_ex.add_argument("--max-clips", type=int, default=None, help="Maximum number of clips to export")
+    select_group = pmom_ex.add_mutually_exclusive_group()
+    select_group.add_argument("--single", action="store_true", help="Extract only the single highest-ranked moment")
+    select_group.add_argument("--top-k", type=int, default=None, help="Extract top K highest-ranked moments")
+    select_group.add_argument("--all", action="store_true", help="Extract all detected moments (default)")
+    pmom_ex.add_argument("--rank-metric", default="novelty_curve", help="Metric used to rank moments (default: novelty_curve)")
+    pmom_ex.add_argument(
+        "--event-window",
+        type=float,
+        default=None,
+        help="Symmetric window duration in seconds around event center (overrides chunk-edge rolls when set)",
+    )
+    pmom_ex.add_argument("--window-before", type=float, default=None, help="Seconds before event center for each clip")
+    pmom_ex.add_argument("--window-after", type=float, default=None, help="Seconds after event center for each clip")
+    pmom_ex.add_argument("--max-clips", type=int, default=None, help="Legacy alias for --top-k")
     pmom_ex.add_argument("--csv", default=None, help="Output CSV path (default: <out>/moments.csv)")
     pmom_ex.add_argument("--clips-dir", default=None, help="Output clips directory (default: <out>/clips)")
     pmom_ex.add_argument("--report", default=None, help="Output moments report JSON path")

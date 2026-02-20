@@ -35,6 +35,12 @@ class MomentsExtractConfig:
     post_roll_s: float = 3.0
     merge_gap_s: float = 2.0
     min_alerts_per_chunk: int = 1
+    selection_mode: str = "all"  # all | single | top_k
+    top_k: int | None = None
+    rank_metric: str = "novelty_curve"
+    event_window_s: float | None = None
+    window_before_s: float | None = None
+    window_after_s: float | None = None
     max_clips: int | None = None
     csv_out: str | None = None
     clips_dir: str | None = None
@@ -151,7 +157,60 @@ def _collect_windows(
     merge_gap_s: float,
     min_alerts_per_chunk: int,
     duration_s: float,
+    rank_metric: str,
+    event_window_s: float | None,
+    window_before_s: float | None,
+    window_after_s: float | None,
 ) -> list[dict[str, Any]]:
+    def _as_float(value: Any) -> float | None:
+        if isinstance(value, (int, float)):
+            return float(value)
+        return None
+
+    def _chunk_metric_value(chunk: dict[str, Any], metric_name: str, alerts: list[dict[str, Any]]) -> float:
+        if metric_name in {"alerts", "alert_count"}:
+            return float(len(alerts))
+        metric_means = chunk.get("metric_means")
+        if isinstance(metric_means, dict):
+            val = _as_float(metric_means.get(metric_name))
+            if val is not None:
+                return val
+        metrics = chunk.get("metrics")
+        if isinstance(metrics, dict):
+            payload = metrics.get(metric_name)
+            if isinstance(payload, dict):
+                summary = payload.get("summary")
+                if isinstance(summary, dict):
+                    val = _as_float(summary.get("mean"))
+                    if val is not None:
+                        return val
+        values: list[float] = []
+        for alert in alerts:
+            if not isinstance(alert, dict):
+                continue
+            if str(alert.get("metric", "")) != metric_name:
+                continue
+            alert_val = _as_float(alert.get("value"))
+            if alert_val is not None:
+                values.append(alert_val)
+        if values:
+            return float(max(values))
+        return float(len(alerts))
+
+    def _window_bounds(start: float, end: float) -> tuple[float, float]:
+        center = 0.5 * (start + end)
+        before = window_before_s
+        after = window_after_s
+        if before is None and after is None and event_window_s is not None:
+            half = max(0.0, 0.5 * float(event_window_s))
+            before = half
+            after = half
+        if before is not None or after is not None:
+            b = max(0.0, float(before if before is not None else 0.0))
+            a = max(0.0, float(after if after is not None else 0.0))
+            return max(0.0, center - b), min(float(duration_s), center + a)
+        return max(0.0, start - float(pre_roll_s)), min(float(duration_s), end + float(post_roll_s))
+
     windows: list[dict[str, Any]] = []
     for ch in chunks:
         alerts = ch.get("alerts", [])
@@ -159,12 +218,13 @@ def _collect_windows(
             continue
         start = float(ch.get("start_s", 0.0))
         end = float(ch.get("end_s", start))
-        s = max(0.0, start - float(pre_roll_s))
-        e = min(float(duration_s), end + float(post_roll_s))
+        center = 0.5 * (start + end)
+        s, e = _window_bounds(start=start, end=end)
         metrics: set[str] = set()
         for a in alerts:
             if isinstance(a, dict) and "metric" in a:
                 metrics.add(str(a["metric"]))
+        score = _chunk_metric_value(ch, rank_metric, alerts)
         windows.append(
             {
                 "start_s": s,
@@ -172,6 +232,9 @@ def _collect_windows(
                 "alerts": len(alerts),
                 "metrics": metrics,
                 "chunk_indices": [int(ch.get("index", -1))],
+                "rank_metric": rank_metric,
+                "rank_score": float(score),
+                "event_center_s": center,
             }
         )
     if not windows:
@@ -186,9 +249,29 @@ def _collect_windows(
             prev["alerts"] = int(prev["alerts"]) + int(w["alerts"])
             prev["metrics"] = set(prev["metrics"]) | set(w["metrics"])
             prev["chunk_indices"] = list(prev["chunk_indices"]) + list(w["chunk_indices"])
+            if float(w["rank_score"]) > float(prev["rank_score"]):
+                prev["rank_score"] = float(w["rank_score"])
+                prev["event_center_s"] = float(w["event_center_s"])
         else:
             merged.append(w)
     return merged
+
+
+def _select_windows(windows: list[dict[str, Any]], selection_mode: str, top_k: int | None) -> list[dict[str, Any]]:
+    if selection_mode == "all":
+        return windows
+
+    ranked = sorted(windows, key=lambda w: (-float(w["rank_score"]), float(w["start_s"])))
+    if selection_mode == "single":
+        selected = ranked[:1]
+    elif selection_mode == "top_k":
+        k = int(top_k or 1)
+        if k < 1:
+            return []
+        selected = ranked[:k]
+    else:
+        selected = windows
+    return sorted(selected, key=lambda w: float(w["start_s"]))
 
 
 def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]]:
@@ -230,9 +313,18 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
         merge_gap_s=cfg.merge_gap_s,
         min_alerts_per_chunk=cfg.min_alerts_per_chunk,
         duration_s=duration_s,
+        rank_metric=cfg.rank_metric,
+        event_window_s=cfg.event_window_s,
+        window_before_s=cfg.window_before_s,
+        window_after_s=cfg.window_after_s,
     )
-    if cfg.max_clips is not None and cfg.max_clips >= 0:
-        windows = windows[: int(cfg.max_clips)]
+    windows_candidates = len(windows)
+    effective_mode = cfg.selection_mode
+    effective_top_k = cfg.top_k
+    if cfg.max_clips is not None and effective_mode == "all":
+        effective_mode = "top_k"
+        effective_top_k = int(cfg.max_clips)
+    windows = _select_windows(windows=windows, selection_mode=effective_mode, top_k=effective_top_k)
 
     info = sf.info(str(cfg.input_path))
     codec = _codec_from_subtype(info.subtype)
@@ -278,6 +370,9 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
                 "alerts": int(win["alerts"]),
                 "metrics": ";".join(sorted(str(x) for x in set(win["metrics"]))),
                 "chunk_indices": ";".join(str(x) for x in win["chunk_indices"]),
+                "rank_metric": str(win["rank_metric"]),
+                "rank_score": f"{float(win['rank_score']):.6f}",
+                "event_center_s": f"{float(win['event_center_s']):.3f}",
                 "wav_path": str(out_wav),
             }
         )
@@ -296,6 +391,9 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
                 "alerts",
                 "metrics",
                 "chunk_indices",
+                "rank_metric",
+                "rank_score",
+                "event_center_s",
                 "wav_path",
             ],
         )
@@ -314,8 +412,15 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
         "pre_roll_s": float(cfg.pre_roll_s),
         "post_roll_s": float(cfg.post_roll_s),
         "merge_gap_s": float(cfg.merge_gap_s),
+        "selection_mode": effective_mode,
+        "top_k": effective_top_k,
+        "rank_metric": cfg.rank_metric,
+        "event_window_s": cfg.event_window_s,
+        "window_before_s": cfg.window_before_s,
+        "window_after_s": cfg.window_after_s,
         "min_alerts_per_chunk": int(cfg.min_alerts_per_chunk),
         "max_clips": cfg.max_clips,
+        "windows_candidates": windows_candidates,
         "windows_selected": len(windows),
         "clips_written": len(rows),
         "csv_path": str(csv_path),

@@ -289,10 +289,17 @@ esl moments extract input_24h.wav \
   --metrics novelty_curve,spectral_change_detection,isolation_forest_score,spl_a_db \
   --chunk-size 2880000 \
   --sample-rate 96000 \
-  --pre-roll 3 \
-  --post-roll 3 \
+  --top-k 12 \
+  --rank-metric novelty_curve \
+  --event-window 8 \
   --merge-gap 2
 ```
+
+Selection controls:
+- `--single` for the single most novel (or highest-ranked) moment
+- `--top-k N` for a few highest-ranked moments
+- `--all` for all detected moments
+- `--window-before S` and `--window-after S` for explicit clip windowing around each event
 
 ### Plot from existing JSON
 

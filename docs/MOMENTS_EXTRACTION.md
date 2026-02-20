@@ -16,10 +16,20 @@ esl moments extract input_24h.wav \
   --metrics novelty_curve,spectral_change_detection,isolation_forest_score,spl_a_db \
   --chunk-size 2880000 \
   --sample-rate 96000 \
-  --pre-roll 3 \
-  --post-roll 3 \
+  --top-k 12 \
+  --rank-metric novelty_curve \
+  --event-window 8 \
   --merge-gap 2
 ```
+
+Selection modes:
+- `--single`: export only the highest-ranked moment
+- `--top-k N`: export the top `N` ranked moments
+- `--all`: export all detected moments (default behavior)
+
+Ranking:
+- `--rank-metric novelty_curve` (default) ranks moments by per-chunk novelty score.
+- You can rank by any emitted chunk metric mean, for example `spectral_change_detection` or `spl_a_db`.
 
 ## Detection Rules
 
@@ -54,6 +64,9 @@ metric_thresholds:
 - `alerts`
 - `metrics` (semicolon-separated)
 - `chunk_indices` (semicolon-separated)
+- `rank_metric`
+- `rank_score`
+- `event_center_s`
 - `wav_path`
 
 ## Workflow
@@ -62,11 +75,13 @@ metric_thresholds:
 flowchart LR
     A["Long Recording"] --> B["Chunked Detection (stream metrics + rules)"]
     B --> C["Candidate Chunk Windows"]
-    C --> D["Pre/Post Roll Expansion"]
-    D --> E["Merge Nearby Windows"]
-    E --> F["Export WAV Clips"]
-    E --> G["Write moments.csv"]
-    E --> H["Write moments_report.json"]
+    C --> D["Rank by Metric (default: novelty_curve)"]
+    D --> E["Windowing (event-centered or chunk-edge pre/post roll)"]
+    E --> F["Merge Nearby Windows"]
+    F --> G["Selection (single / top-k / all)"]
+    G --> H["Export WAV Clips"]
+    G --> I["Write moments.csv"]
+    G --> J["Write moments_report.json"]
 ```
 
 ## Precomputed Detection Path
@@ -79,6 +94,19 @@ esl moments extract input_24h.wav \
   --stream-report out/stream/stream_report.json
 ```
 
+## Single Most Novel Moment Example
+
+```bash
+esl moments extract input_24h.wav \
+  --out out/moments_single \
+  --stream-report out/stream/stream_report.json \
+  --single \
+  --rank-metric novelty_curve \
+  --window-before 4 \
+  --window-after 6 \
+  --merge-gap 0
+```
+
 ## Ambisonic / Multichannel Notes
 
 - Channel count is preserved in exported clips.
@@ -88,7 +116,9 @@ esl moments extract input_24h.wav \
 ## Suggested Defaults for 24h @ 96k
 
 - `--chunk-size 2880000` (30 s chunks)
-- `--pre-roll 3 --post-roll 3`
+- `--top-k 20`
+- `--rank-metric novelty_curve`
+- `--event-window 8` (or `--window-before 4 --window-after 6` for asymmetric clips)
 - `--merge-gap 2`
 - start with 3-5 detection metrics, then tune thresholds per site.
 

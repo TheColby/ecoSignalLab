@@ -114,6 +114,16 @@ For metric definitions and formulas, see [`METRICS_REFERENCE.md`](METRICS_REFERE
 - `moments.csv` (timestamped moment table)
 - `clips/moment_XXXX.wav` (exported segments)
 
+Notable `moments_report.json` fields:
+- `selection_mode` (`all` | `single` | `top_k`)
+- `top_k`
+- `rank_metric` (default: `novelty_curve`)
+- `event_window_s`, `window_before_s`, `window_after_s`
+- `windows_candidates`, `windows_selected`, `clips_written`
+
+Notable `moments.csv` fields:
+- `rank_metric`, `rank_score`, `event_center_s`
+
 See [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md) for field-level definitions.
 
 ## Related Docs
