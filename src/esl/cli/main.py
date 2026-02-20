@@ -491,7 +491,7 @@ def _run_validate(args: argparse.Namespace) -> int:
     total = int(report.get("files_checked", 0))
 
     print(f"✨ Validation report: {report_path}")
-    print(f"📊 Summary:")
+    print("📊 Summary:")
     print(f"   - Files Checked: {total}")
     print(f"   - Files Passed:  {passed}  {'✅' if failed == 0 else ''}")
     print(f"   - Files Failed:  {failed}  {'❌' if failed > 0 else ''}")
@@ -525,7 +525,7 @@ def _run_stream(args: argparse.Namespace) -> int:
         metrics_list = report.get("metrics")
         metrics_str = ", ".join(str(m) for m in metrics_list) if isinstance(metrics_list, list) else "N/A"
         print(f"📡 Stream analysis complete: {report_path}")
-        print(f"📊 Summary:")
+        print("📊 Summary:")
         print(f"   - Chunks Processed: {report.get('chunks_processed')}")
         print(f"   - Alert Count:     {report.get('alert_count')}")
         print(f"   - Metrics:         {metrics_str}")
