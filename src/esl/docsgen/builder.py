@@ -22,6 +22,7 @@ MERMAID_BLOCK_RE = re.compile(
     flags=re.DOTALL,
 )
 LOCAL_MD_LINK_RE = re.compile(r'href="([^":#]+)\.md(#[^"]*)?"')
+HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
 
 
 @dataclass(slots=True)
@@ -85,17 +86,108 @@ def _upgrade_mermaid_blocks(raw_html: str) -> str:
     return MERMAID_BLOCK_RE.sub(repl, raw_html)
 
 
+def _strip_markdown_inline(text: str) -> str:
+    out = text.strip()
+    out = re.sub(r"`([^`]+)`", r"\1", out)
+    out = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", out)
+    out = re.sub(r"[*_~]+", "", out)
+    out = out.replace('"', "'")
+    return out
+
+
+def _extract_headings(markdown_text: str) -> list[tuple[int, str]]:
+    headings: list[tuple[int, str]] = []
+    in_fence = False
+    fence_marker = ""
+    for raw in markdown_text.splitlines():
+        stripped = raw.strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            marker = stripped[:3]
+            if not in_fence:
+                in_fence = True
+                fence_marker = marker
+            elif marker == fence_marker:
+                in_fence = False
+                fence_marker = ""
+            continue
+        if in_fence:
+            continue
+        m = HEADING_RE.match(raw)
+        if not m:
+            continue
+        level = len(m.group(1))
+        title = _strip_markdown_inline(m.group(2))
+        if title:
+            headings.append((level, title))
+    return headings
+
+
+def _build_auto_visual_block(markdown_text: str, fallback_title: str, max_nodes: int = 28) -> str:
+    headings = _extract_headings(markdown_text)
+    selected = headings[:max_nodes]
+    truncated = len(headings) > len(selected)
+
+    lines: list[str] = []
+    lines.append("flowchart TD")
+    root_label = _strip_markdown_inline(fallback_title) or "Document"
+    lines.append(f'    ROOT["{root_label}"]')
+
+    stack: list[tuple[int, str]] = [(0, "ROOT")]
+    for idx, (level, title) in enumerate(selected, start=1):
+        node = f"H{idx}"
+        safe = title.replace('"', "'")
+        lines.append(f'    {node}["{safe}"]')
+        while stack and level <= stack[-1][0]:
+            stack.pop()
+        parent = stack[-1][1] if stack else "ROOT"
+        lines.append(f"    {parent} --> {node}")
+        stack.append((level, node))
+
+    if truncated:
+        lines.append('    ROOT --> MORE["... additional sections omitted for readability"]')
+
+    diagram = "\n".join(lines)
+    return (
+        "\n\n## Visual Outline (Auto-generated)\n\n"
+        "This auto-generated Mermaid graph summarizes this document structure.\n\n"
+        "```mermaid\n"
+        f"{diagram}\n"
+        "```\n"
+    )
+
+
+def _ensure_visual_outline(markdown_text: str, page_title: str) -> str:
+    if "```mermaid" in markdown_text:
+        return markdown_text
+    return markdown_text.rstrip() + _build_auto_visual_block(markdown_text, fallback_title=page_title)
+
+
+def _markdown_extensions() -> tuple[list[str], dict[str, dict[str, bool]]]:
+    extensions = [
+        "fenced_code",
+        "tables",
+        "toc",
+        "sane_lists",
+        "admonition",
+        "attr_list",
+    ]
+    configs: dict[str, dict[str, bool]] = {}
+    try:
+        import pymdownx.arithmatex  # type: ignore  # noqa: F401
+    except Exception:
+        return extensions, configs
+    extensions.append("pymdownx.arithmatex")
+    # Generic mode keeps TeX delimiters for MathJax runtime rendering.
+    configs["pymdownx.arithmatex"] = {"generic": True}
+    return extensions, configs
+
+
 def _render_markdown(markdown_text: str, repo_root: Path) -> str:
+    extensions, extension_configs = _markdown_extensions()
     rendered = markdown.markdown(
         markdown_text,
-        extensions=[
-            "fenced_code",
-            "tables",
-            "toc",
-            "sane_lists",
-            "admonition",
-            "attr_list",
-        ],
+        extensions=extensions,
+        extension_configs=extension_configs,
         output_format="html5",
     )
     rendered = _rewrite_links(rendered, repo_root)
@@ -144,6 +236,9 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     th, td {{ border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }}
     th {{ background: #f1f6ff; }}
     .mermaid {{ background: #f9fbff; border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 14px 0; }}
+    .math-block {{ overflow-x: auto; }}
+    mjx-container[jax="CHTML"][display="true"] {{ margin: 1rem 0; overflow-x: auto; overflow-y: hidden; }}
+    mjx-container {{ font-size: 100% !important; }}
     @media (max-width: 960px) {{
       .layout {{ grid-template-columns: 1fr; }}
       nav {{ position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }}
@@ -151,6 +246,19 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
       article {{ padding: 16px; }}
     }}
   </style>
+  <script>
+    window.MathJax = {{
+      tex: {{
+        inlineMath: [["\\\\(", "\\\\)"], ["$", "$"]],
+        displayMath: [["\\\\[", "\\\\]"], ["$$", "$$"]],
+        processEscapes: true
+      }},
+      options: {{
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }}
+    }};
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script type=\"module\">
     import mermaid from \"https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs\";
     mermaid.initialize({{ startOnLoad: true, securityLevel: \"loose\", theme: \"neutral\" }});
@@ -199,8 +307,9 @@ def _write_html_pages(root: Path, docs: list[Path], html_dir: Path, title: str) 
         out_html.parent.mkdir(parents=True, exist_ok=True)
 
         markdown_text = doc.read_text(encoding="utf-8")
-        body_html = _render_markdown(markdown_text, root)
         page_title = _read_title(markdown_text, rel.stem)
+        enriched_markdown = _ensure_visual_outline(markdown_text, page_title=page_title)
+        body_html = _render_markdown(enriched_markdown, root)
 
         pages.append(_RenderedPage(source=doc, title=page_title, body_html=body_html, out_html=out_html))
 
@@ -254,6 +363,9 @@ async def _render_pdf_pages(html_paths: list[Path], pdf_dir: Path) -> list[Path]
                 async () => {
                   if (window.__esl_mermaid_ready) {
                     await window.__esl_mermaid_ready;
+                  }
+                  if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+                    await window.MathJax.startup.promise;
                   }
                 }
                 """

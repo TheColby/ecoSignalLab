@@ -24,6 +24,96 @@ Scope:
 
 All formulas below reflect current `esl` implementation, including metrics labeled as "proxy".
 
+## Rendered Equation Companion
+
+These equations are rendered in generated HTML/PDF docs and each has a plain-English interpretation.
+
+### 1) Frame Energy and RMS
+
+$$
+E_k = \sum_{c=1}^{C} \sum_{n=0}^{N_k-1} x_{k,c}[n]^2
+$$
+
+$$
+\mathrm{RMS}(F_k) = \sqrt{\frac{1}{N_k C}\sum_{c=1}^{C}\sum_{n=0}^{N_k-1} x_{k,c}[n]^2}
+$$
+
+Plain English: frame energy is total squared amplitude; RMS is the energy-normalized average amplitude.
+
+### 2) dBFS Mapping
+
+$$
+L_{\mathrm{dBFS},k} = 20\log_{10}\!\big(\max(\mathrm{RMS}(F_k), \varepsilon)\big)
+$$
+
+Plain English: RMS is mapped to logarithmic decibels relative to full scale.
+
+### 3) Calibrated SPL Mapping
+
+$$
+L_{\mathrm{SPL},k} = L_{\mathrm{dBFS},k} + \left(L_{\mathrm{SPL,ref}} - L_{\mathrm{dBFS,ref}}\right)
+$$
+
+Plain English: calibrated SPL is a fixed offset from digital dBFS, derived from calibration reference points.
+
+### 4) Equivalent Continuous Level (Leq)
+
+$$
+L_{\mathrm{eq}} = 10\log_{10}\!\left(\frac{1}{T}\int_0^T \frac{p^2(t)}{p_0^2}\,dt\right)
+$$
+
+Plain English: Leq is the single steady level carrying the same acoustic energy as the varying signal.
+
+### 5) Spectral Centroid
+
+$$
+f_c(t) = \frac{\sum_f f \cdot M(f,t)}{\sum_f M(f,t) + \varepsilon}
+$$
+
+Plain English: spectral centroid tracks where the spectrum is centered in frequency (perceptual brightness proxy).
+
+### 6) Spectral Flux Novelty
+
+$$
+N(t) = \sum_f \max\!\left(M(f,t)-M(f,t-1), 0\right)
+$$
+
+Plain English: novelty rises when new spectral energy appears between successive frames.
+
+### 7) NDSI
+
+$$
+\mathrm{NDSI} = \frac{E_{\mathrm{bio}} - E_{\mathrm{anthro}}}{E_{\mathrm{bio}} + E_{\mathrm{anthro}} + \varepsilon}
+$$
+
+Plain English: NDSI is positive when biological-band energy dominates and negative when anthropogenic-band energy dominates.
+
+### 8) Clarity (C50/C80)
+
+$$
+C_T = 10\log_{10}\!\left(\frac{\int_0^T h^2(t)\,dt}{\int_T^\infty h^2(t)\,dt + \varepsilon}\right), \quad T\in\{50\text{ms},80\text{ms}\}
+$$
+
+Plain English: clarity compares early arriving energy to late reverberant energy.
+
+### 9) Definition (D50)
+
+$$
+D_{50} = \frac{\int_0^{50\text{ms}} h^2(t)\,dt}{\int_0^\infty h^2(t)\,dt + \varepsilon}
+$$
+
+Plain English: D50 is the fraction of energy arriving in the first 50 ms.
+
+### 10) Reverberation Time Regression
+
+$$
+RT60 \approx -\frac{60}{m}
+$$
+
+where \(m\) is slope (dB/s) from linear regression of Schroeder decay in the selected dB window.
+
+Plain English: steeper decay slope implies shorter reverberation time.
+
 ## Metric Contract Matrix
 
 This matrix is the stable, ML-facing contract for every built-in metric ID.

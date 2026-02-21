@@ -32,6 +32,32 @@ Event extraction:
   - metric series is `Z(t)`
   - `extra.event_frame_indices` stores detected frame indices
 
+### Rendered Math (with interpretation)
+
+$$
+N(t)=\sum_f \max\!\left(M(f,t)-M(f,t-1),0\right)
+$$
+
+Plain English: this novelty curve increases when new spectral components appear.
+
+$$
+Z(t)=\frac{N(t)-\mu_N}{\sigma_N+\varepsilon}
+$$
+
+Plain English: z-scoring puts novelty on a normalized scale so thresholding is more stable.
+
+$$
+\mathcal{N}(i)=\sum_{u=-L}^{L}\sum_{v=-L}^{L} S(i+u,i+v)\,K(u,v)
+$$
+
+Plain English: Foote novelty is a checkerboard-kernel contrast around the self-similarity matrix diagonal.
+
+$$
+\hat{\mathcal{N}}(i)=\frac{\max(\mathcal{N}(i),0)}{\max_j \max(\mathcal{N}(j),0)+\varepsilon}
+$$
+
+Plain English: half-wave rectification and normalization produce a bounded \([0,1]\) novelty profile.
+
 ## Similarity Matrix Plot
 
 Method:

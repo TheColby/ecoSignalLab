@@ -41,6 +41,10 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - `--single`, `--top-k`, `--all`, `--rank-metric`
   - event-centered clip window options: `--event-window`, `--window-before`, `--window-after`
   - ranking metadata exported in `moments.csv` and `moments_report.json`
+- Docs generation now enforces visual + math rendering:
+  - Mermaid rendering on all generated pages (auto visual-outline insertion when missing)
+  - MathJax-based TeX rendering in HTML/PDF outputs
+  - expanded rendered-equation coverage in metrics/novelty/moments docs
 - CI quality gates (`.github/workflows/ci.yml`):
   - fatal lint gate
   - scoped strict mypy gate for touched core files

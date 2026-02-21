@@ -40,6 +40,7 @@ dependencies = [
   "soundfile>=0.12",
   "pandas>=2.0",
   "markdown>=3.6",
+  "pymdown-extensions>=10.9",
   "pyyaml>=6.0",
   "matplotlib>=3.7",
   "h5py>=3.10",

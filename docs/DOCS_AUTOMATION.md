@@ -30,10 +30,12 @@ python scripts/build_docs.py --root . --out docs/build --formats html,pdf
 flowchart LR
     A["Markdown Sources"] --> B["Markdown Parser"]
     B --> C["Mermaid Block Upgrade"]
-    C --> D["Hyperlink Rewrite"]
-    D --> E["HTML Page Templates"]
-    E --> F["Playwright Chromium Render"]
-    F --> G["PDF Artifacts"]
+    C --> D["Math Extension + TeX Pass-through"]
+    D --> E["Hyperlink Rewrite"]
+    E --> F["Auto Visual Outline (if no Mermaid block)"]
+    F --> G["HTML Page Templates"]
+    G --> H["Playwright Chromium Render"]
+    H --> I["PDF Artifacts"]
 ```
 
 ```mermaid
@@ -79,6 +81,9 @@ python -m playwright install chromium
 - All documentation files should cross-link to related docs and source files where useful.
 - Workflow docs should link to the interesting-moments extraction guide:
   - [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
+- Generated docs render:
+  - Mermaid diagrams (explicit blocks and auto-generated visual outlines for pages without Mermaid)
+  - TeX math via MathJax (`$...$`, `$$...$$`, `\\(...\\)`, `\\[...\\]`)
 - Algorithm-heavy sections should include links to:
   - [`docs/REFERENCES.md`](REFERENCES.md)
   - [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)

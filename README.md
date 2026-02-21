@@ -349,6 +349,11 @@ Equivalent script entry:
 python scripts/build_docs.py --out docs/build --formats html,pdf
 ```
 
+Docs rendering guarantees:
+- Mermaid diagrams are rendered in HTML/PDF.
+- If a page has no Mermaid block, an auto-generated visual outline is inserted.
+- TeX math is rendered via MathJax in generated HTML/PDF (`$...$`, `$$...$$`, `\\(...\\)`, `\\[...\\]`).
+
 ### Print JSON schema
 
 ```bash
