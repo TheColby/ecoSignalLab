@@ -208,6 +208,8 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>{page_title} - {title}</title>
   <style>
+    .skip-link {{ position: absolute; top: -100%; left: 0; background: var(--link); color: white; padding: 10px 15px; z-index: 1000; border-radius: 0 0 8px 0; text-decoration: none; font-weight: bold; }}
+    .skip-link:focus {{ top: 0; outline: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }}
     :root {{
       --bg: #f5f7fb;
       --panel: #ffffff;
@@ -229,7 +231,11 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
     a {{ color: var(--link); }}
-    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; }}
+    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; position: relative; }}
+    .copy-button {{ position: absolute; top: 8px; right: 8px; background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; opacity: 0; }}
+    pre:hover .copy-button {{ opacity: 1; }}
+    .copy-button:hover {{ background: rgba(255, 255, 255, 0.2); }}
+    .copy-button.success {{ background: #10b981; border-color: #10b981; color: white; opacity: 1; }}
     code {{ background: var(--code); border-radius: 6px; padding: 0.1rem 0.35rem; }}
     pre code {{ background: transparent; padding: 0; }}
     table {{ width: 100%; border-collapse: collapse; margin: 12px 0 20px; }}
@@ -270,14 +276,44 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
       }}
     }})();
   </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {{
+      document.querySelectorAll('pre').forEach(block => {{
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+        button.innerText = 'Copy';
+        button.addEventListener('click', async () => {{
+          try {{
+            let text = block.querySelector('code')?.innerText;
+            if (!text) {{
+              const clone = block.cloneNode(true);
+              clone.querySelector('.copy-button').remove();
+              text = clone.innerText;
+            }}
+            await navigator.clipboard.writeText(text.trim());
+            button.innerText = 'Copied!';
+            button.classList.add('success');
+            setTimeout(() => {{
+              button.innerText = 'Copy';
+              button.classList.remove('success');
+            }}, 2000);
+          }} catch (err) {{
+            console.error('Failed to copy', err);
+          }}
+        }});
+        block.appendChild(button);
+      }});
+    }});
+  </script>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class=\"layout\">
     <nav>
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id="main-content">
       <article>
         {body_html}
       </article>
@@ -289,11 +325,12 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
 
 
 def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
-    items = []
+    items = ["<ul>"]
     for page in rendered_pages:
         label = page.title
         href = os.path.relpath(page.out_html, start=current_html.parent).replace("\\", "/")
-        items.append(f'<a href="{href}">{html.escape(label)}</a>')
+        items.append(f'<li><a href="{href}">{html.escape(label)}</a></li>')
+    items.append("</ul>")
     return "\n".join(items)
 
 
