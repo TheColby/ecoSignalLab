@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import subprocess
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from pathlib import Path
 def test_generate_signal_window_graphs_script(tmp_path: Path) -> None:
     out_dir = tmp_path / "figs"
     cmd = [
-        ".venv/bin/python",
+        sys.executable,
         "scripts/generate_signal_window_graphs.py",
         "--out",
         str(out_dir),
