@@ -1,0 +1,72 @@
+# Getting Started
+
+This page is for first-time users who want fast results with minimal setup.
+
+## 1) Install
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Optional extras:
+
+```bash
+pip install -e .[dev,ml,plot,io,docs,features]
+```
+
+## 2) Quick command set
+
+Print first-step commands:
+
+```bash
+esl quickstart
+```
+
+Or run these directly:
+
+```bash
+# Analyze one file
+esl analyze input.wav --out-dir out --json out/input.json --plot
+
+# Extract one most-interesting moment
+esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8
+
+# Export feature vectors for ML
+esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
+```
+
+## 3) If you want 2x time-stretch quickly
+
+```bash
+ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
+```
+
+## 4) Common issues
+
+- `zsh: command not found: esl`
+  - Activate your environment: `source .venv/bin/activate`
+  - Or run module form: `.venv/bin/python -m esl --help`
+- Compressed decode fails (`mp3/aac/ogg/...`)
+  - Install FFmpeg and ensure `ffprobe` is on `PATH`.
+- Empty/weak moments extraction output
+  - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
+
+## 5) Mental model
+
+```mermaid
+flowchart LR
+    A["Input Audio"] --> B["esl analyze"]
+    B --> C["Metrics + Provenance JSON"]
+    C --> D["Plots / Exports / ML Artifacts"]
+    B --> E["esl moments extract"]
+    E --> F["Clips + Timestamp CSV"]
+```
+
+## Related Docs
+
+- [`../README.md`](../README.md)
+- [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
+- [`ML_FEATURES.md`](ML_FEATURES.md)
+- [`SCHEMA.md`](SCHEMA.md)

@@ -52,3 +52,20 @@ def test_python_module_help_entrypoint() -> None:
     assert "ecoSignalLab CLI" in proc.stdout
     assert "features" in proc.stdout
     assert "moments" in proc.stdout
+    assert "quickstart" in proc.stdout
+
+
+def test_cli_quickstart_outputs_recipes(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(["quickstart"])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "ecoSignalLab Quickstart" in out
+    assert "esl analyze input.wav" in out
+    assert "esl moments extract" in out
+
+
+def test_cli_missing_file_shows_friendly_hint(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(["analyze", "this_file_does_not_exist.wav"])
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "verify the file/path exists" in err

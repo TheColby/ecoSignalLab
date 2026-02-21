@@ -1,4 +1,6 @@
-# ecoSignalLab (`esl`)
+# Have you ever wondered what it would sound like to hear your voice twice as fast while preserving your voice qualities? Ooh, and what if you altered the sound of your friend's voice based on how you talk or sing?
+
+## ecoSignalLab (`esl`)
 
 `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
@@ -18,6 +20,25 @@ ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
 
 No ceremony, no giant config, just a result.
 
+If you want an `esl`-native onboarding flow instead, run:
+
+```bash
+esl quickstart
+```
+
+### First 5 Minutes (Copy/Paste)
+
+```bash
+# 1) Analyze one file
+esl analyze input.wav --out-dir out --json out/input.json --plot
+
+# 2) Extract the single most novel moment
+esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8
+
+# 3) Export ML-ready frame features
+esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
+```
+
 ## What this is
 
 - A CLI-first, production-grade SDK for environmental and architectural acoustic analysis.
@@ -32,14 +53,14 @@ No ceremony, no giant config, just a result.
 - Not a black-box vendor suite with opaque assumptions or locked data formats.
 - Not a substitute for formal compliance certification measurements without calibrated hardware/protocols.
 
-## Field Notes (With Mild Professional Snark)
+## Friendly Notes
 
-- If your thresholds fire on every chunk, you did not build a detector; you built a very expensive clip copier.
-- If your calibration file is missing, `esl` will still run, but your SPL claims are now a creative writing exercise.
-- If you compare variants with different assumptions and call the delta “ground truth,” statistics lawyers will find you.
-- If you skip provenance, future-you becomes forensics-you.
+- Start with defaults first, then tune thresholds gradually once you see real outputs.
+- If calibration is missing, `esl` still works; just treat SPL-like numbers as uncalibrated estimates.
+- For design comparisons, keep assumptions consistent between runs so deltas stay meaningful.
+- Keep provenance outputs; they save a lot of debugging time later.
 
-## What Can I Do with vfX?
+## What Can I Do with esl?
 
 - Analyze single files with calibrated, multi-channel metrics and full provenance output.
 - Run batch analysis over large datasets and export JSON/CSV/Parquet/HDF5/MAT.
@@ -68,6 +89,7 @@ Core goals:
 - Plugin-extensible metric engine
 
 See:
+- [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
 - [`DESIGN.md`](DESIGN.md)
 - [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - [`CHANGELOG.md`](CHANGELOG.md)
@@ -128,6 +150,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
+    K["esl quickstart"] --> K1["Copy-paste first commands"]
     A["esl analyze"] --> A1["Single-file analysis"]
     B["esl batch"] --> B1["Directory analysis"]
     C["esl pipeline run"] --> C1["Staged workflow"]

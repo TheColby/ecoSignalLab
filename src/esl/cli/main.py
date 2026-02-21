@@ -898,11 +898,38 @@ def _run_docs(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_quickstart(args: argparse.Namespace) -> int:
+    lines = [
+        "ecoSignalLab Quickstart",
+        "",
+        "1) Analyze one file (JSON + plots):",
+        "   esl analyze input.wav --out-dir out --plot --json out/input.json",
+        "",
+        "2) Extract interesting moments as clips + CSV:",
+        "   esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8",
+        "",
+        "3) Extract ML-ready feature vectors:",
+        "   esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
+        "",
+        "4) Bonus utility (FFmpeg): stretch to 2x duration, pitch-preserving:",
+        "   ffmpeg -i input.wav -filter:a \"atempo=0.5\" output_2x.wav",
+        "",
+        "Need help with a command? Use:",
+        "   esl <command> --help",
+        "",
+        "If decode fails on compressed audio, install ffmpeg and ensure ffprobe is on PATH.",
+    ]
+    for line in lines:
+        print(line)
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="esl",
         description="ecoSignalLab CLI for acoustic analysis, ML export, and reproducible reporting.",
         epilog=(
+            "First time here? Run: esl quickstart\n"
             "Decode behavior: native formats use soundfile first; compressed formats fall back to ffmpeg/ffprobe.\n"
             "Calibration file keys: dbfs_reference, spl_reference_db, weighting (A|C|Z), "
             "mic_sensitivity_mv_pa, calibration_tone_file."
@@ -1302,6 +1329,10 @@ def _build_parser() -> argparse.ArgumentParser:
     pd.add_argument("--title", default="ecoSignalLab Documentation", help="Site/report title")
     pd.set_defaults(func=_run_docs)
 
+    # quickstart
+    pqs = sub.add_parser("quickstart", help="Print copy-paste commands for first-time users")
+    pqs.set_defaults(func=_run_quickstart)
+
     return parser
 
 
@@ -1310,8 +1341,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        print("hint: verify the file/path exists and try again.", file=sys.stderr)
+        print("hint: for command usage, run: esl <command> --help", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        print("hint: check your option values and ranges in --help.", file=sys.stderr)
+        return 1
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
+        print("hint: run with --debug 1 (or --debug 2) for more details where available.", file=sys.stderr)
+        print("hint: start with: esl quickstart", file=sys.stderr)
         return 1
 
 
