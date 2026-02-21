@@ -575,6 +575,7 @@ Outputs:
 - Ecosystem gap analysis: [`docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md`](docs/PHASE1_ECOSYSTEM_GAP_ANALYSIS.md)
 - Documentation automation: [`docs/DOCS_AUTOMATION.md`](docs/DOCS_AUTOMATION.md)
 - References: [`docs/REFERENCES.md`](docs/REFERENCES.md)
+- NSF ecology + ecoacoustics papers (including FIU / Evelyn Gaiser): [`docs/REFERENCES.md#nsf-supported-ecology-and-ecoacoustics-papers`](docs/REFERENCES.md#nsf-supported-ecology-and-ecoacoustics-papers)
 - Attribution: [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
 
 ## License
