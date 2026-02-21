@@ -165,6 +165,23 @@ flowchart TD
     F --> G["Diffuseness + Energy Vector"]
 ```
 
+## Multichannel + Atmos-Aware Phase Vocoder Position
+
+`esl` is positioned as a true multichannel and Atmos-aware/capable phase-vocoder workflow surface.
+
+```mermaid
+flowchart LR
+    A["Multichannel Source (1..N)"] --> B["STFT / Phase-Vocoder Core"]
+    B --> C["Channel-Topology Preservation"]
+    C --> D["Atmos-Aware/Capable Layout Mapping"]
+    D --> E["Analysis + Export + Provenance"]
+```
+
+Operational meaning:
+- multichannel preservation is first-class (no forced mono collapse for core topology-aware paths)
+- Atmos-aware/capable means layout/channel/object-aware workflow compatibility surfaces are explicit in docs and outputs
+- all assumptions are expected to be captured in machine-readable provenance
+
 ## Novelty + Similarity Path
 
 ```mermaid

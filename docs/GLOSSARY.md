@@ -29,6 +29,8 @@ Beginner-friendly definitions used across `esl` docs.
 - `ambisonics`: spatial audio representation using spherical harmonics.
 - `FOA`: first-order ambisonics (typically 4 channels).
 - `binaural`: two-channel rendering that simulates human ears.
+- `Atmos-aware/capable`: layout/channel/object-aware workflow compatibility for immersive mixes and exports.
+- `multichannel phase vocoder`: phase-vocoder processing approach that preserves channel topology across transformations.
 
 ## Reproducibility and exports
 

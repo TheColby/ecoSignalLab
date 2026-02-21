@@ -2,6 +2,9 @@
 
 This page explains how to compare time-stretch algorithms using numerical KPIs computed from a real input audio file.
 
+Scope:
+- designed to evaluate true multichannel and Atmos-aware/capable phase-vocoder workflows against baseline methods on the same input.
+
 Script:
 - [`../scripts/compare_time_stretch_kpis.py`](../scripts/compare_time_stretch_kpis.py)
 

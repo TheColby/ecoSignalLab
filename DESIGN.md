@@ -13,6 +13,7 @@ See also:
 ## Product Intent
 
 - One deterministic analysis contract across DSP, ecoacoustics, architectural acoustics, and ML.
+- A true multichannel and Atmos-aware/capable phase-vocoder-oriented processing surface.
 - CLI-first operation for production and reproducible research.
 - Explicit handling of calibration and assumptions.
 
@@ -28,20 +29,25 @@ flowchart LR
 
 1. Multi-channel first
 - Internal arrays are sample-major and channel-preserving: `[samples, channels]`.
+- Phase-vocoder style transforms are expected to preserve channel topology rather than collapsing to mono.
 
-2. Calibration-aware semantics
+2. Atmos-aware/capable interop semantics
+- Channel and object/bed metadata must remain explicit through analysis/export surfaces.
+- Layout-aware processing paths should preserve mapping assumptions in provenance fields.
+
+3. Calibration-aware semantics
 - Metrics can run without calibration, but outputs explicitly mark proxy vs calibrated SPL semantics.
 
-3. Plugin contracts over ad hoc functions
+4. Plugin contracts over ad hoc functions
 - Each metric declares name, units, window, hop, streaming capability, calibration dependency, confidence logic, and ML compatibility.
 
-4. Deterministic defaults
+5. Deterministic defaults
 - Seed defaults to `42` and is persisted in provenance metadata.
 
-5. Export interoperability
+6. Export interoperability
 - Analysis output is schema-governed and exportable to scientific and industrial formats.
 
-6. CLI-first orchestration
+7. CLI-first orchestration
 - Staged pipelines (`analyze`, `plot`, `ml_export`, `digest`) are first-class.
 - GUI is optional, not required.
 

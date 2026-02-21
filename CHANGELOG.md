@@ -51,6 +51,8 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - friendlier CLI `--help` epilog with quickstart hint
   - friendlier runtime error hints for missing paths and invalid options
   - README onboarding now includes start-in-60-seconds, pick-your-goal navigation, and expected outputs
+- Positioning language now explicitly states:
+  - true multichannel and Atmos-aware/capable phase-vocoder workflow intent across README/design/architecture docs
 - Hardened JSON output provenance and schema fields:
   - `schema_version`, `pipeline_hash`, `metric_catalog`, `library_versions`
   - decoder provenance (`decoder_used`, `ffmpeg_version`, `ffprobe` summary)
