@@ -13,6 +13,16 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - `docs/TASK_RECIPES.md` (goal-oriented copy/paste tasks)
   - `docs/TROUBLESHOOTING.md` (error-first fixes)
   - `docs/GLOSSARY.md` (plain-English definitions)
+- Easy scripts folder for just-downloaded workflows:
+  - `scripts/easy/01_stretch_2x.sh`
+  - `scripts/easy/02_analyze_and_plot.sh`
+  - `scripts/easy/03_extract_single_moment.sh`
+  - `scripts/easy/04_compare_kpis.sh`
+  - `scripts/easy/README.md`
+- Real-input algorithm KPI comparison:
+  - `scripts/compare_time_stretch_kpis.py`
+  - `docs/ALGORITHM_COMPARISON.md`
+  - optional PVX inclusion via `--pvx-cmd` template
 - `moments` extraction workflow:
   - `esl moments extract` for timestamped moment CSV + clip export
   - `src/esl/core/moments.py`

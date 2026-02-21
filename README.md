@@ -38,6 +38,10 @@ esl quickstart
   - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - I do not know the terms yet:
   - [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
+- I want ready-made scripts:
+  - [`scripts/easy/README.md`](scripts/easy/README.md)
+- I want numerical KPI comparisons on real audio:
+  - [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
 
 ## First 5 Minutes (Copy/Paste)
 
@@ -115,6 +119,8 @@ See:
 - [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
+- [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
+- [`scripts/easy/README.md`](scripts/easy/README.md)
 - [`DESIGN.md`](DESIGN.md)
 - [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - [`CHANGELOG.md`](CHANGELOG.md)
@@ -544,6 +550,8 @@ Outputs:
 - Task recipes: [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
 - Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - Glossary: [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
+- Real-input KPI algorithm comparison: [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
+- Easy scripts folder: [`scripts/easy/README.md`](scripts/easy/README.md)
 - System design: [`DESIGN.md`](DESIGN.md)
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Metrics reference: [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)

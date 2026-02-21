@@ -37,6 +37,14 @@ esl moments extract input.wav --out out/moments --single --rank-metric novelty_c
 esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
 ```
 
+Or use copy-paste helper scripts:
+
+```bash
+bash scripts/easy/01_stretch_2x.sh input.wav
+bash scripts/easy/02_analyze_and_plot.sh input.wav out
+bash scripts/easy/03_extract_single_moment.sh input.wav out/moments
+```
+
 Expected outputs:
 - `out/input.json`
 - `out/input_plots/`
@@ -81,3 +89,5 @@ flowchart LR
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`ML_FEATURES.md`](ML_FEATURES.md)
 - [`SCHEMA.md`](SCHEMA.md)
+- [`../scripts/easy/README.md`](../scripts/easy/README.md)
+- [`ALGORITHM_COMPARISON.md`](ALGORITHM_COMPARISON.md)
