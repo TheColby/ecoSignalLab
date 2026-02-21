@@ -229,7 +229,10 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
     a {{ color: var(--link); }}
-    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; }}
+    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; position: relative; }}
+    .copy-btn {{ position: absolute; top: 8px; right: 8px; padding: 4px 8px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; font-size: 12px; }}
+    .copy-btn:hover {{ background: rgba(255,255,255,0.2); }}
+    .sr-only {{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }}
     code {{ background: var(--code); border-radius: 6px; padding: 0.1rem 0.35rem; }}
     pre code {{ background: transparent; padding: 0; }}
     table {{ width: 100%; border-collapse: collapse; margin: 12px 0 20px; }}
@@ -269,6 +272,41 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
         console.error('mermaid render failed', err);
       }}
     }})();
+    document.addEventListener('DOMContentLoaded', () => {{
+      const status = document.createElement('div');
+      status.className = 'sr-only';
+      status.setAttribute('aria-live', 'polite');
+      document.body.appendChild(status);
+
+      document.querySelectorAll('pre').forEach(pre => {{
+        const codeElement = pre.querySelector('code');
+        if (!codeElement) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.innerText = 'Copy';
+        btn.setAttribute('aria-label', 'Copy code to clipboard');
+
+        btn.addEventListener('click', () => {{
+          if (!navigator.clipboard) {{
+             console.warn('Clipboard API not available');
+             return;
+          }}
+          const code = codeElement.innerText;
+          navigator.clipboard.writeText(code).then(() => {{
+            btn.innerText = 'Copied!';
+            status.innerText = 'Code copied to clipboard';
+            setTimeout(() => {{
+              btn.innerText = 'Copy';
+              status.innerText = '';
+            }}, 2000);
+          }}).catch(err => {{
+            console.error('Copy failed', err);
+          }});
+        }});
+        pre.appendChild(btn);
+      }});
+    }});
   </script>
 </head>
 <body>
