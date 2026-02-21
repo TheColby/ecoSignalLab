@@ -28,6 +28,8 @@ All formulas below reflect current `esl` implementation, including metrics label
 
 These equations are rendered in generated HTML/PDF docs and each has a plain-English interpretation.
 
+Snark note: formulas do not make a pipeline “scientific” by themselves; assumptions and calibration do.
+
 ### 1) Frame Energy and RMS
 
 $$
@@ -38,6 +40,8 @@ $$
 \mathrm{RMS}(F_k) = \sqrt{\frac{1}{N_k C}\sum_{c=1}^{C}\sum_{n=0}^{N_k-1} x_{k,c}[n]^2}
 $$
 
+where \(E_k\) is frame energy, \(x_{k,c}[n]\) is sample \(n\) in channel \(c\), \(N_k\) is samples per frame, and \(C\) is channel count.
+
 Plain English: frame energy is total squared amplitude; RMS is the energy-normalized average amplitude.
 
 ### 2) dBFS Mapping
@@ -45,6 +49,8 @@ Plain English: frame energy is total squared amplitude; RMS is the energy-normal
 $$
 L_{\mathrm{dBFS},k} = 20\log_{10}\!\big(\max(\mathrm{RMS}(F_k), \varepsilon)\big)
 $$
+
+where \(L_{\mathrm{dBFS},k}\) is frame level in full-scale decibels and \(\varepsilon\) avoids log singularities.
 
 Plain English: RMS is mapped to logarithmic decibels relative to full scale.
 
@@ -54,6 +60,8 @@ $$
 L_{\mathrm{SPL},k} = L_{\mathrm{dBFS},k} + \left(L_{\mathrm{SPL,ref}} - L_{\mathrm{dBFS,ref}}\right)
 $$
 
+where \(L_{\mathrm{SPL,ref}}\) is physical reference SPL and \(L_{\mathrm{dBFS,ref}}\) is the corresponding digital reference.
+
 Plain English: calibrated SPL is a fixed offset from digital dBFS, derived from calibration reference points.
 
 ### 4) Equivalent Continuous Level (Leq)
@@ -61,6 +69,8 @@ Plain English: calibrated SPL is a fixed offset from digital dBFS, derived from 
 $$
 L_{\mathrm{eq}} = 10\log_{10}\!\left(\frac{1}{T}\int_0^T \frac{p^2(t)}{p_0^2}\,dt\right)
 $$
+
+where \(p(t)\) is sound pressure, \(p_0\) is reference pressure, and \(T\) is analysis duration.
 
 Plain English: Leq is the single steady level carrying the same acoustic energy as the varying signal.
 
@@ -70,6 +80,8 @@ $$
 f_c(t) = \frac{\sum_f f \cdot M(f,t)}{\sum_f M(f,t) + \varepsilon}
 $$
 
+where \(M(f,t)\) is magnitude at frequency bin \(f\) and frame \(t\), and \(f_c(t)\) is centroid frequency.
+
 Plain English: spectral centroid tracks where the spectrum is centered in frequency (perceptual brightness proxy).
 
 ### 6) Spectral Flux Novelty
@@ -77,6 +89,8 @@ Plain English: spectral centroid tracks where the spectrum is centered in freque
 $$
 N(t) = \sum_f \max\!\left(M(f,t)-M(f,t-1), 0\right)
 $$
+
+where \(N(t)\) is novelty at frame \(t\), driven only by positive spectral changes.
 
 Plain English: novelty rises when new spectral energy appears between successive frames.
 
@@ -86,6 +100,8 @@ $$
 \mathrm{NDSI} = \frac{E_{\mathrm{bio}} - E_{\mathrm{anthro}}}{E_{\mathrm{bio}} + E_{\mathrm{anthro}} + \varepsilon}
 $$
 
+where \(E_{\mathrm{bio}}\) is biological-band energy and \(E_{\mathrm{anthro}}\) is anthropogenic-band energy.
+
 Plain English: NDSI is positive when biological-band energy dominates and negative when anthropogenic-band energy dominates.
 
 ### 8) Clarity (C50/C80)
@@ -93,6 +109,8 @@ Plain English: NDSI is positive when biological-band energy dominates and negati
 $$
 C_T = 10\log_{10}\!\left(\frac{\int_0^T h^2(t)\,dt}{\int_T^\infty h^2(t)\,dt + \varepsilon}\right), \quad T\in\{50\text{ms},80\text{ms}\}
 $$
+
+where \(h(t)\) is impulse response and \(T\) sets the early/late split boundary.
 
 Plain English: clarity compares early arriving energy to late reverberant energy.
 
@@ -102,6 +120,8 @@ $$
 D_{50} = \frac{\int_0^{50\text{ms}} h^2(t)\,dt}{\int_0^\infty h^2(t)\,dt + \varepsilon}
 $$
 
+where numerator is early IR energy and denominator is total IR energy.
+
 Plain English: D50 is the fraction of energy arriving in the first 50 ms.
 
 ### 10) Reverberation Time Regression
@@ -110,7 +130,7 @@ $$
 RT60 \approx -\frac{60}{m}
 $$
 
-where \(m\) is slope (dB/s) from linear regression of Schroeder decay in the selected dB window.
+where \(m\) is decay slope (dB/s) from linear regression of Schroeder decay in the selected fitting window.
 
 Plain English: steeper decay slope implies shorter reverberation time.
 

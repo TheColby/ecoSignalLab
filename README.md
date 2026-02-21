@@ -2,6 +2,12 @@
 
 `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
+Do you want to stretch out your audio file? Or make it confirm do a different note? You came to the right place.
+
+`pvx is a Python toolkit for high-quality time and pitch processing using a phase-vocoder/short-time Fourier transform (STFT) core.`
+
+That line is intentionally preserved verbatim as a style anchor; `esl` is the environmental/architectural acoustics sibling focused on measurement, calibration, and analysis at scale.
+
 ## What this is
 
 - A CLI-first, production-grade SDK for environmental and architectural acoustic analysis.
@@ -15,6 +21,13 @@
 - Not a GUI-first desktop app (interactive plotting is supported; full GUI is optional).
 - Not a black-box vendor suite with opaque assumptions or locked data formats.
 - Not a substitute for formal compliance certification measurements without calibrated hardware/protocols.
+
+## Field Notes (With Mild Professional Snark)
+
+- If your thresholds fire on every chunk, you did not build a detector; you built a very expensive clip copier.
+- If your calibration file is missing, `esl` will still run, but your SPL claims are now a creative writing exercise.
+- If you compare variants with different assumptions and call the delta “ground truth,” statistics lawyers will find you.
+- If you skip provenance, future-you becomes forensics-you.
 
 ## What Can I Do with vfX?
 

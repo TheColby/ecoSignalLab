@@ -84,6 +84,9 @@ python -m playwright install chromium
 - Generated docs render:
   - Mermaid diagrams (explicit blocks and auto-generated visual outlines for pages without Mermaid)
   - TeX math via MathJax (`$...$`, `$$...$$`, `\\(...\\)`, `\\[...\\]`)
+- Equation writing style:
+  - every displayed equation should include a `where ...` statement immediately after it
+  - every equation should include a plain-English interpretation line
 - Algorithm-heavy sections should include links to:
   - [`docs/REFERENCES.md`](REFERENCES.md)
   - [`docs/ATTRIBUTION.md`](ATTRIBUTION.md)

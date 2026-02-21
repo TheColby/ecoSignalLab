@@ -47,6 +47,16 @@ Additional provenance:
 - window/hop parameters
 - runtime library versions
 
+$$
+\text{pipeline\_hash} = H\!\left(\text{config\_snapshot} \,\|\, \text{metric\_list} \,\|\, \text{window/hop} \,\|\, \text{library\_versions}\right)
+$$
+
+where \(H(\cdot)\) is deterministic digest function and \(\|\) denotes canonical concatenation/serialization order.
+
+Plain English: same config and same environment should produce the same pipeline hash; if it changes, something operational changed.
+
+Snark note: “I think we used the same settings” is not a provenance strategy.
+
 `metadata.decoder` includes:
 - `decoder_used`: `soundfile`, `ffmpeg`, or `h5py` (SOFA)
 - `ffmpeg_version`: string when FFmpeg decode is used

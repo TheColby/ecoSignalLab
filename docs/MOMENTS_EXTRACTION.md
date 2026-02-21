@@ -31,11 +31,15 @@ Ranking:
 - `--rank-metric novelty_curve` (default) ranks moments by per-chunk novelty score.
 - You can rank by any emitted chunk metric mean, for example `spectral_change_detection` or `spl_a_db`.
 
+Snark note: if your `rank_metric` is random, your highlights are random. That is not “discovery,” that is sampling.
+
 ### Ranking and Window Equations
 
 $$
 s_i = m_i
 $$
+
+where \(s_i\) is ranking score for candidate chunk \(i\), and \(m_i\) is that chunk’s value for the selected ranking metric.
 
 Plain English: each candidate chunk \(i\) receives a ranking score \(s_i\) equal to its selected rank metric value \(m_i\) (for example `novelty_curve` mean).
 
@@ -43,17 +47,23 @@ $$
 i^* = \arg\max_i s_i
 $$
 
+where \(i^*\) is index of highest-ranked candidate.
+
 Plain English: `--single` picks the one chunk with highest score.
 
 $$
 \mathcal{I}_K = \mathrm{TopK}\left(\{s_i\}, K\right)
 $$
 
+where \(K\) is requested number of moments and \(\mathcal{I}_K\) is retained index set.
+
 Plain English: `--top-k K` keeps the \(K\) highest-scoring moments.
 
 $$
 t_c = \frac{t_{\text{start}} + t_{\text{end}}}{2}
 $$
+
+where \(t_c\) is event center time and \(t_{\text{start}}, t_{\text{end}}\) are source chunk boundaries.
 
 Plain English: event center is midpoint of the source chunk.
 
@@ -62,7 +72,17 @@ t_{\text{clip,start}} = \max(0, t_c - w_b), \quad
 t_{\text{clip,end}} = \min(T, t_c + w_a)
 $$
 
+where \(w_b\) is pre-window duration, \(w_a\) is post-window duration, and \(T\) is full recording duration.
+
 Plain English: `--window-before` (\(w_b\)) and `--window-after` (\(w_a\)) define the extracted clip around each event center, bounded to file duration \(T\).
+
+$$
+\text{clip duration} = t_{\text{clip,end}} - t_{\text{clip,start}}
+$$
+
+where clip duration is zero-clamped implicitly by bounded start/end logic.
+
+Plain English: if your window exceeds file bounds, `esl` trims safely instead of writing nonsense timestamps.
 
 ## Detection Rules
 

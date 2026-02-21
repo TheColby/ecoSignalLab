@@ -15,6 +15,14 @@ This document defines the canonical ML-facing feature contract in `esl`.
 - `channel_labels`: default `["mix"]`
 - `metadata`: frame/hop, naming rules, tensor layout, source provenance
 
+$$
+\mathbf{X}\in\mathbb{R}^{F\times K}
+$$
+
+where \(F\) is number of frames and \(K\) is number of feature columns in `values`.
+
+Plain English: FrameTable stores one feature row per time frame.
+
 ```mermaid
 flowchart LR
     A["Analysis JSON metrics"] --> B["FrameTable builder"]
@@ -41,6 +49,16 @@ Current default mode:
 
 Optional future mode:
 - `replicated_aggregate`: aggregate frame features repeated to source channel count for channel-axis model compatibility
+
+$$
+\mathbf{T}\in\mathbb{R}^{C\times F\times K}
+$$
+
+where \(C\) is channels, \(F\) is frames, and \(K\) is features.
+
+Plain English: deep models get a channel-major tensor while tabular pipelines keep the frame table.
+
+Snark note: if your model input shape is “whatever NumPy gave me,” reproducibility is already gone.
 
 ## Export Modes
 
