@@ -89,6 +89,21 @@ Expected outputs:
 - `out/input.json`
 - `out/input_plots/`
 
+## Recipe 7: Generate DSP signal/window reference graphs
+
+```bash
+bash scripts/easy/05_generate_signal_graphs.sh docs/examples/signal_window_guide
+```
+
+What this does:
+- creates waveform, frame/hop, window family, overlap-add, spectrogram, novelty-kernel, and multichannel/FOA figures
+
+Expected output folder:
+- `docs/examples/signal_window_guide/`
+
+See full walkthrough:
+- [`SIGNAL_WINDOWS_VISUAL_GUIDE.md`](SIGNAL_WINDOWS_VISUAL_GUIDE.md)
+
 ## Which tool should I use?
 
 ```mermaid

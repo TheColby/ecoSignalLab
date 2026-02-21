@@ -46,6 +46,7 @@ Or use copy-paste helper scripts:
 bash scripts/easy/01_stretch_2x.sh input.wav
 bash scripts/easy/02_analyze_and_plot.sh input.wav out
 bash scripts/easy/03_extract_single_moment.sh input.wav out/moments
+bash scripts/easy/05_generate_signal_graphs.sh docs/examples/signal_window_guide
 ```
 
 Expected outputs:
@@ -94,3 +95,4 @@ flowchart LR
 - [`SCHEMA.md`](SCHEMA.md)
 - [`../scripts/easy/README.md`](../scripts/easy/README.md)
 - [`ALGORITHM_COMPARISON.md`](ALGORITHM_COMPARISON.md)
+- [`SIGNAL_WINDOWS_VISUAL_GUIDE.md`](SIGNAL_WINDOWS_VISUAL_GUIDE.md)

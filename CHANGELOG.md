@@ -23,6 +23,11 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - `scripts/compare_time_stretch_kpis.py`
   - `docs/ALGORITHM_COMPARISON.md`
   - optional PVX inclusion via `--pvx-cmd` template
+- Generated DSP visual pack:
+  - `scripts/generate_signal_window_graphs.py`
+  - `docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`
+  - `docs/examples/signal_window_guide/*.png`
+  - `scripts/easy/05_generate_signal_graphs.sh`
 - `moments` extraction workflow:
   - `esl moments extract` for timestamped moment CSV + clip export
   - `src/esl/core/moments.py`

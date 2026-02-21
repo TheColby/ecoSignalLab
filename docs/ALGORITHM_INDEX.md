@@ -17,6 +17,8 @@ Interesting-moments workflow: [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.
 | [`src/esl/ml/export.py`](../src/esl/ml/export.py) | Isolation Forest anomaly scoring | [M1], [M3] |
 | [`src/esl/core/audio.py`](../src/esl/core/audio.py) | Polyphase resampling for sample-rate conversion | [D2] |
 | [`src/esl/core/moments.py`](../src/esl/core/moments.py) | Alert-window merging and clip extraction workflow | [N1], [N3], [M3] |
+| [`scripts/generate_signal_window_graphs.py`](../scripts/generate_signal_window_graphs.py) | STFT framing visuals, window families, overlap-add, novelty kernel plots | [D1], [D5], [N1], [N3] |
+| [`scripts/compare_time_stretch_kpis.py`](../scripts/compare_time_stretch_kpis.py) | Real-input KPI benchmarking for stretch algorithms | [D1], [D5], [N4], [M3] |
 
 ## Attribution Cross-Link
 

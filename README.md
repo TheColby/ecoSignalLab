@@ -44,6 +44,8 @@ esl quickstart
   - [`scripts/easy/README.md`](scripts/easy/README.md)
 - I want numerical KPI comparisons on real audio:
   - [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
+- I want visual graphs of signals/windows/STFT:
+  - [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
 
 ## First 5 Minutes (Copy/Paste)
 
@@ -124,6 +126,7 @@ See:
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
+- [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
 - [`scripts/easy/README.md`](scripts/easy/README.md)
 - [`DESIGN.md`](DESIGN.md)
 - [`ARCHITECTURE.md`](ARCHITECTURE.md)
@@ -556,6 +559,7 @@ Outputs:
 - Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - Glossary: [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - Real-input KPI algorithm comparison: [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
+- Signal/window visual guide (generated graphs): [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
 - Easy scripts folder: [`scripts/easy/README.md`](scripts/easy/README.md)
 - System design: [`DESIGN.md`](DESIGN.md)
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
