@@ -902,6 +902,8 @@ def _run_quickstart(args: argparse.Namespace) -> int:
     lines = [
         "ecoSignalLab Quickstart",
         "",
+        "You have one audio file and want results fast. Start here:",
+        "",
         "1) Analyze one file (JSON + plots):",
         "   esl analyze input.wav --out-dir out --plot --json out/input.json",
         "",
@@ -916,6 +918,11 @@ def _run_quickstart(args: argparse.Namespace) -> int:
         "",
         "Need help with a command? Use:",
         "   esl <command> --help",
+        "",
+        "Beginner docs:",
+        "   docs/GETTING_STARTED.md",
+        "   docs/TASK_RECIPES.md",
+        "   docs/TROUBLESHOOTING.md",
         "",
         "If decode fails on compressed audio, install ffmpeg and ensure ffprobe is on PATH.",
     ]

@@ -37,6 +37,13 @@ esl moments extract input.wav --out out/moments --single --rank-metric novelty_c
 esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
 ```
 
+Expected outputs:
+- `out/input.json`
+- `out/input_plots/`
+- `out/moments/moments.csv`
+- `out/moments/clips/moment_0001.wav`
+- `out/vectors.npz`
+
 ## 3) If you want 2x time-stretch quickly
 
 ```bash
@@ -52,6 +59,7 @@ ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
   - Install FFmpeg and ensure `ffprobe` is on `PATH`.
 - Empty/weak moments extraction output
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
+  - See full fixes in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 
 ## 5) Mental model
 
@@ -67,6 +75,9 @@ flowchart LR
 ## Related Docs
 
 - [`../README.md`](../README.md)
+- [`TASK_RECIPES.md`](TASK_RECIPES.md)
+- [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
+- [`GLOSSARY.md`](GLOSSARY.md)
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`ML_FEATURES.md`](ML_FEATURES.md)
 - [`SCHEMA.md`](SCHEMA.md)

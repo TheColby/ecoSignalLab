@@ -9,6 +9,10 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
   - `esl quickstart` prints copy-paste commands for analysis, moments extraction, and feature export.
 - New user guide:
   - `docs/GETTING_STARTED.md` with install, first commands, troubleshooting, and mental model.
+- New beginner docs:
+  - `docs/TASK_RECIPES.md` (goal-oriented copy/paste tasks)
+  - `docs/TROUBLESHOOTING.md` (error-first fixes)
+  - `docs/GLOSSARY.md` (plain-English definitions)
 - `moments` extraction workflow:
   - `esl moments extract` for timestamped moment CSV + clip export
   - `src/esl/core/moments.py`
@@ -36,7 +40,7 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
 - User-facing ergonomics:
   - friendlier CLI `--help` epilog with quickstart hint
   - friendlier runtime error hints for missing paths and invalid options
-  - README onboarding now includes first-5-minutes copy/paste commands
+  - README onboarding now includes start-in-60-seconds, pick-your-goal navigation, and expected outputs
 - Hardened JSON output provenance and schema fields:
   - `schema_version`, `pipeline_hash`, `metric_catalog`, `library_versions`
   - decoder provenance (`decoder_used`, `ffmpeg_version`, `ffprobe` summary)

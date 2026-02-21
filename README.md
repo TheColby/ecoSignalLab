@@ -4,13 +4,15 @@
 
 `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
-Do you want to stretch out your audio file? Or make it confirm do a different note? You came to the right place.
+If you know nothing yet except “I have an audio file and want it to sound different,” this README is for you.
+
+Do you want to stretch your audio file? Or shift it to a different note? You came to the right place.
 
 `pvx is a Python toolkit for high-quality time and pitch processing using a phase-vocoder/short-time Fourier transform (STFT) core.`
 
 That line is intentionally preserved verbatim as a style anchor; `esl` is the environmental/architectural acoustics sibling focused on measurement, calibration, and analysis at scale.
 
-## New Here? Start Fast
+## Start in 60 Seconds
 
 If you just downloaded this and want one immediate win, run this to stretch a WAV file to **2x duration** (slower, pitch-preserving):
 
@@ -18,15 +20,26 @@ If you just downloaded this and want one immediate win, run this to stretch a WA
 ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
 ```
 
-No ceremony, no giant config, just a result.
+Expected result:
+- a new file named `output_2x.wav`
+- same voice character, slower timing
 
-If you want an `esl`-native onboarding flow instead, run:
+If you want an `esl` onboarding flow (analysis + clips + plots), run:
 
 ```bash
 esl quickstart
 ```
 
-### First 5 Minutes (Copy/Paste)
+## Pick Your Goal
+
+- I want simple copy-paste tasks:
+  - [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
+- I got an error and need a fix now:
+  - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- I do not know the terms yet:
+  - [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
+
+## First 5 Minutes (Copy/Paste)
 
 ```bash
 # 1) Analyze one file
@@ -38,6 +51,13 @@ esl moments extract input.wav --out out/moments --single --rank-metric novelty_c
 # 3) Export ML-ready frame features
 esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
 ```
+
+Expected outputs:
+- `out/input.json`
+- `out/input_plots/`
+- `out/moments/moments.csv`
+- `out/moments/clips/moment_0001.wav` (for `--single`)
+- `out/vectors.npz`
 
 ## What this is
 
@@ -52,6 +72,8 @@ esl features extract input.wav --out out/vectors.npz --feature-set all --meta-js
 - Not a GUI-first desktop app (interactive plotting is supported; full GUI is optional).
 - Not a black-box vendor suite with opaque assumptions or locked data formats.
 - Not a substitute for formal compliance certification measurements without calibrated hardware/protocols.
+
+If your only goal is creative audio effects and you do not need analytics/provenance, start with [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md) and the FFmpeg recipes first.
 
 ## Friendly Notes
 
@@ -90,6 +112,9 @@ Core goals:
 
 See:
 - [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
+- [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - [`DESIGN.md`](DESIGN.md)
 - [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - [`CHANGELOG.md`](CHANGELOG.md)
@@ -515,6 +540,10 @@ Outputs:
 
 ## Documentation
 
+- Getting started: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
+- Task recipes: [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
+- Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- Glossary: [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - System design: [`DESIGN.md`](DESIGN.md)
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Metrics reference: [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
