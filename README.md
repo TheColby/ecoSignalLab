@@ -8,6 +8,16 @@ Do you want to stretch out your audio file? Or make it confirm do a different no
 
 That line is intentionally preserved verbatim as a style anchor; `esl` is the environmental/architectural acoustics sibling focused on measurement, calibration, and analysis at scale.
 
+## New Here? Start Fast
+
+If you just downloaded this and want one immediate win, run this to stretch a WAV file to **2x duration** (slower, pitch-preserving):
+
+```bash
+ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
+```
+
+No ceremony, no giant config, just a result.
+
 ## What this is
 
 - A CLI-first, production-grade SDK for environmental and architectural acoustic analysis.
