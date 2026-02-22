@@ -80,7 +80,7 @@ def test_build_docs_ux_and_accessibility(tmp_path: Path) -> None:
     readme = root / "README.md"
     readme.write_text("# UX Doc\n\n```bash\nls -l\n```\n", encoding="utf-8")
 
-    report = build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme])
+    build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme])
     rendered = (root / "build" / "html" / "README.html").read_text(encoding="utf-8")
 
     # Check accessibility improvements
