@@ -229,7 +229,16 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
     a {{ color: var(--link); }}
-    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; }}
+    pre {{ position: relative; background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; }}
+    .copy-btn {{
+      position: absolute; top: 8px; right: 8px;
+      padding: 4px 8px; font-size: 0.7rem;
+      background: rgba(255, 255, 255, 0.1); color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 4px;
+      cursor: pointer; opacity: 0; transition: opacity 0.2s;
+    }}
+    pre:hover .copy-btn, .copy-btn:focus {{ opacity: 1; }}
+    .copy-btn:hover {{ background: rgba(255, 255, 255, 0.2); }}
     code {{ background: var(--code); border-radius: 6px; padding: 0.1rem 0.35rem; }}
     pre code {{ background: transparent; padding: 0; }}
     table {{ width: 100%; border-collapse: collapse; margin: 12px 0 20px; }}
@@ -269,6 +278,24 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
         console.error('mermaid render failed', err);
       }}
     }})();
+    document.addEventListener('DOMContentLoaded', () => {{
+      document.querySelectorAll('pre').forEach(pre => {{
+        const code = pre.querySelector('code');
+        if (!code || code.classList.contains('language-mermaid')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.innerText = 'Copy';
+        btn.setAttribute('aria-label', 'Copy code to clipboard');
+        btn.onclick = () => {{
+          navigator.clipboard.writeText(code.innerText).then(() => {{
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            setTimeout(() => {{ btn.innerText = originalText; }}, 2000);
+          }});
+        }};
+        pre.appendChild(btn);
+      }});
+    }});
   </script>
 </head>
 <body>
@@ -277,7 +304,7 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\">
       <article>
         {body_html}
       </article>
