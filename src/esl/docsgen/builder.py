@@ -223,13 +223,17 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     nav {{ border-right: 1px solid var(--line); background: #f8fbff; padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }}
     nav h1 {{ font-size: 1rem; margin: 0 0 14px 0; letter-spacing: 0.02em; }}
     nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; }}
+    .skip-link {{ position: absolute; top: -40px; left: 0; background: var(--link); color: white; padding: 8px 12px; z-index: 1000; text-decoration: none; border-bottom-right-radius: 8px; transition: top 0.2s; }}
+    .skip-link:focus {{ top: 0; }}
     nav a:hover {{ text-decoration: underline; }}
     main {{ padding: 28px 32px 48px; }}
     article {{ max-width: 1060px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05); }}
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
     a {{ color: var(--link); }}
-    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; }}
+    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; position: relative; }}
+    .copy-button {{ position: absolute; top: 8px; right: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; color: #eef6ff; padding: 4px 8px; font-size: 12px; cursor: pointer; opacity: 0; transition: opacity 0.2s; }}
+    pre:hover .copy-button, .copy-button:focus {{ opacity: 1; }}
     code {{ background: var(--code); border-radius: 6px; padding: 0.1rem 0.35rem; }}
     pre code {{ background: transparent; padding: 0; }}
     table {{ width: 100%; border-collapse: collapse; margin: 12px 0 20px; }}
@@ -272,17 +276,36 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to content</a>
   <div class=\"layout\">
-    <nav>
+    <nav aria-label=\"Sidebar Navigation\">
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\" aria-label=\"Main Content\" tabindex=\"-1\">
       <article>
         {body_html}
       </article>
     </main>
   </div>
+  <script>
+    document.querySelectorAll(\"pre\").forEach((pre) => {{
+      const code = pre.querySelector(\"code\");
+      if (!code || !navigator.clipboard) return;
+      const button = document.createElement(\"button\");
+      button.className = \"copy-button\";
+      button.textContent = \"Copy\";
+      button.setAttribute(\"aria-label\", \"Copy code to clipboard\");
+      button.setAttribute(\"aria-live\", \"polite\");
+      pre.appendChild(button);
+      button.addEventListener(\"click\", () => {{
+        navigator.clipboard.writeText(code.innerText).then(() => {{
+          button.textContent = \"Copied!\";
+          setTimeout(() => {{ button.textContent = \"Copy\"; }}, 2000);
+        }});
+      }});
+    }});
+  </script>
 </body>
 </html>
 """
