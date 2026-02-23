@@ -7,6 +7,7 @@ from pathlib import Path
 
 def test_generate_signal_window_graphs_script(tmp_path: Path) -> None:
     out_dir = tmp_path / "figs"
+    # Using sys.executable for cross-environment compatibility
     cmd = [
         sys.executable,
         "scripts/generate_signal_window_graphs.py",

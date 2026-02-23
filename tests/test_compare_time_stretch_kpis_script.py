@@ -18,6 +18,7 @@ def test_compare_time_stretch_kpis_script_scipy_only(tmp_path: Path) -> None:
     sf.write(wav, x, sr, subtype="PCM_24")
 
     out_dir = tmp_path / "kpi"
+    # Using sys.executable for cross-environment compatibility
     cmd = [
         sys.executable,
         "scripts/compare_time_stretch_kpis.py",
