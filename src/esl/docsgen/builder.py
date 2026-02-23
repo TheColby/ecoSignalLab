@@ -220,6 +220,17 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #f7fafc, #eef3fb); color: var(--ink); }}
     .layout {{ display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }}
+    .skip-link {{
+      position: absolute;
+      top: -100px;
+      left: 0;
+      background: var(--link);
+      color: white;
+      padding: 8px;
+      z-index: 100;
+      transition: top 0.2s;
+    }}
+    .skip-link:focus {{ top: 0; }}
     nav {{ border-right: 1px solid var(--line); background: #f8fbff; padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }}
     nav h1 {{ font-size: 1rem; margin: 0 0 14px 0; letter-spacing: 0.02em; }}
     nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; }}
@@ -272,12 +283,13 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href=\"#main-content\" class=\"skip-link\">Skip to content</a>
   <div class=\"layout\">
     <nav>
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\">
       <article>
         {body_html}
       </article>
