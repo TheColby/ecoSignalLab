@@ -13,7 +13,7 @@ See also:
 ## Product Intent
 
 - One deterministic analysis contract across DSP, ecoacoustics, architectural acoustics, and ML.
-- A true multichannel and Atmos-aware/capable phase-vocoder-oriented processing surface.
+- A true multichannel and Atmos-aware/capable acoustic analysis processing surface.
 - CLI-first operation for production and reproducible research.
 - Explicit handling of calibration and assumptions.
 
@@ -29,7 +29,7 @@ flowchart LR
 
 1. Multi-channel first
 - Internal arrays are sample-major and channel-preserving: `[samples, channels]`.
-- Phase-vocoder style transforms are expected to preserve channel topology rather than collapsing to mono.
+- Multichannel transforms are expected to preserve channel topology rather than collapsing to mono.
 
 2. Atmos-aware/capable interop semantics
 - Channel and object/bed metadata must remain explicit through analysis/export surfaces.

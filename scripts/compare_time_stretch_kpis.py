@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Compare time-stretch algorithms with numerical KPIs on a real input file.
 
+Note: This utility compares external phase vocoder implementations (like pvx)
+and does not imply esl is a phase vocoder itself.
+
 This script is intentionally input-driven: every KPI is computed from the actual
 audio file passed by the user (and each method's rendered output), not from
 synthetic placeholder values.

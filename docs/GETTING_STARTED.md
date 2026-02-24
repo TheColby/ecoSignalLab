@@ -3,7 +3,7 @@
 This page is for first-time users who want fast results with minimal setup.
 
 Positioning:
-- `esl` is a true multichannel and Atmos-aware/capable phase-vocoder workflow toolkit.
+- `esl` is a true multichannel and Atmos-aware/capable acoustic analysis workflow toolkit.
 
 ## 1) Install
 

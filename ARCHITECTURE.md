@@ -165,13 +165,13 @@ flowchart TD
     F --> G["Diffuseness + Energy Vector"]
 ```
 
-## Multichannel + Atmos-Aware Phase Vocoder Position
+## Multichannel + Atmos-Aware Analysis Position
 
-`esl` is positioned as a true multichannel and Atmos-aware/capable phase-vocoder workflow surface.
+`esl` is positioned as a true multichannel and Atmos-aware/capable acoustic analysis workflow surface.
 
 ```mermaid
 flowchart LR
-    A["Multichannel Source (1..N)"] --> B["STFT / Phase-Vocoder Core"]
+    A["Multichannel Source (1..N)"] --> B["STFT / Analysis Core"]
     B --> C["Channel-Topology Preservation"]
     C --> D["Atmos-Aware/Capable Layout Mapping"]
     D --> E["Analysis + Export + Provenance"]

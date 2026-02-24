@@ -8,7 +8,7 @@ If you know nothing yet except “I have an audio file and want it to sound diff
 
 Do you want to stretch your audio file? Or shift it to a different note? You came to the right place.
 
-**Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable phase vocoder** toolkit.
+**Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable acoustic analysis** toolkit.
 
 `pvx is a Python toolkit for high-quality time and pitch processing using a phase-vocoder/short-time Fourier transform (STFT) core.`
 
@@ -70,7 +70,7 @@ Expected outputs:
 ## What this is
 
 - A CLI-first, production-grade SDK for environmental and architectural acoustic analysis.
-- A true multichannel and Atmos-aware/capable phase-vocoder workflow surface.
+- A true multichannel and Atmos-aware/capable acoustic analysis workflow surface.
 - A multi-channel, calibration-aware metric engine with reproducible outputs and provenance capture.
 - An ML-ready acoustic intelligence toolkit with tabular/tensor exports and anomaly/novelty tooling.
 - A plugin-extensible open-source platform for research and industrial interoperability.
