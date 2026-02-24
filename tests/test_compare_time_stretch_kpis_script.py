@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +19,7 @@ def test_compare_time_stretch_kpis_script_scipy_only(tmp_path: Path) -> None:
 
     out_dir = tmp_path / "kpi"
     cmd = [
-        ".venv/bin/python",
+        sys.executable,
         "scripts/compare_time_stretch_kpis.py",
         "--input",
         str(wav),
