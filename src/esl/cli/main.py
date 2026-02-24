@@ -898,6 +898,49 @@ def _run_docs(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_simple(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    # Preset minimal config for fast, simple analysis
+    cfg = AnalysisConfig(
+        input_path=input_path,
+        output_dir=Path("."),  # Not used for file output here
+        verbosity=0,
+        debug=0,
+        metrics=["spl_a_db", "snr_db", "rt60_s", "peak_dbfs"],
+        seed=42,
+    )
+    result = analyze(cfg)
+
+    meta = result["metadata"]
+    metrics = result["metrics"]
+
+    def _val(key: str, default: str = "N/A") -> str:
+        m = metrics.get(key, {})
+        if not isinstance(m, dict):
+            return default
+        s = m.get("summary", {})
+        if not isinstance(s, dict):
+            return default
+        v = s.get("mean")
+        if v is None:
+            return default
+        return f"{float(v):.2f} {m.get('units', '')}"
+
+    print(f"File:     {meta['input_path']}")
+    print(f"Duration: {float(meta['duration_s']):.2f} s")
+    print(f"Format:   {meta['channels']} ch, {meta['sample_rate']} Hz, {meta['backend']}")
+    print("-" * 40)
+    print(f"Loudness (A):  {_val('spl_a_db')}")
+    print(f"Peak Level:    {_val('peak_dbfs')}")
+    print(f"SNR:           {_val('snr_db')}")
+    print(f"Reverb (RT60): {_val('rt60_s')}")
+
+    return 0
+
+
 def _run_quickstart(args: argparse.Namespace) -> int:
     lines = [
         "ecoSignalLab Quickstart",
@@ -1335,6 +1378,11 @@ def _build_parser() -> argparse.ArgumentParser:
     pd.add_argument("--formats", default="html,pdf", help="Comma-separated formats: html,pdf")
     pd.add_argument("--title", default="ecoSignalLab Documentation", help="Site/report title")
     pd.set_defaults(func=_run_docs)
+
+    # simple
+    psimple = sub.add_parser("simple", help="Run a simple analysis and print summary")
+    psimple.add_argument("input", help="Input audio file path")
+    psimple.set_defaults(func=_run_simple)
 
     # quickstart
     pqs = sub.add_parser("quickstart", help="Print copy-paste commands for first-time users")

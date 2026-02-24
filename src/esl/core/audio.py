@@ -130,7 +130,9 @@ def _ffprobe_summary(path: Path) -> dict[str, Any]:
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     except FileNotFoundError as exc:
-        raise RuntimeError("ffprobe executable not found on PATH") from exc
+        raise RuntimeError(
+            "FFmpeg/ffprobe not found. Please install FFmpeg to process compressed audio formats."
+        ) from exc
     if proc.returncode != 0:
         raise RuntimeError(f"ffprobe failed for {path}: {proc.stderr.strip()}")
     payload = json.loads(proc.stdout)
@@ -178,7 +180,12 @@ def _read_ffmpeg(path: Path, target_sr: int | None = None) -> AudioBuffer:
         str(sr),
         "-",
     ]
-    proc = subprocess.run(cmd, capture_output=True, check=False)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, check=False)
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "FFmpeg not found. Please install FFmpeg to process compressed audio formats."
+        ) from exc
     if proc.returncode != 0:
         stderr = proc.stderr.decode("utf-8", errors="ignore").strip()
         raise RuntimeError(f"ffmpeg decode failed for {path}: {stderr}")
