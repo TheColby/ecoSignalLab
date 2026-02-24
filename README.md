@@ -1,6 +1,4 @@
-# Have you ever wondered what it would sound like to hear your voice twice as fast while preserving your voice qualities? Ooh, and what if you altered the sound of your friend's voice based on how you talk or sing?
-
-## ecoSignalLab (`esl`)
+# ecoSignalLab (`esl`)
 
 `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
