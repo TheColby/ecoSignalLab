@@ -159,7 +159,9 @@ def _build_auto_visual_block(markdown_text: str, fallback_title: str, max_nodes:
 def _ensure_visual_outline(markdown_text: str, page_title: str) -> str:
     if "```mermaid" in markdown_text:
         return markdown_text
-    return markdown_text.rstrip() + _build_auto_visual_block(markdown_text, fallback_title=page_title)
+    return markdown_text.rstrip() + _build_auto_visual_block(
+        markdown_text, fallback_title=page_title
+    )
 
 
 def _markdown_extensions() -> tuple[list[str], dict[str, dict[str, bool]]]:
@@ -218,30 +220,91 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
       --code: #e8eef8;
     }}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #f7fafc, #eef3fb); color: var(--ink); }}
-    .layout {{ display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }}
-    nav {{ border-right: 1px solid var(--line); background: #f8fbff; padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }}
+    body {{
+      margin: 0;
+      font-family: ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f7fafc, #eef3fb);
+      color: var(--ink);
+    }}
+    .layout {{
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }}
+    nav {{
+      border-right: 1px solid var(--line);
+      background: #f8fbff;
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }}
     nav h1 {{ font-size: 1rem; margin: 0 0 14px 0; letter-spacing: 0.02em; }}
-    nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; }}
-    nav a:hover {{ text-decoration: underline; }}
+    nav a {{
+      display: block; color: var(--link); text-decoration: none; padding: 6px 10px;
+      word-break: break-word; border-radius: 6px; margin: 2px 0; transition: background 0.2s;
+    }}
+    nav a:hover {{ background: #eef4ff; text-decoration: none; }}
+    nav a.active {{ font-weight: 600; background: #e0e7ff; color: #043570; }}
+    nav a:focus-visible {{ outline: 2px solid var(--link); outline-offset: -2px; }}
     main {{ padding: 28px 32px 48px; }}
-    article {{ max-width: 1060px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05); }}
+    .skip-link {{
+      position: absolute; top: -100px; left: 0; background: var(--link); color: white;
+      padding: 12px; z-index: 1000; text-decoration: none; border-radius: 0 0 8px 0;
+    }}
+    .skip-link:focus {{ top: 0; outline: 3px solid #ffcc00; }}
+    article {{
+      max-width: 1060px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+    }}
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
     a {{ color: var(--link); }}
-    pre {{ background: #0b1b33; color: #eef6ff; padding: 14px; border-radius: 10px; overflow: auto; }}
+    pre {{
+      background: #0b1b33;
+      color: #eef6ff;
+      padding: 14px;
+      border-radius: 10px;
+      overflow: auto;
+    }}
     code {{ background: var(--code); border-radius: 6px; padding: 0.1rem 0.35rem; }}
     pre code {{ background: transparent; padding: 0; }}
     table {{ width: 100%; border-collapse: collapse; margin: 12px 0 20px; }}
-    th, td {{ border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }}
+    th, td {{
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }}
     th {{ background: #f1f6ff; }}
-    .mermaid {{ background: #f9fbff; border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 14px 0; }}
+    .mermaid {{
+      background: #f9fbff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin: 14px 0;
+    }}
     .math-block {{ overflow-x: auto; }}
-    mjx-container[jax="CHTML"][display="true"] {{ margin: 1rem 0; overflow-x: auto; overflow-y: hidden; }}
+    mjx-container[jax="CHTML"][display="true"] {{
+      margin: 1rem 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }}
     mjx-container {{ font-size: 100% !important; }}
     @media (max-width: 960px) {{
       .layout {{ grid-template-columns: 1fr; }}
-      nav {{ position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }}
+      nav {{
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }}
       main {{ padding: 16px; }}
       article {{ padding: 16px; }}
     }}
@@ -272,12 +335,13 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to content</a>
   <div class=\"layout\">
-    <nav>
+    <nav aria-label=\"Main Documentation\">
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\" tabindex=\"-1\">
       <article>
         {body_html}
       </article>
@@ -293,11 +357,15 @@ def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
     for page in rendered_pages:
         label = page.title
         href = os.path.relpath(page.out_html, start=current_html.parent).replace("\\", "/")
-        items.append(f'<a href="{href}">{html.escape(label)}</a>')
+        is_active = page.out_html.resolve() == current_html.resolve()
+        active_attrs = ' class="active" aria-current="page"' if is_active else ""
+        items.append(f'<a href="{href}"{active_attrs}>{html.escape(label)}</a>')
     return "\n".join(items)
 
 
-def _write_html_pages(root: Path, docs: list[Path], html_dir: Path, title: str) -> list[_RenderedPage]:
+def _write_html_pages(
+    root: Path, docs: list[Path], html_dir: Path, title: str
+) -> list[_RenderedPage]:
     pages: list[_RenderedPage] = []
     html_dir.mkdir(parents=True, exist_ok=True)
 
@@ -311,11 +379,15 @@ def _write_html_pages(root: Path, docs: list[Path], html_dir: Path, title: str) 
         enriched_markdown = _ensure_visual_outline(markdown_text, page_title=page_title)
         body_html = _render_markdown(enriched_markdown, root)
 
-        pages.append(_RenderedPage(source=doc, title=page_title, body_html=body_html, out_html=out_html))
+        pages.append(
+            _RenderedPage(source=doc, title=page_title, body_html=body_html, out_html=out_html)
+        )
 
     for page in pages:
         nav_html = _build_nav(pages, page.out_html)
-        page_html = _render_page_template(title=title, nav_html=nav_html, body_html=page.body_html, page_title=page.title)
+        page_html = _render_page_template(
+            title=title, nav_html=nav_html, body_html=page.body_html, page_title=page.title
+        )
         page.out_html.write_text(page_html, encoding="utf-8")
 
     combined_sections = []
