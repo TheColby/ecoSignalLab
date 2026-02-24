@@ -94,5 +94,4 @@ flowchart LR
 - [`ML_FEATURES.md`](ML_FEATURES.md)
 - [`SCHEMA.md`](SCHEMA.md)
 - [`../scripts/easy/README.md`](../scripts/easy/README.md)
-- [`ALGORITHM_COMPARISON.md`](ALGORITHM_COMPARISON.md)
 - [`SIGNAL_WINDOWS_VISUAL_GUIDE.md`](SIGNAL_WINDOWS_VISUAL_GUIDE.md)
