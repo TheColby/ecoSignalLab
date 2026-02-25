@@ -245,6 +245,15 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
       main {{ padding: 16px; }}
       article {{ padding: 16px; }}
     }}
+    .skip-link {{
+      position: absolute; top: -100px; left: 0; background: var(--link); color: white;
+      padding: 10px 16px; z-index: 1000; text-decoration: none; border-radius: 0 0 8px 0;
+      transition: top 0.2s;
+    }}
+    .skip-link:focus {{ top: 0; outline: none; }}
+    a:focus-visible, nav a:focus-visible {{
+      outline: 2px solid var(--link); outline-offset: 2px; border-radius: 4px;
+    }}
   </style>
   <script>
     window.MathJax = {{
@@ -272,12 +281,13 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href=\"#main-content\" class=\"skip-link\">Skip to content</a>
   <div class=\"layout\">
-    <nav>
+    <nav aria-label=\"Global Documentation\">
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\" tabindex=\"-1\">
       <article>
         {body_html}
       </article>
@@ -293,7 +303,9 @@ def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
     for page in rendered_pages:
         label = page.title
         href = os.path.relpath(page.out_html, start=current_html.parent).replace("\\", "/")
-        items.append(f'<a href="{href}">{html.escape(label)}</a>')
+        current = ' aria-current="page"' if page.out_html == current_html else ""
+        label_esc = html.escape(label)
+        items.append(f'<a href="{href}"{current}>{label_esc}</a>')
     return "\n".join(items)
 
 
