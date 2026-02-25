@@ -80,7 +80,7 @@ def test_build_docs_accessibility_features(tmp_path: Path) -> None:
     readme = root / "README.md"
     readme.write_text("# Test Accessibility\nContent here.\n", encoding="utf-8")
 
-    report = build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme])
+    build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme])
     rendered = (root / "build" / "html" / "README.html").read_text(encoding="utf-8")
 
     # Check for skip link
