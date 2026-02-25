@@ -1,0 +1,3 @@
+## 2025-05-14 - [Accessibility and Navigation Highlighting]
+**Learning:** Hardcoded templates for documentation generators often miss basic accessibility features like skip links and semantic landmarks. Standardizing on `aria-current="page"` and using `Path.resolve()` for reliable path comparisons ensures both screen readers and visual users can orient themselves effectively.
+**Action:** Always include skip-to-content links and `aria-current` in custom HTML documentation generators. Use `Path.resolve()` when comparing file paths to avoid issues with relative vs. absolute paths or varying directory depths.

@@ -73,3 +73,26 @@ $$
     assert 'class="mermaid"' in rendered
     assert "Visual Outline (Auto-generated)" in rendered
     assert "\\sum_{n=0}^{N-1}" in rendered
+
+
+def test_build_docs_accessibility_features(tmp_path: Path) -> None:
+    root = tmp_path
+    readme = root / "README.md"
+    readme.write_text("# Test Accessibility\nContent here.\n", encoding="utf-8")
+
+    report = build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme])
+    rendered = (root / "build" / "html" / "README.html").read_text(encoding="utf-8")
+
+    # Check for skip link
+    assert 'class="skip-link"' in rendered
+    assert 'href="#main-content"' in rendered
+
+    # Check for ARIA label on nav
+    assert 'aria-label="Main Documentation"' in rendered
+
+    # Check for active page highlighting
+    assert 'aria-current="page"' in rendered
+
+    # Check for main content target
+    assert 'id="main-content"' in rendered
+    assert 'tabindex="-1"' in rendered

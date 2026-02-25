@@ -224,7 +224,11 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     nav h1 {{ font-size: 1rem; margin: 0 0 14px 0; letter-spacing: 0.02em; }}
     nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; }}
     nav a:hover {{ text-decoration: underline; }}
+    nav a[aria-current=\"page\"] {{ font-weight: 600; color: var(--ink); border-left: 2px solid var(--link); padding-left: 10px; margin-left: -12px; }}
+    .skip-link {{ position: absolute; top: -40px; left: 0; background: var(--link); color: white; padding: 8px; z-index: 100; transition: top 0.2s; }}
+    .skip-link:focus {{ top: 0; }}
     main {{ padding: 28px 32px 48px; }}
+    main:focus {{ outline: none; }}
     article {{ max-width: 1060px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05); }}
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
@@ -272,12 +276,13 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href=\"#main-content\" class=\"skip-link\">Skip to content</a>
   <div class=\"layout\">
-    <nav>
+    <nav aria-label=\"Main Documentation\">
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\" tabindex=\"-1\">
       <article>
         {body_html}
       </article>
@@ -293,7 +298,9 @@ def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
     for page in rendered_pages:
         label = page.title
         href = os.path.relpath(page.out_html, start=current_html.parent).replace("\\", "/")
-        items.append(f'<a href="{href}">{html.escape(label)}</a>')
+        is_current = page.out_html.resolve() == current_html.resolve()
+        aria_current = ' aria-current="page"' if is_current else ""
+        items.append(f'<a href="{href}"{aria_current}>{html.escape(label)}</a>')
     return "\n".join(items)
 
 
