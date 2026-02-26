@@ -54,9 +54,13 @@ def _discover_docs(root: Path) -> list[Path]:
 
 
 def _read_title(markdown_text: str, fallback: str) -> str:
-    for line in markdown_text.splitlines():
-        if line.startswith("# "):
-            return line[2:].strip()
+    # Use the first H1 that isn't excessively long (e.g. a rhetorical question).
+    # We use _extract_headings to skip content in code fences.
+    headings = _extract_headings(markdown_text)
+    for level, title in headings:
+        if level == 1:
+            if 0 < len(title) < 85:
+                return title
     return fallback
 
 
@@ -220,11 +224,18 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; font-family: ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #f7fafc, #eef3fb); color: var(--ink); }}
     .layout {{ display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }}
+    .skip-link {{
+      position: absolute; top: -40px; left: 0; background: var(--link); color: white;
+      padding: 8px; z-index: 100; transition: top 0.2s;
+    }}
+    .skip-link:focus {{ top: 0; }}
     nav {{ border-right: 1px solid var(--line); background: #f8fbff; padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }}
     nav h1 {{ font-size: 1rem; margin: 0 0 14px 0; letter-spacing: 0.02em; }}
-    nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; }}
+    nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; border-radius: 4px; }}
     nav a:hover {{ text-decoration: underline; }}
+    nav a[aria-current="page"] {{ font-weight: 700; color: var(--ink); background: rgba(11, 78, 162, 0.05); padding-left: 8px; margin-left: -8px; }}
     main {{ padding: 28px 32px 48px; }}
+    main:focus {{ outline: none; }}
     article {{ max-width: 1060px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05); }}
     h1, h2, h3, h4 {{ color: #0b2545; }}
     p, li {{ color: var(--muted); line-height: 1.6; }}
@@ -272,12 +283,13 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href=\"#main-content\" class=\"skip-link\">Skip to content</a>
   <div class=\"layout\">
-    <nav>
+    <nav aria-label=\"Main Documentation\">
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\" tabindex=\"-1\">
       <article>
         {body_html}
       </article>
@@ -290,10 +302,14 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
 
 def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
     items = []
+    curr_abs = current_html.resolve()
     for page in rendered_pages:
         label = page.title
+        page_abs = page.out_html.resolve()
+        is_current = curr_abs == page_abs
         href = os.path.relpath(page.out_html, start=current_html.parent).replace("\\", "/")
-        items.append(f'<a href="{href}">{html.escape(label)}</a>')
+        current_attr = ' aria-current="page"' if is_current else ""
+        items.append(f'<a href="{href}"{current_attr}>{html.escape(label)}</a>')
     return "\n".join(items)
 
 

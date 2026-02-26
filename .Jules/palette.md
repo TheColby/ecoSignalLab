@@ -1,0 +1,3 @@
+## 2026-02-26 - [Documentation Accessibility & Navigation]
+**Learning:** Naive title extraction from Markdown (e.g., taking the first non-empty line) often fails in real-world docs where READMEs might start with rhetorical questions or code examples. Furthermore, generated documentation must include "Skip to content" links and ARIA landmarks to be truly accessible to keyboard and screen reader users.
+**Action:** When building custom documentation generators, always use a robust heading extractor that skips code blocks, and ensure the HTML template includes a "Skip to content" link that targets an ID on the main content area with `tabindex="-1"`.
