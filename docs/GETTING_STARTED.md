@@ -3,7 +3,7 @@
 This page is for first-time users who want fast results with minimal setup.
 
 Positioning:
-- `esl` is a true multichannel and Atmos-aware/capable phase-vocoder workflow toolkit.
+- `esl` is a true multichannel and Atmos-aware/capable acoustic analysis workflow toolkit.
 
 ## 1) Install
 
@@ -43,7 +43,6 @@ esl features extract input.wav --out out/vectors.npz --feature-set all --meta-js
 Or use copy-paste helper scripts:
 
 ```bash
-bash scripts/easy/01_stretch_2x.sh input.wav
 bash scripts/easy/02_analyze_and_plot.sh input.wav out
 bash scripts/easy/03_extract_single_moment.sh input.wav out/moments
 bash scripts/easy/05_generate_signal_graphs.sh docs/examples/signal_window_guide
@@ -56,13 +55,7 @@ Expected outputs:
 - `out/moments/clips/moment_0001.wav`
 - `out/vectors.npz`
 
-## 3) If you want 2x time-stretch quickly
-
-```bash
-ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
-```
-
-## 4) Common issues
+## 3) Common issues
 
 - `zsh: command not found: esl`
   - Activate your environment: `source .venv/bin/activate`
@@ -73,7 +66,7 @@ ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
   - See full fixes in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 
-## 5) Mental model
+## 4) Mental model
 
 ```mermaid
 flowchart LR

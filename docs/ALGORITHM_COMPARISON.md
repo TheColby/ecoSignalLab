@@ -1,115 +1,89 @@
-# Algorithm Comparison (Real-Input KPIs)
+# Analysis Comparison (Real-Input KPIs)
 
-This page explains how to compare time-stretch algorithms using numerical KPIs computed from a real input audio file.
+This page explains how to compare `esl` analysis runs using numerical KPIs on the same input set.
 
 Scope:
-- designed to evaluate true multichannel and Atmos-aware/capable phase-vocoder workflows against baseline methods on the same input.
-
-Script:
-- [`../scripts/compare_time_stretch_kpis.py`](../scripts/compare_time_stretch_kpis.py)
-
-Easy wrapper:
-- [`../scripts/easy/04_compare_kpis.sh`](../scripts/easy/04_compare_kpis.sh)
+- evaluate metric stability, validity-flag behavior, and runtime/performance between configurations or versions
+- confirm reproducibility when changing decoder backends, metric sets, or window/hop settings
 
 ## Quick Run
 
+Generate baseline and candidate outputs:
+
 ```bash
-python scripts/compare_time_stretch_kpis.py \
-  --input input.wav \
-  --out-dir out/kpi_compare \
-  --factor 2.0
+esl analyze input.wav --out-dir out/baseline --json out/baseline/input.json --plot
+esl analyze input.wav --out-dir out/candidate --json out/candidate/input.json --plot --debug 1
+```
+
+For directory-level checks:
+
+```bash
+esl validate input_dir --out out/validation --rules rules.json
 ```
 
 Outputs:
-- `out/kpi_compare/kpi_summary.csv`
-- `out/kpi_compare/kpi_summary.json`
-- `out/kpi_compare/renders/*.wav`
-
-## Include PVX in Comparison
-
-If you have `pvx` installed, provide a command template:
-
-```bash
-python scripts/compare_time_stretch_kpis.py \
-  --input input.wav \
-  --out-dir out/kpi_compare \
-  --factor 2.0 \
-  --methods pvx_external,ffmpeg_atempo,scipy_resample,librosa_phase_vocoder \
-  --pvx-cmd "pvx stretch --in {input} --out {output} --factor {factor}"
-```
-
-This runs PVX and other methods on the same input and reports KPIs side by side.
+- `out/baseline/input.json`
+- `out/candidate/input.json`
+- `out/validation/summary.json`
+- `out/validation/report.csv`
 
 ## KPI Definitions
 
-### Duration error
+### Metric drift (%)
 
 $$
-\Delta t_{\mathrm{ms}} = 1000 \cdot \left(t_{\mathrm{out}} - t_{\mathrm{target}}\right)
+\Delta m_{\%}=100\cdot\frac{m_{\mathrm{cand}}-m_{\mathrm{base}}}{|m_{\mathrm{base}}|+\varepsilon}
 $$
 
-where \(t_{\mathrm{out}}\) is rendered duration and \(t_{\mathrm{target}}\) is expected duration from stretch factor.
+where \(m_{\mathrm{base}}\) is a baseline metric and \(m_{\mathrm{cand}}\) is the candidate metric.
 
-Plain English: closer to 0 ms means the algorithm hit the requested stretch more accurately.
+Plain English: values near 0% indicate stable behavior across runs.
 
-### Realtime factor
-
-$$
-\mathrm{RTF} = \frac{t_{\mathrm{runtime}}}{t_{\mathrm{out}}}
-$$
-
-where \(t_{\mathrm{runtime}}\) is compute time and \(t_{\mathrm{out}}\) is output duration.
-
-Plain English: lower is faster; `RTF < 1` is faster-than-realtime.
-
-### Clipping ratio
+### Flag disagreement rate
 
 $$
-r_{\mathrm{clip}} = \frac{1}{N}\sum_{n=1}^{N}\mathbf{1}\left(|x[n]| \ge 0.999\right)
+r_{\mathrm{flag}}=\frac{1}{K}\sum_{k=1}^{K}\mathbf{1}\left(f^{(k)}_{\mathrm{base}}\ne f^{(k)}_{\mathrm{cand}}\right)
 $$
 
-where \(x[n]\) is output sample value and \(\mathbf{1}(\cdot)\) is indicator function.
+where \(f^{(k)}\) are boolean validity flags (`clipping`, `dc_offset`, `ir_detected`, etc.).
 
-Plain English: lower is better; high clipping means distortion risk.
+Plain English: lower is better; high disagreement means behavior changed.
 
-### Spectral centroid delta (%)
-
-$$
-\Delta c_{\%}=100\cdot\frac{c_{\mathrm{out}}-c_{\mathrm{in}}}{|c_{\mathrm{in}}|+\varepsilon}
-$$
-
-where \(c_{\mathrm{in}}\) and \(c_{\mathrm{out}}\) are mean spectral centroids of input and output.
-
-Plain English: large shifts may indicate timbral color changes.
-
-### Spectral flatness delta (%)
+### Runtime factor
 
 $$
-\Delta f_{\%}=100\cdot\frac{f_{\mathrm{out}}-f_{\mathrm{in}}}{|f_{\mathrm{in}}|+\varepsilon}
+\mathrm{RTF}=\frac{t_{\mathrm{runtime}}}{t_{\mathrm{audio}}}
 $$
 
-where \(f_{\mathrm{in}}\) and \(f_{\mathrm{out}}\) are mean spectral flatness values.
+where \(t_{\mathrm{runtime}}\) is wall-clock analysis time and \(t_{\mathrm{audio}}\) is input duration.
 
-Plain English: large shifts can indicate noisier or more tonal artifacts.
+Plain English: lower is faster; `RTF < 1` means faster than real time.
 
-### Transient count ratio
+### Schema compatibility score
 
 $$
-r_{\mathrm{transient}}=\frac{N_{\mathrm{peaks,out}}}{\max(1,N_{\mathrm{peaks,in}})}
+s_{\mathrm{schema}}=\frac{N_{\mathrm{required\ fields\ present}}}{N_{\mathrm{required\ fields}}}
 $$
 
-where \(N_{\mathrm{peaks,in}}\) and \(N_{\mathrm{peaks,out}}\) are novelty-peak counts from input/output.
+where required fields come from the active schema version contract.
 
-Plain English: values far from 1 may indicate transient smearing or artificial events.
+Plain English: `1.0` means the output satisfies the full required structure.
 
-### KPI score (heuristic)
+## Comparison Flow
 
-The script reports a combined `kpi_score` from duration, clipping, spectral deltas, and transient ratio.
-
-Plain English: use it for quick ranking, then inspect detailed KPI columns before deciding.
+```mermaid
+flowchart LR
+    A["Input Dataset"] --> B["Baseline Run"]
+    A --> C["Candidate Run"]
+    B --> D["JSON Outputs"]
+    C --> D
+    D --> E["Compute Drift + Flag Agreement + Runtime"]
+    E --> F["Accept / Investigate"]
+```
 
 ## Related Docs
 
 - [`GETTING_STARTED.md`](GETTING_STARTED.md)
 - [`TASK_RECIPES.md`](TASK_RECIPES.md)
-- [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
+- [`VALIDATION.md`](VALIDATION.md)
+- [`SCHEMA.md`](SCHEMA.md)

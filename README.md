@@ -1,30 +1,24 @@
-# Have you ever wondered what it would sound like to hear your voice twice as fast while preserving your voice qualities? Ooh, and what if you altered the sound of your friend's voice based on how you talk or sing?
+# Want to understand what is happening inside your audio recordings?
 
 ## ecoSignalLab (`esl`)
 
 `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
-If you know nothing yet except “I have an audio file and want it to sound different,” this README is for you.
+If you know nothing yet except “I have an audio file and need actionable acoustic insights,” this README is for you.
 
-Do you want to stretch your audio file? Or shift it to a different note? You came to the right place.
-
-**Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable phase vocoder** toolkit.
-
-`pvx is a Python toolkit for high-quality time and pitch processing using a phase-vocoder/short-time Fourier transform (STFT) core.`
-
-That line is intentionally preserved verbatim as a style anchor; `esl` is the environmental/architectural acoustics sibling focused on measurement, calibration, and analysis at scale.
+**Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable acoustic analysis** toolkit.
 
 ## Start in 60 Seconds
 
-If you just downloaded this and want one immediate win, run this to stretch a WAV file to **2x duration** (slower, pitch-preserving):
+If you just downloaded this and want one immediate win, run this:
 
 ```bash
-ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
+esl analyze input.wav --out-dir out --json out/input.json --plot
 ```
 
 Expected result:
-- a new file named `output_2x.wav`
-- same voice character, slower timing
+- a metrics file at `out/input.json`
+- generated plots in `out/input_plots/`
 
 If you want an `esl` onboarding flow (analysis + clips + plots), run:
 
@@ -70,7 +64,7 @@ Expected outputs:
 ## What this is
 
 - A CLI-first, production-grade SDK for environmental and architectural acoustic analysis.
-- A true multichannel and Atmos-aware/capable phase-vocoder workflow surface.
+- A true multichannel and Atmos-aware/capable acoustic analysis workflow surface.
 - A multi-channel, calibration-aware metric engine with reproducible outputs and provenance capture.
 - An ML-ready acoustic intelligence toolkit with tabular/tensor exports and anomaly/novelty tooling.
 - A plugin-extensible open-source platform for research and industrial interoperability.
@@ -82,7 +76,7 @@ Expected outputs:
 - Not a black-box vendor suite with opaque assumptions or locked data formats.
 - Not a substitute for formal compliance certification measurements without calibrated hardware/protocols.
 
-If your only goal is creative audio effects and you do not need analytics/provenance, start with [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md) and the FFmpeg recipes first.
+If your goal is creative transformation effects, `esl` is not the primary tool for that workflow.
 
 ## Friendly Notes
 

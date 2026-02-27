@@ -89,16 +89,15 @@ Fix:
 - open files manually from the output folder
 - or keep using static outputs (`.png`, `.html`)
 
-## I only want quick sound changes, not analysis
+## I expected creative transformation effects
 
-Use task recipes:
-- [`TASK_RECIPES.md`](TASK_RECIPES.md)
+Cause:
+- `esl` is an acoustic analysis SDK, not a creative effects processor.
 
-Quick stretch command:
-
-```bash
-ffmpeg -i input.wav -filter:a "atempo=0.5" output_2x.wav
-```
+What to do:
+- use `esl` commands when you need metrics, moments, plots, and reproducible exports
+- use dedicated transformation tools for creative editing workflows
+- see analysis-first recipes in [`TASK_RECIPES.md`](TASK_RECIPES.md)
 
 ## Related Docs
 

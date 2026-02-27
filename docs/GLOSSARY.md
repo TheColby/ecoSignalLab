@@ -30,7 +30,7 @@ Beginner-friendly definitions used across `esl` docs.
 - `FOA`: first-order ambisonics (typically 4 channels).
 - `binaural`: two-channel rendering that simulates human ears.
 - `Atmos-aware/capable`: layout/channel/object-aware workflow compatibility for immersive mixes and exports.
-- `multichannel phase vocoder`: phase-vocoder processing approach that preserves channel topology across transformations.
+- `multichannel-native analysis`: metric extraction and reporting that preserves channel identity and aggregates using explicit channel rules.
 
 ## Reproducibility and exports
 
