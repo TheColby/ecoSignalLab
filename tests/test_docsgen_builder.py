@@ -39,6 +39,14 @@ graph TD
     assert 'class="mermaid"' in rendered
     assert 'href="docs/REF.html"' in rendered
 
+    # Accessibility and UX features
+    assert 'class="skip-link"' in rendered
+    assert 'href="#main-content"' in rendered
+    assert 'aria-label="Documentation navigation"' in rendered
+    assert 'id="main-content"' in rendered
+    assert 'tabindex="-1"' in rendered
+    assert 'aria-current="page"' in rendered
+
     combined_html = root / "build" / "html" / "ecoSignalLab_docs.html"
     assert combined_html.exists()
 

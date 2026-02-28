@@ -222,8 +222,11 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
     .layout {{ display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }}
     nav {{ border-right: 1px solid var(--line); background: #f8fbff; padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }}
     nav h1 {{ font-size: 1rem; margin: 0 0 14px 0; letter-spacing: 0.02em; }}
-    nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; }}
-    nav a:hover {{ text-decoration: underline; }}
+    nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0; word-break: break-word; border-left: 3px solid transparent; padding-left: 10px; margin-left: -10px; border-radius: 0 4px 4px 0; }}
+    nav a:hover {{ text-decoration: underline; background: #f0f4f8; }}
+    nav a[aria-current="page"] {{ font-weight: bold; background: #eef2ff; border-left: 3px solid var(--link); padding-left: 10px; }}
+    .skip-link {{ position: absolute; top: -40px; left: 10px; background: var(--link); color: white; padding: 10px 15px; z-index: 100; transition: top 0.2s; border-radius: 0 0 5px 5px; text-decoration: none; font-weight: bold; }}
+    .skip-link:focus {{ top: 0; }}
     main {{ padding: 28px 32px 48px; }}
     article {{ max-width: 1060px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05); }}
     h1, h2, h3, h4 {{ color: #0b2545; }}
@@ -272,12 +275,13 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
   </script>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to content</a>
   <div class=\"layout\">
-    <nav>
+    <nav aria-label=\"Documentation navigation\">
       <h1>{title}</h1>
       {nav_html}
     </nav>
-    <main>
+    <main id=\"main-content\" tabindex=\"-1\">
       <article>
         {body_html}
       </article>
@@ -290,10 +294,12 @@ def _render_page_template(title: str, nav_html: str, body_html: str, page_title:
 
 def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
     items = []
+    curr_abs = current_html.resolve()
     for page in rendered_pages:
         label = page.title
         href = os.path.relpath(page.out_html, start=current_html.parent).replace("\\", "/")
-        items.append(f'<a href="{href}">{html.escape(label)}</a>')
+        attr = ' aria-current="page"' if page.out_html.resolve() == curr_abs else ""
+        items.append(f'<a href="{href}"{attr}>{html.escape(label)}</a>')
     return "\n".join(items)
 
 
