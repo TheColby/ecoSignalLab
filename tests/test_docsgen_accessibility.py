@@ -12,7 +12,7 @@ def test_docsgen_accessibility_features(tmp_path: Path) -> None:
     other = docs_dir / "OTHER.md"
     other.write_text("# Other\n\nOther content.\n", encoding="utf-8")
 
-    report = build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme, other])
+    build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme, other])
 
     readme_html = root / "build" / "html" / "README.html"
     content = readme_html.read_text(encoding="utf-8")
