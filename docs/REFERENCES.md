@@ -68,13 +68,6 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [NSE7] [Tolkova, I., & Klinck, H. (2022). Source separation with an acoustic vector sensor for terrestrial bioacoustics](https://doi.org/10.1121/10.0013505) (NSF support in [NSF PAR record](https://par.nsf.gov/biblio/10470622-source-separation-acoustic-vector-sensor-terrestrial-bioacoustics): 1764269)
 - [NSE8] [Myers, H. J., et al. (2021). Passive acoustic monitoring of killer whales (Orcinus orca) reveals year-round distribution and residency patterns in the Gulf of Alaska](https://doi.org/10.1038/s41598-021-99668-0) (NSF support in [NSF PAR record](https://par.nsf.gov/biblio/10336369): 1757348)
 
-### FIU / FCE-LTER Ecology (Evelyn Gaiser and Collaborators)
-
-- [NSE9] [Gaiser, E. E., et al. (2011). Landscape patterns of periphyton in the Florida Everglades](https://doi.org/10.1080/10643389.2010.531192) (NSF support noted in [FIU FCE-LTER repository record](https://digitalcommons.fiu.edu/fce_lter_journal_articles/7/): DBI-0620409, DEB-9910514)
-- [NSE10] [Gaiser, E. E. (2009). Periphyton as an indicator of restoration in the Everglades](https://doi.org/10.1016/j.ecolind.2008.08.004) (NSF support noted in [FIU FCE-LTER repository record](https://digitalcommons.fiu.edu/fce_lter_journal_articles/1/): DBI-0620409, DEB-9910514)
-- [NSE11] [Lee, S. S., Gaiser, E. E., & Trexler, J. C. (2013). Diatom-based models for inferring hydrology and periphyton abundance in a subtropical karstic wetland: Implications for ecosystem-scale bioassessment](https://doi.org/10.1007/s13157-012-0363-z) (NSF support noted in [FIU FCE-LTER repository record](https://digitalcommons.fiu.edu/fce_lter_journal_articles/308/): DBI-0620409, DEB-9910514)
-- [NSE12] [Gaiser, E. E., et al. (2006). Periphyton responses to eutrophication in the Florida Everglades: Cross-system patterns of structural and compositional change](https://doi.org/10.4319/lo.2006.51.1_part_2.0617) (NSF support noted in [FIU FCE-LTER repository record](https://digitalcommons.fiu.edu/fce_lter_journal_articles/5/): DBI-0620409, DEB-9910514)
-
 ## Anomaly Detection and ML
 
 - [M1] [Liu, F. T., Ting, K. M., & Zhou, Z.-H. (2008). Isolation Forest](https://ieeexplore.ieee.org/document/4781136)
