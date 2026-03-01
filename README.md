@@ -1,8 +1,6 @@
-# Want to understand what is happening inside your environmental audio recordings?
-
 ## ecoSignalLab (`esl`)
 
-`esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
+Want to understand what is happening inside your environmental audio recordings? `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
 If you know nothing yet except “I have an audio file and need actionable acoustic insights,” this README is for you. On the other hand, if you are an expert in audio analysis, bioacoustics, or acoustic ecology, this repo can provide actionable insidghts into your long-duration audio files.
 
