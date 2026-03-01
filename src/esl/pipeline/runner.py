@@ -49,6 +49,7 @@ class PipelineRunConfig:
     sample_rate: int | None = None
     chunk_size: int | None = None
     seed: int = 42
+    compute_device: str = "auto"
     plot: bool = False
     interactive: bool = False
     plot_metrics: list[str] | None = None
@@ -110,6 +111,7 @@ def _init_manifest(cfg: PipelineRunConfig) -> dict[str, Any]:
         "sample_rate": cfg.sample_rate,
         "chunk_size": cfg.chunk_size,
         "seed": cfg.seed,
+        "compute_device": cfg.compute_device,
         "plot": cfg.plot,
         "interactive": cfg.interactive,
         "plot_metrics": cfg.plot_metrics or [],
@@ -238,6 +240,7 @@ def _run_stage_analyze(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> tupl
                 verbosity=0,
                 debug=0,
                 seed=cfg.seed,
+                compute_device=cfg.compute_device,
                 make_plots=False,
                 ml_export=False,
             )
@@ -335,7 +338,14 @@ def _run_stage_ml_export(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> di
             continue
         try:
             payload = json.loads(json_path.read_text(encoding="utf-8"))
-            export_ml_features(payload, output_dir=ml_dir, prefix=json_path.stem, seed=cfg.seed)
+            export_ml_features(
+                payload,
+                output_dir=ml_dir,
+                prefix=json_path.stem,
+                seed=cfg.seed,
+                device=cfg.compute_device,
+                strict_device=False,
+            )
             made += 1
         except Exception:
             errors += 1
@@ -361,6 +371,7 @@ def _run_stage_digest(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[
                 "duration_s": doc.get("metadata", {}).get("duration_s"),
                 "channels": doc.get("metadata", {}).get("channels"),
                 "sample_rate": doc.get("metadata", {}).get("sample_rate"),
+                "compute_device": doc.get("metadata", {}).get("compute_device", {}).get("resolved"),
                 "spl_a_mean": metrics.get("spl_a_db", {}).get("summary", {}).get("mean"),
                 "spl_c_mean": metrics.get("spl_c_db", {}).get("summary", {}).get("mean"),
                 "snr_mean": metrics.get("snr_db", {}).get("summary", {}).get("mean"),
@@ -380,6 +391,7 @@ def _run_stage_digest(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> dict[
                 "duration_s",
                 "channels",
                 "sample_rate",
+                "compute_device",
                 "spl_a_mean",
                 "spl_c_mean",
                 "snr_mean",

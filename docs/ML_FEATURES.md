@@ -77,6 +77,22 @@ Clip-level vector:
 
 Metadata:
 - `<prefix>_ml_metadata.json` includes column names, timestamps, tensor layout, tensor shape, seed, config/pipeline hash, and `esl_version`.
+- `compute_device` metadata includes requested/resolved device and CUDA/MPS availability.
+
+## Device Selection (CPU/CUDA/MPS)
+
+`esl analyze` and `esl batch` expose:
+- `--device auto|cpu|cuda|mps`
+
+Resolution policy:
+- `auto`: prefer CUDA, then MPS, else CPU.
+- explicit unavailable accelerators can fail in strict mode for benchmark commands.
+
+Device sanity benchmark:
+
+```bash
+esl benchmark device --device auto --frames 16384 --features 256 --iters 20
+```
 
 ## HuggingFace and Anomaly Exports
 

@@ -160,6 +160,11 @@ def _assemble_result(
     if config.calibration is None:
         assumptions.append("No calibration provided; SPL fields are dBFS-derived proxies.")
     assumptions.append("All timestamps are in seconds from start of input stream.")
+    from esl.ml import device_resolution_dict, resolve_compute_device
+
+    device_info = resolve_compute_device(config.compute_device, strict=False)
+    if device_info.reason:
+        assumptions.append(f"Compute device resolution: {device_info.reason}")
     channel_summary = _channel_summary(audio)
     validity = _validity_flags(
         audio=audio,
@@ -195,6 +200,7 @@ def _assemble_result(
             "frame_size": config.frame_size,
             "hop_size": config.hop_size,
             "seed": config.seed,
+            "compute_device": device_resolution_dict(device_info),
             "project": config.project,
             "variant": config.variant,
             "decoder": {
@@ -261,6 +267,7 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
             verbosity=config.verbosity,
             debug=config.debug,
             seed=config.seed,
+            compute_device=config.compute_device,
             make_plots=False,
             ml_export=False,
         )

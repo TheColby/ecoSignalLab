@@ -17,6 +17,8 @@ from typing import Any, cast
 
 import numpy as np
 
+from esl.ml.device import device_resolution_dict, resolve_compute_device
+
 FRAMETABLE_VERSION = "1.0.0"
 
 
@@ -225,12 +227,15 @@ def export_ml_features(
     output_dir: str | Path,
     prefix: str = "esl",
     seed: int = 42,
+    device: str = "auto",
+    strict_device: bool = False,
 ) -> dict[str, str]:
     """Export frame/clip features for NumPy, optional PyTorch, and HuggingFace datasets."""
     out = Path(output_dir)
     _ensure_dir(out)
 
     artifacts: dict[str, str] = {}
+    device_info = resolve_compute_device(requested=device, strict=strict_device)
 
     names, clip_vec = clip_feature_vector(result)
     clip_npy = out / f"{prefix}_clip_features.npy"
@@ -285,6 +290,7 @@ def export_ml_features(
             "tensor_shape": list(frame_tensor.shape),
         },
         "seed": seed,
+        "compute_device": device_resolution_dict(device_info),
         "source_config_hash": result.get("config_hash"),
         "source_pipeline_hash": result.get("pipeline_hash"),
         "esl_version": result.get("esl_version"),
@@ -297,12 +303,18 @@ def export_ml_features(
     try:
         import torch
 
+        torch_dev = torch.device(device_info.resolved)
+        clip_tensor = torch.tensor(clip_vec, dtype=torch.float32, device=torch_dev)
+        frame_tensor_2d = torch.tensor(frame_matrix, dtype=torch.float32, device=torch_dev)
+        frame_tensor_3d = torch.tensor(frame_tensor, dtype=torch.float32, device=torch_dev)
+        # Lightweight device-side operation to validate tensor path on selected backend.
+        _ = torch.relu(frame_tensor_2d).mean()
         clip_pt = out / f"{prefix}_clip_features.pt"
         frame_pt = out / f"{prefix}_frame_features.pt"
         frame_tensor_pt = out / f"{prefix}_frame_tensor.pt"
-        torch.save(torch.tensor(clip_vec, dtype=torch.float32), clip_pt)
-        torch.save(torch.tensor(frame_matrix, dtype=torch.float32), frame_pt)
-        torch.save(torch.tensor(frame_tensor, dtype=torch.float32), frame_tensor_pt)
+        torch.save(clip_tensor.cpu(), clip_pt)
+        torch.save(frame_tensor_2d.cpu(), frame_pt)
+        torch.save(frame_tensor_3d.cpu(), frame_tensor_pt)
         artifacts["clip_pt"] = str(clip_pt)
         artifacts["frame_pt"] = str(frame_pt)
         artifacts["frame_tensor_pt"] = str(frame_tensor_pt)

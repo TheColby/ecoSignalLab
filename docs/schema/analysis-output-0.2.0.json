@@ -138,6 +138,12 @@
             "null"
           ]
         },
+        "compute_device": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
         "config_snapshot": {
           "type": [
             "object",

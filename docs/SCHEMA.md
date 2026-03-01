@@ -62,6 +62,14 @@ Snark note: “I think we used the same settings” is not a provenance strategy
 - `ffmpeg_version`: string when FFmpeg decode is used
 - `ffprobe`: stream summary (`codec_name`, `codec_type`, `channel_layout`, `sample_rate`, `channels`, `duration_s`)
 
+`metadata` also includes source-format fields useful for large-file diagnostics:
+- `format_name`: decoded container/format label (for example `WAV`, `RF64`, `FLAC`)
+- `subtype`: sample encoding subtype when available (`PCM_24`, `FLOAT`, etc.)
+- `backend`: primary decode backend (`soundfile`, `ffmpeg`, or `h5py`)
+- `compute_device`: requested/resolved compute backend metadata (`cpu|cuda|mps`)
+
+For RF64 container guidance and 4 GiB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
+
 `metadata.channel_metrics` includes:
 - per-channel summaries (`ch1`, `ch2`, ...)
 - aggregate summaries
@@ -142,4 +150,5 @@ See [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md) for field-level definitions
 - [`ML_FEATURES.md`](ML_FEATURES.md)
 - [`NOVELTY_ANOMALY.md`](NOVELTY_ANOMALY.md)
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
+- [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md)
 - [`REFERENCES.md`](REFERENCES.md)

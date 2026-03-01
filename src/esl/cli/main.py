@@ -70,6 +70,7 @@ def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: 
         verbosity=args.verbosity,
         debug=args.debug,
         seed=args.seed,
+        compute_device=args.device,
         make_plots=args.plot,
         ml_export=args.ml_export,
     )
@@ -113,6 +114,8 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
                 output_dir=out_dir / f"{input_stem}__{run_name}_ml",
                 prefix=f"{input_stem}__{run_name}",
                 seed=run_cfg.seed,
+                device=run_cfg.compute_device,
+                strict_device=False,
             )
 
         if run_cfg.project and run_cfg.variant:
@@ -141,6 +144,7 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
                     "duration_s": round(float(result["metadata"]["duration_s"]), 6),
                     "channels": int(result["metadata"]["channels"]),
                     "sample_rate": int(result["metadata"]["sample_rate"]),
+                    "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
                     "spl_a_mean": _mean("spl_a_db"),
                     "snr_mean": _mean("snr_db"),
                     "rt60": _mean("rt60_s"),
@@ -176,6 +180,7 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
                     "duration_s",
                     "channels",
                     "result_sample_rate",
+                    "compute_device",
                     "spl_a_mean",
                     "snr_mean",
                     "rt60",
@@ -195,6 +200,7 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
                         "duration_s": summary["duration_s"],
                         "channels": summary["channels"],
                         "result_sample_rate": summary["sample_rate"],
+                        "compute_device": summary["compute_device"],
                         "spl_a_mean": summary["spl_a_mean"],
                         "snr_mean": summary["snr_mean"],
                         "rt60": summary["rt60"],
@@ -273,7 +279,14 @@ def _run_analyze(args: argparse.Namespace) -> int:
         from esl.ml import export_ml_features
 
         ml_dir = out_dir / f"{stem}_ml"
-        artifacts = export_ml_features(result, output_dir=ml_dir, prefix=stem, seed=cfg.seed)
+        artifacts = export_ml_features(
+            result,
+            output_dir=ml_dir,
+            prefix=stem,
+            seed=cfg.seed,
+            device=cfg.compute_device,
+            strict_device=False,
+        )
         if cfg.verbosity >= 1:
             print(f"ml artifacts: {len(artifacts)} -> {ml_dir}")
 
@@ -300,6 +313,7 @@ def _run_analyze(args: argparse.Namespace) -> int:
                 "duration_s": round(float(result["metadata"]["duration_s"]), 3),
                 "channels": int(result["metadata"]["channels"]),
                 "sample_rate": int(result["metadata"]["sample_rate"]),
+                "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
                 "spl_a_mean": _mean("spl_a_db"),
                 "snr_mean": _mean("snr_db"),
                 "rt60": _mean("rt60_s"),
@@ -354,6 +368,7 @@ def _run_batch(args: argparse.Namespace) -> int:
                 "duration_s": result["metadata"]["duration_s"],
                 "channels": result["metadata"]["channels"],
                 "sample_rate": result["metadata"]["sample_rate"],
+                "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
                 "snr_mean": result["metrics"].get("snr_db", {}).get("summary", {}).get("mean"),
                 "spl_a_mean": result["metrics"].get("spl_a_db", {}).get("summary", {}).get("mean"),
                 "rt60": result["metrics"].get("rt60_s", {}).get("summary", {}).get("mean"),
@@ -380,7 +395,14 @@ def _run_batch(args: argparse.Namespace) -> int:
         if args.ml_export:
             from esl.ml import export_ml_features
 
-            export_ml_features(result, output_dir=run_out / f"{fp.stem}_ml", prefix=fp.stem, seed=cfg.seed)
+            export_ml_features(
+                result,
+                output_dir=run_out / f"{fp.stem}_ml",
+                prefix=fp.stem,
+                seed=cfg.seed,
+                device=cfg.compute_device,
+                strict_device=False,
+            )
 
     idx = out_dir / "batch_index.csv"
     with idx.open("w", encoding="utf-8", newline="") as f:
@@ -392,6 +414,7 @@ def _run_batch(args: argparse.Namespace) -> int:
                 "duration_s",
                 "channels",
                 "sample_rate",
+                "compute_device",
                 "snr_mean",
                 "spl_a_mean",
                 "rt60",
@@ -578,6 +601,7 @@ def _run_spatial_analyze(args: argparse.Namespace) -> int:
         verbosity=args.verbosity,
         debug=args.debug,
         seed=args.seed,
+        compute_device=args.device,
         project=args.project,
         variant=args.variant,
     )
@@ -849,6 +873,7 @@ def _run_pipeline_run(args: argparse.Namespace) -> int:
         sample_rate=args.sample_rate,
         chunk_size=args.chunk_size,
         seed=args.seed,
+        compute_device=args.device,
         plot=args.plot,
         interactive=args.interactive,
         plot_metrics=_metric_list(args.plot_metrics),
@@ -898,6 +923,37 @@ def _run_docs(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_benchmark_device(args: argparse.Namespace) -> int:
+    from esl.ml import benchmark_tensor_backend
+
+    report = benchmark_tensor_backend(
+        device=args.device,
+        channels=args.channels,
+        frames=args.frames,
+        features=args.features,
+        iters=args.iters,
+        seed=args.seed,
+        strict=bool(args.strict),
+    )
+    if args.json_out:
+        out = Path(args.json_out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(f"benchmark_json: {out}")
+    print(
+        "summary:",
+        {
+            "backend": report.get("backend"),
+            "device": report.get("device", {}).get("resolved"),
+            "seconds_per_iter": report.get("seconds_per_iter"),
+            "throughput_mel_per_s": report.get("throughput_mel_per_s"),
+        },
+    )
+    if args.debug >= 1:
+        print(json.dumps(report, indent=2))
+    return 0
+
+
 def _run_quickstart(args: argparse.Namespace) -> int:
     lines = [
         "ecoSignalLab Quickstart",
@@ -913,8 +969,8 @@ def _run_quickstart(args: argparse.Namespace) -> int:
         "3) Extract ML-ready feature vectors:",
         "   esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
         "",
-        "4) Bonus utility (FFmpeg): stretch to 2x duration, pitch-preserving:",
-        "   ffmpeg -i input.wav -filter:a \"atempo=0.5\" output_2x.wav",
+        "4) Check compute backend (CPU/CUDA/MPS):",
+        "   esl benchmark device --device auto --frames 16384 --features 256 --iters 20",
         "",
         "Need help with a command? Use:",
         "   esl <command> --help",
@@ -938,6 +994,7 @@ def _build_parser() -> argparse.ArgumentParser:
         epilog=(
             "First time here? Run: esl quickstart\n"
             "Decode behavior: native formats use soundfile first; compressed formats fall back to ffmpeg/ffprobe.\n"
+            "Compute device: use --device auto|cpu|cuda|mps on analyze/batch/spatial/pipeline run.\n"
             "Calibration file keys: dbfs_reference, spl_reference_db, weighting (A|C|Z), "
             "mic_sensitivity_mv_pa, calibration_tone_file."
         ),
@@ -985,6 +1042,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=0,
         choices=[0, 1, 2],
         help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
+    )
+    pa.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
     )
     pa.add_argument("--plot", action="store_true", help="Generate plots")
     pa.add_argument("--interactive", action="store_true", help="Generate Plotly interactive plots")
@@ -1043,6 +1106,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=0,
         choices=[0, 1, 2],
         help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
+    )
+    pb.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
     )
     pb.add_argument("--plot", action="store_true")
     pb.add_argument("--interactive", action="store_true")
@@ -1193,6 +1262,12 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=[0, 1, 2],
         help="Debug level: 0=none, 1=processing details, 2=internal metric traces",
     )
+    psp_an.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
+    )
     psp_an.add_argument("--out-dir", default=".")
     psp_an.set_defaults(func=_run_spatial_analyze)
 
@@ -1310,6 +1385,12 @@ def _build_parser() -> argparse.ArgumentParser:
     ppl_run.add_argument("--sample-rate", type=int, default=None)
     ppl_run.add_argument("--chunk-size", type=int, default=None)
     ppl_run.add_argument("--seed", type=int, default=42)
+    ppl_run.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
+    )
     ppl_run.add_argument("--plot", action="store_true", help="Run plot stage")
     ppl_run.add_argument("--interactive", action="store_true", help="Interactive plot HTML in plot stage")
     ppl_run.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in pipeline plots")
@@ -1339,6 +1420,22 @@ def _build_parser() -> argparse.ArgumentParser:
     # quickstart
     pqs = sub.add_parser("quickstart", help="Print copy-paste commands for first-time users")
     pqs.set_defaults(func=_run_quickstart)
+
+    # benchmark
+    pbench = sub.add_parser("benchmark", help="Backend and tensor workload benchmarking")
+    pbench_sub = pbench.add_subparsers(dest="benchmark_cmd", required=True)
+
+    pbench_dev = pbench_sub.add_parser("device", help="Benchmark tensor workload on cpu/cuda/mps")
+    pbench_dev.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda", "mps"])
+    pbench_dev.add_argument("--channels", type=int, default=1)
+    pbench_dev.add_argument("--frames", type=int, default=16384)
+    pbench_dev.add_argument("--features", type=int, default=256)
+    pbench_dev.add_argument("--iters", type=int, default=20)
+    pbench_dev.add_argument("--seed", type=int, default=42)
+    pbench_dev.add_argument("--strict", action="store_true", help="Fail if requested accelerator is unavailable")
+    pbench_dev.add_argument("--json-out", default=None, help="Optional benchmark report JSON path")
+    pbench_dev.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
+    pbench_dev.set_defaults(func=_run_benchmark_device)
 
     return parser
 

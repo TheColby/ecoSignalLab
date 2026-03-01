@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logos/esl/minimal/esl_logo_04_circle_wave.png" alt="ecoSignalLab logo" width="260" />
+</p>
+
 ## ecoSignalLab (`esl`)
 
 Want to understand what is happening inside your environmental audio recordings? `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
@@ -11,7 +15,7 @@ If you know nothing yet except “I have an audio file and need actionable acous
 If you just downloaded this and want one immediate win, run this:
 
 ```bash
-esl analyze input.wav --out-dir out --json out/input.json --plot
+esl analyze input.wav --out-dir out --json out/input.json --plot --device auto
 ```
 
 Expected result:
@@ -43,7 +47,7 @@ esl quickstart
 
 ```bash
 # 1) Analyze one file
-esl analyze input.wav --out-dir out --json out/input.json --plot
+esl analyze input.wav --out-dir out --json out/input.json --plot --device auto
 
 # 2) Extract the single most novel moment
 esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8
@@ -436,6 +440,12 @@ Docs rendering guarantees:
 esl schema
 ```
 
+### Benchmark compute backend (CPU/CUDA/MPS)
+
+```bash
+esl benchmark device --device auto --frames 16384 --features 256 --iters 20
+```
+
 ## Input format support
 
 Native (`soundfile`):
@@ -461,6 +471,7 @@ Spatial:
 
 Large files:
 - Chunked mode via `--chunk-size`.
+- RF64 guidance (limits, math, and workflows): [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md)
 
 ## Built-in metric families
 
@@ -503,6 +514,7 @@ Each run emits:
 - local timestamp
 - seed value
 - runtime fingerprint (python/platform/hostname)
+- compute device provenance (`requested`, `resolved`, CUDA/MPS availability)
 - channel layout hint
 - decoder provenance (`decoder_used`, ffmpeg version, ffprobe stream summary when available)
 - resolved config snapshot + metric catalog/version
@@ -557,6 +569,7 @@ Outputs:
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Metrics reference: [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
 - Output schema contract: [`docs/SCHEMA.md`](docs/SCHEMA.md)
+- RF64 and large-file guide: [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md)
 - ML FrameTable contract: [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
   - Includes committed novelty plot example set: [`docs/examples/novelty_plot_set/`](docs/examples/novelty_plot_set)

@@ -114,6 +114,7 @@ def run_stream_analysis(
             verbosity=0,
             debug=0,
             seed=cfg.seed,
+            compute_device="auto",
         )
         ctx = AnalysisContext(audio=chunk_buffer, config=chunk_cfg, calibration=cfg.calibration)
         metric_results = reg.compute(ctx, selected_metrics)

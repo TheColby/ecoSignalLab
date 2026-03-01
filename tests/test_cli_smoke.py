@@ -30,6 +30,7 @@ def test_cli_help_contains_output_and_debug_flags(capsys: pytest.CaptureFixture[
     help_text = capsys.readouterr().out
     assert "--verbosity" in help_text
     assert "--debug" in help_text
+    assert "--device" in help_text
     assert "--json" in help_text
     assert "--csv" in help_text
     assert "--parquet" in help_text
@@ -62,6 +63,13 @@ def test_cli_quickstart_outputs_recipes(capsys: pytest.CaptureFixture[str]) -> N
     assert "ecoSignalLab Quickstart" in out
     assert "esl analyze input.wav" in out
     assert "esl moments extract" in out
+
+
+def test_cli_benchmark_device_smoke(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(["benchmark", "device", "--device", "cpu", "--frames", "128", "--features", "32", "--iters", "2"])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "summary:" in out
 
 
 def test_cli_missing_file_shows_friendly_hint(capsys: pytest.CaptureFixture[str]) -> None:

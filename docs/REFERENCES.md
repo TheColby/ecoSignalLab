@@ -16,6 +16,7 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [S3] [ISO 3382-1:2009 — Acoustics — Measurement of room acoustic parameters — Part 1: Performance spaces](https://www.iso.org/standard/40979.html)
 - [S4] [ISO 3382-2:2008 — Acoustics — Measurement of room acoustic parameters — Part 2: Reverberation time in ordinary rooms](https://www.iso.org/standard/36205.html)
 - [S5] [IEC 61672-1: Electroacoustics — Sound level meters](https://webstore.iec.ch/publication/5708)
+- [S6] [EBU Tech 3306: RF64 — An extended File Format for Audio](https://tech.ebu.ch/publications/tech3306)
 
 ## Foundational DSP and Signal Analysis
 

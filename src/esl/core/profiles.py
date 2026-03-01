@@ -93,6 +93,7 @@ def with_resolution_profile(base: AnalysisConfig, profile: ResolutionProfile) ->
         verbosity=base.verbosity,
         debug=base.debug,
         seed=base.seed,
+        compute_device=base.compute_device,
         make_plots=base.make_plots,
         ml_export=base.ml_export,
     )

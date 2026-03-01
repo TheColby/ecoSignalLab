@@ -60,6 +60,15 @@ ls -lah
 
 Then rerun command with the exact file path.
 
+## Very large WAV behaves unexpectedly (near/over 4 GiB)
+
+Cause:
+- classic RIFF/WAV containers have 32-bit size fields and can hit a 4 GiB boundary.
+
+Fix:
+- use RF64 container for long/high-rate/multichannel capture.
+- review large-file workflow guidance in [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
+
 ## `esl moments extract` produced no clips
 
 Cause:
@@ -104,3 +113,4 @@ What to do:
 - [`GETTING_STARTED.md`](GETTING_STARTED.md)
 - [`TASK_RECIPES.md`](TASK_RECIPES.md)
 - [`GLOSSARY.md`](GLOSSARY.md)
+- [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md)

@@ -60,6 +60,7 @@ def analysis_output_schema() -> dict:
                     "project": {"type": ["string", "null"]},
                     "variant": {"type": ["string", "null"]},
                     "runtime": {"type": ["object", "null"]},
+                    "compute_device": {"type": ["object", "null"]},
                     "config_snapshot": {"type": ["object", "null"]},
                     "resolved_metric_list": {"type": "array", "items": {"type": "string"}},
                     "metric_catalog_version": {"type": ["string", "null"]},

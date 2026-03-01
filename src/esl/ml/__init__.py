@@ -1,5 +1,11 @@
 """ML export and anomaly modules."""
 
+from .device import (
+    DeviceResolution,
+    benchmark_tensor_backend,
+    device_resolution_dict,
+    resolve_compute_device,
+)
 from .export import (
     FRAMETABLE_VERSION,
     FrameTable,
@@ -12,6 +18,10 @@ from .export import (
 )
 
 __all__ = [
+    "DeviceResolution",
+    "benchmark_tensor_backend",
+    "device_resolution_dict",
+    "resolve_compute_device",
     "FRAMETABLE_VERSION",
     "FrameTable",
     "build_frame_table",

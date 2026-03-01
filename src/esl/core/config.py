@@ -38,6 +38,7 @@ class AnalysisConfig:
     verbosity: int = 1
     debug: int = 0
     seed: int = 42
+    compute_device: str = "auto"
     make_plots: bool = False
     ml_export: bool = False
 

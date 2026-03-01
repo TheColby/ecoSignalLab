@@ -31,13 +31,16 @@ Or run these directly:
 
 ```bash
 # Analyze one file
-esl analyze input.wav --out-dir out --json out/input.json --plot
+esl analyze input.wav --out-dir out --json out/input.json --plot --device auto
 
 # Extract one most-interesting moment
 esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8
 
 # Export feature vectors for ML
 esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
+
+# Optional: benchmark compute backend
+esl benchmark device --device auto --frames 16384 --features 256 --iters 20
 ```
 
 Or use copy-paste helper scripts:
@@ -62,6 +65,8 @@ Expected outputs:
   - Or run module form: `.venv/bin/python -m esl --help`
 - Compressed decode fails (`mp3/aac/ogg/...`)
   - Install FFmpeg and ensure `ffprobe` is on `PATH`.
+- Very large WAV inputs fail or truncate near 4 GiB
+  - Use RF64 and follow [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 - Empty/weak moments extraction output
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
   - See full fixes in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
@@ -86,6 +91,7 @@ flowchart LR
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`ML_FEATURES.md`](ML_FEATURES.md)
 - [`SCHEMA.md`](SCHEMA.md)
+- [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md)
 - [`../scripts/easy/README.md`](../scripts/easy/README.md)
 - [`ALGORITHM_COMPARISON.md`](ALGORITHM_COMPARISON.md)
 - [`SIGNAL_WINDOWS_VISUAL_GUIDE.md`](SIGNAL_WINDOWS_VISUAL_GUIDE.md)
