@@ -42,6 +42,8 @@ esl quickstart
   - [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
 - I want visual graphs of signals/windows/STFT:
   - [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
+- I want to find the most similar files in a folder:
+  - [`docs/SIMILARITY_SEARCH.md`](docs/SIMILARITY_SEARCH.md)
 
 ## First 5 Minutes (Copy/Paste)
 
@@ -104,6 +106,7 @@ esl analyze file.wav --json out.json --plot --ml-export
 esl batch input_dir --out out_dir --csv --parquet --hdf5
 esl project compare --project restaurant_design --root out_dir --baseline A
 esl validate input_dir --out validation_out --rules rules.json
+esl similar query.wav corpus_dir --top-k 5 --json out/similarity.json
 ```
 
 Core goals:
@@ -195,6 +198,7 @@ flowchart LR
     H["esl stream"] --> H1["Chunk analysis + alerts"]
     I["esl moments extract"] --> I1["Timestamp CSV + clip export"]
     J["esl features extract"] --> J1["Frame-level feature vectors"]
+    L["esl similar"] --> L1["Top-K similar files in corpus"]
 ```
 
 ```mermaid
@@ -574,6 +578,7 @@ Outputs:
 - Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
   - Includes committed novelty plot example set: [`docs/examples/novelty_plot_set/`](docs/examples/novelty_plot_set)
 - Moments extraction workflow: [`docs/MOMENTS_EXTRACTION.md`](docs/MOMENTS_EXTRACTION.md)
+- Similarity search workflow: [`docs/SIMILARITY_SEARCH.md`](docs/SIMILARITY_SEARCH.md)
 - Validation harness: [`docs/VALIDATION.md`](docs/VALIDATION.md)
 - Release process: [`docs/RELEASE.md`](docs/RELEASE.md)
 - Algorithm index: [`docs/ALGORITHM_INDEX.md`](docs/ALGORITHM_INDEX.md)

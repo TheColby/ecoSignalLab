@@ -339,6 +339,18 @@ def _run_batch(args: argparse.Namespace) -> int:
         print("No supported files found.")
         return 0
 
+    report_metrics = _metric_list(args.report_metrics) or ["snr_db", "spl_a_db", "rt60_s"]
+    report_cols: list[str] = []
+    col_counts: dict[str, int] = {}
+    report_metric_col: dict[str, str] = {}
+    for metric_name in report_metrics:
+        base = f"{_safe_name(metric_name)}_mean"
+        idx = col_counts.get(base, 0)
+        col_counts[base] = idx + 1
+        col = base if idx == 0 else f"{base}_{idx + 1}"
+        report_cols.append(col)
+        report_metric_col[metric_name] = col
+
     rows: list[dict[str, Any]] = []
     plot_artifacts: list[str] = []
     for fp in files:
@@ -361,19 +373,27 @@ def _run_batch(args: argparse.Namespace) -> int:
         if args.mat:
             save_mat(result, run_out / f"{fp.stem}.mat")
 
-        rows.append(
-            {
-                "input": str(fp),
-                "json": str(base),
-                "duration_s": result["metadata"]["duration_s"],
-                "channels": result["metadata"]["channels"],
-                "sample_rate": result["metadata"]["sample_rate"],
-                "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
-                "snr_mean": result["metrics"].get("snr_db", {}).get("summary", {}).get("mean"),
-                "spl_a_mean": result["metrics"].get("spl_a_db", {}).get("summary", {}).get("mean"),
-                "rt60": result["metrics"].get("rt60_s", {}).get("summary", {}).get("mean"),
-            }
-        )
+        row: dict[str, Any] = {
+            "input": str(fp),
+            "json": str(base),
+            "duration_s": result["metadata"]["duration_s"],
+            "channels": result["metadata"]["channels"],
+            "sample_rate": result["metadata"]["sample_rate"],
+            "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
+        }
+        metrics_payload = result.get("metrics", {})
+        for metric_name, col_name in report_metric_col.items():
+            value = None
+            if isinstance(metrics_payload, dict):
+                payload = metrics_payload.get(metric_name, {})
+                if isinstance(payload, dict):
+                    summary = payload.get("summary", {})
+                    if isinstance(summary, dict):
+                        m = summary.get("mean")
+                        if isinstance(m, (int, float)):
+                            value = float(m)
+            row[col_name] = value
+        rows.append(row)
 
         if args.plot:
             from esl.viz import plot_analysis
@@ -415,9 +435,7 @@ def _run_batch(args: argparse.Namespace) -> int:
                 "channels",
                 "sample_rate",
                 "compute_device",
-                "snr_mean",
-                "spl_a_mean",
-                "rt60",
+                *report_cols,
             ],
         )
         writer.writeheader()
@@ -460,6 +478,95 @@ def _run_plot(args: argparse.Namespace) -> int:
             f"failed={spawn_summary['failed']} "
             f"skipped={spawn_summary['skipped_by_limit']}"
         )
+    return 0
+
+
+def _run_similar(args: argparse.Namespace) -> int:
+    from esl.core.similarity import SimilaritySearchConfig, run_similarity_search
+
+    input_path = Path(args.input)
+    corpus_dir = Path(args.corpus_dir)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+    if not corpus_dir.exists():
+        raise FileNotFoundError(f"Corpus directory not found: {corpus_dir}")
+    if int(args.top_k) < 1:
+        raise ValueError("--top-k must be >= 1")
+
+    out_dir = Path(args.out_dir)
+    _mkdir(out_dir)
+    calibration = load_calibration(args.calibration) if args.calibration else None
+    cfg = SimilaritySearchConfig(
+        input_path=input_path,
+        corpus_dir=corpus_dir,
+        output_dir=out_dir,
+        top_k=int(args.top_k),
+        mode=str(args.mode),
+        metric=str(args.metric),
+        metrics=_metric_list(args.metrics) if args.metrics else None,
+        distance=str(args.distance),
+        feature_set=str(args.feature_set),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+        normalize=bool(args.normalize),
+        include_self=bool(args.include_self),
+        recursive=not bool(args.no_recursive),
+        max_files=args.max_files,
+        calibration=calibration,
+        seed=int(args.seed),
+    )
+    report = run_similarity_search(cfg)
+    json_path = Path(args.json) if args.json else out_dir / f"{input_path.stem}_similarity.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+    if args.csv:
+        csv_path = Path(args.csv)
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with csv_path.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["rank", "path", "distance", "similarity", "distance_kind", "duration_s", "channels", "sample_rate", "metric_means_json"],
+            )
+            writer.writeheader()
+            for row in report.get("results", []):
+                metric_map = row.get("metric_means") if isinstance(row, dict) else None
+                writer.writerow(
+                    {
+                        "rank": row.get("rank"),
+                        "path": row.get("path"),
+                        "distance": row.get("distance"),
+                        "similarity": row.get("similarity"),
+                        "distance_kind": row.get("distance_kind"),
+                        "duration_s": row.get("duration_s"),
+                        "channels": row.get("channels"),
+                        "sample_rate": row.get("sample_rate"),
+                        "metric_means_json": json.dumps(metric_map, sort_keys=True) if isinstance(metric_map, dict) else "",
+                    }
+                )
+
+    if int(args.verbosity) >= 1:
+        print(f"json: {json_path}")
+        if args.csv:
+            print(f"csv: {args.csv}")
+        print(
+            "summary:",
+            {
+                "mode": report.get("mode_used"),
+                "candidates_scanned": report.get("candidates_scanned"),
+                "results": len(report.get("results", [])),
+            },
+        )
+        for row in report.get("results", [])[: int(args.top_k)]:
+            print(
+                f"rank={row.get('rank')} dist={row.get('distance'):.6f} "
+                f"sim={row.get('similarity'):.6f} path={row.get('path')}"
+            )
+    if int(args.debug) >= 1:
+        print(f"mode_requested={report.get('mode_requested')} mode_used={report.get('mode_used')}")
+    if int(args.debug) >= 2:
+        print(json.dumps(report.get("config", {}), indent=2))
     return 0
 
 
@@ -1140,6 +1247,14 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--sample-rate", type=int, default=None)
     pb.add_argument("--chunk-size", type=int, default=None)
     pb.add_argument("--metrics", default=None)
+    pb.add_argument(
+        "--report-metrics",
+        default="snr_db,spl_a_db,rt60_s",
+        help=(
+            "Comma-separated metric IDs to include as <metric>_mean columns in batch_index.csv "
+            "(for example: rms_dbfs,novelty_curve,spl_a_db)."
+        ),
+    )
     pb.add_argument("--seed", type=int, default=42)
     pb.add_argument("--csv", action="store_true", help="Write CSV per file")
     pb.add_argument("--parquet", action="store_true", help="Write Parquet per file")
@@ -1173,6 +1288,60 @@ def _build_parser() -> argparse.ArgumentParser:
     pp.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
     pp.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
     pp.set_defaults(func=_run_plot)
+
+    # similar
+    psim = sub.add_parser("similar", help="Find the N most similar files in a folder to an input file")
+    psim.add_argument("input", help="Query input audio file")
+    psim.add_argument("corpus_dir", help="Folder of candidate files to compare against")
+    psim.add_argument("--top-k", type=int, default=5, help="Number of most-similar files to report")
+    psim.add_argument(
+        "--mode",
+        default="auto",
+        choices=["auto", "feature", "metric", "metrics"],
+        help="Similarity mode: auto(feature), feature, metric(single), or metrics(multi)",
+    )
+    psim.add_argument("--metric", default="novelty_curve", help="Single metric ID for --mode metric")
+    psim.add_argument("--metrics", default=None, help="Comma-separated metric IDs for --mode metrics")
+    psim.add_argument(
+        "--distance",
+        default="cosine",
+        choices=["cosine", "euclidean", "manhattan"],
+        help="Distance function for vector comparison",
+    )
+    psim.add_argument(
+        "--feature-set",
+        default="auto",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature extraction set for feature mode",
+    )
+    psim.add_argument("--frame-size", type=int, default=1024)
+    psim.add_argument("--hop-size", type=int, default=256)
+    psim.add_argument("--sample-rate", type=int, default=None)
+    psim.add_argument("--normalize", dest="normalize", action="store_true", default=True, help="Normalize multi-metric vectors before distance")
+    psim.add_argument("--no-normalize", dest="normalize", action="store_false", help="Disable multi-metric normalization")
+    psim.add_argument("--include-self", action="store_true", help="Allow query file to appear in results if inside corpus")
+    psim.add_argument("--no-recursive", action="store_true", help="Scan corpus directory non-recursively")
+    psim.add_argument("--max-files", type=int, default=None, help="Optional cap on scanned candidate files")
+    psim.add_argument("--calibration", default=None, help="Calibration YAML/JSON path (used for metric-based modes)")
+    psim.add_argument("--json", default=None, help="Output JSON path (default: <out-dir>/<input_stem>_similarity.json)")
+    psim.add_argument("--csv", default=None, help="Optional CSV output path")
+    psim.add_argument("--seed", type=int, default=42)
+    psim.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    psim.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal traces",
+    )
+    psim.add_argument("--out-dir", default=".")
+    psim.set_defaults(func=_run_similar)
 
     # ingest
     pi = sub.add_parser("ingest", help="Ingest online audio datasets")

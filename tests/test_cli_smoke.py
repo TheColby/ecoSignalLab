@@ -38,6 +38,14 @@ def test_cli_help_contains_output_and_debug_flags(capsys: pytest.CaptureFixture[
     assert "--mat" in help_text
 
 
+def test_cli_batch_help_contains_report_metrics(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["batch", "--help"])
+    assert int(exc.value.code) == 0
+    help_text = capsys.readouterr().out
+    assert "--report-metrics" in help_text
+
+
 def test_cli_schema_reports_schema_version(capsys: pytest.CaptureFixture[str]) -> None:
     code = main(["schema"])
     assert code == 0
@@ -53,6 +61,7 @@ def test_python_module_help_entrypoint() -> None:
     assert "ecoSignalLab CLI" in proc.stdout
     assert "features" in proc.stdout
     assert "moments" in proc.stdout
+    assert "similar" in proc.stdout
     assert "quickstart" in proc.stdout
 
 
@@ -77,3 +86,36 @@ def test_cli_missing_file_shows_friendly_hint(capsys: pytest.CaptureFixture[str]
     assert code == 1
     err = capsys.readouterr().err
     assert "verify the file/path exists" in err
+
+
+def test_cli_batch_report_metrics_columns(tmp_path: Path) -> None:
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir(parents=True, exist_ok=True)
+
+    sr = 8000
+    t = np.linspace(0, 0.25, int(sr * 0.25), endpoint=False)
+    x = (0.1 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
+    wav = in_dir / "tone.wav"
+    sf.write(wav, x, sr)
+
+    code = main(
+        [
+            "batch",
+            str(in_dir),
+            "--out",
+            str(out_dir),
+            "--metrics",
+            "rms_dbfs,snr_db,novelty_curve",
+            "--report-metrics",
+            "snr_db,novelty_curve",
+            "--verbosity",
+            "0",
+        ]
+    )
+    assert code == 0
+    idx = out_dir / "batch_index.csv"
+    assert idx.exists()
+    header = idx.read_text(encoding="utf-8").splitlines()[0]
+    assert "snr_db_mean" in header
+    assert "novelty_curve_mean" in header

@@ -37,6 +37,27 @@ Expected outputs:
 - `out/moments/moments_report.json`
 - `out/moments/clips/moment_0001.wav`
 
+Choose clip window behavior:
+
+- Symmetric window around event center:
+  - `--event-window 8` gives roughly 4 s before + 4 s after.
+- Asymmetric window around event center:
+  - `--window-before 3 --window-after 7` gives 3 s before + 7 s after.
+- If you set `--window-before/--window-after`, those are used directly.
+- If you do not set either, `--event-window` (when provided) is used.
+- If neither is set, default chunk-edge rolls (`--pre-roll/--post-roll`) are used.
+
+Example (single most novel event, custom before/after):
+
+```bash
+esl moments extract input.wav \
+  --out out/moments \
+  --single \
+  --rank-metric novelty_curve \
+  --window-before 5 \
+  --window-after 9
+```
+
 ## Recipe 3: Extract top-k moments instead of one
 
 ```bash
@@ -54,6 +75,27 @@ What this does:
 Expected outputs:
 - `out/moments_top5/moments.csv`
 - `out/moments_top5/clips/moment_*.wav`
+
+Choose clip window behavior:
+
+- Symmetric window around each selected event center:
+  - `--event-window 10` gives roughly 5 s before + 5 s after.
+- Asymmetric window around each selected event center:
+  - `--window-before 4 --window-after 9` gives 4 s before + 9 s after.
+- If you set `--window-before/--window-after`, those are used directly.
+- If you do not set either, `--event-window` (when provided) is used.
+- If neither is set, default chunk-edge rolls (`--pre-roll/--post-roll`) are used.
+
+Example (top-5 novel events, custom before/after):
+
+```bash
+esl moments extract input.wav \
+  --out out/moments_top5 \
+  --top-k 5 \
+  --rank-metric novelty_curve \
+  --window-before 4 \
+  --window-after 9
+```
 
 ## Recipe 4: Export ML-ready features
 
@@ -75,18 +117,35 @@ Expected outputs:
 ## Recipe 5: Batch analyze a folder
 
 ```bash
-esl batch input_dir --out out_batch --json --csv --parquet --plot
+esl batch input_dir \
+  --out out_batch \
+  --metrics rms_dbfs,snr_db,novelty_curve,spl_a_db \
+  --report-metrics snr_db,spl_a_db,novelty_curve \
+  --csv --parquet --hdf5 --mat \
+  --plot
 ```
 
 What this does:
 - processes all supported audio files in a directory
 - writes machine-readable outputs for each file
+- controls what is computed via `--metrics`
+- controls what summary columns appear in `batch_index.csv` via `--report-metrics`
 
 Expected outputs:
 - `out_batch/**/*.json`
 - `out_batch/**/*.csv`
 - `out_batch/**/*.parquet`
+- `out_batch/**/*.h5`
+- `out_batch/**/*.mat`
 - `out_batch/**/_plots/`
+
+How to specify what to report:
+
+- `--metrics` controls the analysis metric set (what gets computed).
+- `--report-metrics` controls which metric means are written as columns in `out_batch/batch_index.csv`.
+- Output format switches control artifact types:
+  - `--csv`, `--parquet`, `--hdf5`, `--mat`
+- JSON is always written per analyzed file in batch mode.
 
 ## Recipe 6: Compare architectural variants
 
@@ -119,6 +178,42 @@ Expected output folder:
 See full walkthrough:
 - [`SIGNAL_WINDOWS_VISUAL_GUIDE.md`](SIGNAL_WINDOWS_VISUAL_GUIDE.md)
 
+## Recipe 8: Find the most similar files in a folder
+
+```bash
+esl similar query.wav corpus_dir \
+  --top-k 5 \
+  --json out/similarity.json \
+  --csv out/similarity.csv
+```
+
+What this does:
+- analyzes a corpus folder relative to one query file
+- ranks candidates by similarity
+- writes machine-readable ranking outputs
+
+How to specify what “similar” means:
+
+- default (`--mode auto`) uses feature similarity
+- single metric:
+  - `--mode metric --metric rms_dbfs`
+- multi-metric:
+  - `--mode metrics --metrics rms_dbfs,snr_db,spl_a_db,novelty_curve`
+- choose distance:
+  - `--distance cosine|euclidean|manhattan`
+
+Many useful options:
+
+- `--feature-set auto|core|librosa|all`
+- `--sample-rate`, `--frame-size`, `--hop-size`
+- `--include-self`, `--no-recursive`, `--max-files`
+- `--calibration` (metric modes)
+- `--verbosity 0..3`, `--debug 0..2`
+
+Expected outputs:
+- `out/similarity.json`
+- `out/similarity.csv`
+
 ## Which command should I use?
 
 ```mermaid
@@ -138,3 +233,4 @@ flowchart TD
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 - [`GLOSSARY.md`](GLOSSARY.md)
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
+- [`SIMILARITY_SEARCH.md`](SIMILARITY_SEARCH.md)
