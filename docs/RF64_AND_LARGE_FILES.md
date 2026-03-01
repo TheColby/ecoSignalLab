@@ -4,7 +4,7 @@ This guide explains what RF64 is, why it matters, and how to run `esl` safely on
 
 ## Short answer
 
-- Classic WAV (RIFF/WAV) has a practical container limit near 4 GiB.
+- Classic WAV (RIFF/WAV) has a practical container limit near 4 GB.
 - RF64 is a WAV-family extension that lifts this limit for very large files.
 - `esl` supports RF64 in native decode paths.
 
