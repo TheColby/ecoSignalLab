@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="assets/logos/esl/minimal/esl_logo_04_circle_wave.png" alt="ecoSignalLab logo" width="260" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logos/esl/minimal/esl_logo_04_circle_wave_dark.png" />
+    <img src="assets/logos/esl/minimal/esl_logo_04_circle_wave.png" alt="ecoSignalLab logo" width="260" />
+  </picture>
 </p>
 
 ## ecoSignalLab (`esl`)
