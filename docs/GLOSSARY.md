@@ -7,7 +7,7 @@ Beginner-friendly definitions used across `esl` docs.
 - `sample rate`: how many audio samples are stored per second (for example `44100 Hz`).
 - `channel`: one audio stream inside a file (mono=1, stereo=2, multichannel=>2).
 - `WAV`: uncompressed audio container commonly used for analysis.
-- `RF64`: large-file WAV extension that avoids classic 4 GiB RIFF size limits.
+- `RF64`: large-file WAV extension that avoids classic 4 GB RIFF size limits.
 - `spectrogram`: a picture of frequency content over time.
 
 ## Level and loudness

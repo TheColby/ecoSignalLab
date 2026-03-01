@@ -68,7 +68,7 @@ Snark note: “I think we used the same settings” is not a provenance strategy
 - `backend`: primary decode backend (`soundfile`, `ffmpeg`, or `h5py`)
 - `compute_device`: requested/resolved compute backend metadata (`cpu|cuda|mps`)
 
-For RF64 container guidance and 4 GiB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
+For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 
 `metadata.channel_metrics` includes:
 - per-channel summaries (`ch1`, `ch2`, ...)

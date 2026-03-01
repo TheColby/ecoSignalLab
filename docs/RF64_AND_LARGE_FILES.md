@@ -8,7 +8,7 @@ This guide explains what RF64 is, why it matters, and how to run `esl` safely on
 - RF64 is a WAV-family extension that lifts this limit for very large files.
 - `esl` supports RF64 in native decode paths.
 
-If your recording can exceed 4 GiB, use RF64 from the start.
+If your recording can exceed 4 GB, use RF64 from the start.
 
 ## What is RF64?
 
@@ -95,37 +95,37 @@ where \(\rho\) is compression ratio versus equivalent PCM WAV (content-dependent
 
 | Container/Codec | Sample rate | Channels | Depth | Nominal data rate | 24 h size (approx) | Notes |
 |---|---:|---:|---:|---:|---:|---|
-| WAV (PCM) | 48 kHz | 2 | 16-bit | 1.536 Mb/s | 15.45 GiB | Exceeds classic WAV 4 GiB; use RF64 for safety. |
-| WAV (PCM) | 48 kHz | 2 | 24-bit | 2.304 Mb/s | 23.17 GiB | RF64 strongly recommended. |
-| WAV (PCM) | 48 kHz | 2 | 32-bit | 3.072 Mb/s | 30.90 GiB | RF64 strongly recommended. |
-| WAV (PCM) | 96 kHz | 2 | 24-bit | 4.608 Mb/s | 46.35 GiB | RF64 required in practice for 24 h capture. |
-| WAV (PCM) | 96 kHz | 4 | 24-bit | 9.216 Mb/s | 92.70 GiB | Common multichannel field/simulation export case. |
-| WAV (PCM) | 192 kHz | 2 | 24-bit | 9.216 Mb/s | 92.70 GiB | Same byte rate as 96 kHz/4 ch/24-bit. |
-| WAV (float) | 96 kHz | 4 | 32-bit | 12.288 Mb/s | 123.60 GiB | Float render workflows; RF64 recommended. |
-| WAV (PCM) | 96 kHz | 8 | 24-bit | 18.432 Mb/s | 185.39 GiB | Immersive/multi-array workflows. |
-| WAV (PCM) | 96 kHz | 16 | 24-bit | 36.864 Mb/s | 370.79 GiB | Large-array / ambisonic render workflows. |
-| WAV (PCM) | 192 kHz | 8 | 24-bit | 36.864 Mb/s | 370.79 GiB | Very high-rate multichannel capture. |
-| WAV (float) | 96 kHz | 16 | 32-bit | 49.152 Mb/s | 494.38 GiB | Extreme-size sessions; stream/chunk strongly advised. |
+| WAV (PCM) | 48 kHz | 2 | 16-bit | 1.536 Mb/s | 15.45 GB | Exceeds classic WAV 4 GB; use RF64 for safety. |
+| WAV (PCM) | 48 kHz | 2 | 24-bit | 2.304 Mb/s | 23.17 GB | RF64 strongly recommended. |
+| WAV (PCM) | 48 kHz | 2 | 32-bit | 3.072 Mb/s | 30.90 GB | RF64 strongly recommended. |
+| WAV (PCM) | 96 kHz | 2 | 24-bit | 4.608 Mb/s | 46.35 GB | RF64 required in practice for 24 h capture. |
+| WAV (PCM) | 96 kHz | 4 | 24-bit | 9.216 Mb/s | 92.70 GB | Common multichannel field/simulation export case. |
+| WAV (PCM) | 192 kHz | 2 | 24-bit | 9.216 Mb/s | 92.70 GB | Same byte rate as 96 kHz/4 ch/24-bit. |
+| WAV (float) | 96 kHz | 4 | 32-bit | 12.288 Mb/s | 123.60 GB | Float render workflows; RF64 recommended. |
+| WAV (PCM) | 96 kHz | 8 | 24-bit | 18.432 Mb/s | 185.39 GB | Immersive/multi-array workflows. |
+| WAV (PCM) | 96 kHz | 16 | 24-bit | 36.864 Mb/s | 370.79 GB | Large-array / ambisonic render workflows. |
+| WAV (PCM) | 192 kHz | 8 | 24-bit | 36.864 Mb/s | 370.79 GB | Very high-rate multichannel capture. |
+| WAV (float) | 96 kHz | 16 | 32-bit | 49.152 Mb/s | 494.38 GB | Extreme-size sessions; stream/chunk strongly advised. |
 
 ### 24 h FLAC matrix (estimated range; sorted by source data rate)
 
 | Container/Codec | Source equivalent | Compression ratio (\(\rho\)) | Nominal data-rate range | 24 h size range (approx) | Notes |
 |---|---|---:|---:|---:|---|
-| FLAC | 48 kHz, 2 ch, 16-bit PCM | 0.35 to 0.75 | 0.538 to 1.152 Mb/s | 5.41 to 11.59 GiB | Lossless, smaller than WAV, still often >4 GiB. |
-| FLAC | 48 kHz, 2 ch, 24-bit PCM | 0.35 to 0.75 | 0.806 to 1.728 Mb/s | 8.11 to 17.38 GiB | Good archive format for long recordings. |
-| FLAC | 96 kHz, 4 ch, 24-bit PCM | 0.35 to 0.75 | 3.226 to 6.912 Mb/s | 32.44 to 69.52 GiB | Compression depends strongly on scene complexity/noise floor. |
-| FLAC | 96 kHz, 16 ch, 24-bit PCM | 0.35 to 0.75 | 12.902 to 27.648 Mb/s | 129.78 to 278.09 GiB | Still very large; prefer chunked analysis strategy. |
+| FLAC | 48 kHz, 2 ch, 16-bit PCM | 0.35 to 0.75 | 0.538 to 1.152 Mb/s | 5.41 to 11.59 GB | Lossless, smaller than WAV, still often >4 GB. |
+| FLAC | 48 kHz, 2 ch, 24-bit PCM | 0.35 to 0.75 | 0.806 to 1.728 Mb/s | 8.11 to 17.38 GB | Good archive format for long recordings. |
+| FLAC | 96 kHz, 4 ch, 24-bit PCM | 0.35 to 0.75 | 3.226 to 6.912 Mb/s | 32.44 to 69.52 GB | Compression depends strongly on scene complexity/noise floor. |
+| FLAC | 96 kHz, 16 ch, 24-bit PCM | 0.35 to 0.75 | 12.902 to 27.648 Mb/s | 129.78 to 278.09 GB | Still very large; prefer chunked analysis strategy. |
 
 ### 24 h MP3 CBR matrix (sorted by bit rate)
 
 | Container/Codec | Bit rate (CBR) | 24 h size (approx) | Notes |
 |---|---:|---:|---|
-| MP3 (CBR) | 96 kb/s | 0.97 GiB | Compact monitoring/audio preview use. |
-| MP3 (CBR) | 128 kb/s | 1.29 GiB | Speech/low-bandwidth archive tradeoff. |
-| MP3 (CBR) | 160 kb/s | 1.61 GiB | Mid-quality lossy. |
-| MP3 (CBR) | 192 kb/s | 1.93 GiB | Common lossy distribution setting. |
-| MP3 (CBR) | 256 kb/s | 2.57 GiB | Higher-quality lossy, still compact. |
-| MP3 (CBR) | 320 kb/s | 3.22 GiB | Highest common CBR preset. |
+| MP3 (CBR) | 96 kb/s | 0.97 GB | Compact monitoring/audio preview use. |
+| MP3 (CBR) | 128 kb/s | 1.29 GB | Speech/low-bandwidth archive tradeoff. |
+| MP3 (CBR) | 160 kb/s | 1.61 GB | Mid-quality lossy. |
+| MP3 (CBR) | 192 kb/s | 1.93 GB | Common lossy distribution setting. |
+| MP3 (CBR) | 256 kb/s | 2.57 GB | Higher-quality lossy, still compact. |
+| MP3 (CBR) | 320 kb/s | 3.22 GB | Highest common CBR preset. |
 
 These are recording-file size estimates, not full analysis memory usage.
 
@@ -174,7 +174,7 @@ Use this command-level decision flow:
 
 ```mermaid
 flowchart TD
-    A["Large input file"] --> B{"Likely > 4 GiB?"}
+    A["Large input file"] --> B{"Likely > 4 GB?"}
     B -->|Yes| C["Use RF64 container"]
     B -->|No| D["WAV or RF64 both fine"]
     C --> E{"Need full-file non-streaming metrics?"}
@@ -250,7 +250,7 @@ Example at 96 kHz, 4 channels, float32:
 
 ## Troubleshooting checklist for large files
 
-1. File is near/over 4 GiB and stored as classic WAV:
+1. File is near/over 4 GB and stored as classic WAV:
    - re-export or convert to RF64.
 2. Decode fails on compressed sources:
    - check `ffmpeg` and `ffprobe` on `PATH`.

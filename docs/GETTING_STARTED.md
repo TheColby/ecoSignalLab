@@ -65,7 +65,7 @@ Expected outputs:
   - Or run module form: `.venv/bin/python -m esl --help`
 - Compressed decode fails (`mp3/aac/ogg/...`)
   - Install FFmpeg and ensure `ffprobe` is on `PATH`.
-- Very large WAV inputs fail or truncate near 4 GiB
+- Very large WAV inputs fail or truncate near 4 GB
   - Use RF64 and follow [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 - Empty/weak moments extraction output
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
