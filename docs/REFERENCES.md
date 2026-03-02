@@ -65,6 +65,19 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [E4] [Villanueva-Rivera, L. J., et al. Soundscape Ecology resources](https://soundscapeecology.org/)
 - [E5] [Towsey, M., et al. (2014). Visualization of long-duration acoustic recordings of the environment](https://www.mdpi.com/1424-8220/14/6/10339)
 
+## Long-Term Audio Analysis, Calmness, and Diversity
+
+- [LT1] [ISO 12913-1:2014 — Acoustics — Soundscape — Part 1: Definition and conceptual framework](https://www.iso.org/standard/52161.html)
+- [LT2] [ISO/TS 12913-2:2018 — Acoustics — Soundscape — Part 2: Data collection and reporting requirements](https://www.iso.org/standard/75267.html)
+- [LT3] [ISO/TS 12913-3:2025 — Acoustics — Soundscape — Part 3: Data analysis](https://www.iso.org/standard/86955.html)
+- [LT4] [Axelsson, Ö., Nilsson, M. E., & Berglund, B. (2010). A principal components model of soundscape perception. *JASA*, 128(5), 2836-2846](https://doi.org/10.1121/1.3493436)
+- [LT5] [Aletta, F., Kang, J., & Axelsson, Ö. (2016). Soundscape descriptors and a conceptual framework for developing predictive soundscape models. *Landscape and Urban Planning*, 149, 65-74](https://doi.org/10.1016/j.landurbplan.2016.02.001)
+- [LT6] [Villanueva-Rivera, L. J., Pijanowski, B. C., Doucette, J., & Pekin, B. (2011). A primer of acoustic analysis for landscape ecologists. *Landscape Ecology*, 26, 1233-1246](https://doi.org/10.1007/s10980-011-9636-9)
+- [LT7] [Sueur, J., Farina, A., Gasc, A., Pieretti, N., & Pavoine, S. (2014). Acoustic indices for biodiversity assessment and landscape investigation. *Acta Acustica united with Acustica*, 100(4), 772-781](https://doi.org/10.3813/AAA.918757)
+- [LT8] [Towsey, M., Wimmer, J., Williamson, I., & Roe, P. (2014). The use of acoustic indices to determine avian species richness in audio-recordings of the environment. *Ecological Informatics*, 21, 110-119](https://doi.org/10.1016/j.ecoinf.2013.11.007)
+- [LT9] [Phillips, Y. F., Towsey, M., & Roe, P. (2018). Revealing the ecological content of long-duration audio-recordings of the environment through clustering and visualisation. *PLOS ONE*, 13(3), e0193345](https://doi.org/10.1371/journal.pone.0193345)
+- [LT10] [Merchant, N. D., Fristrup, K. M., Johnson, M. P., Tyack, P. L., Witt, M. J., Blondel, P., & Parks, S. E. (2015). Measuring acoustic habitats. *Methods in Ecology and Evolution*, 6(3), 257-265](https://doi.org/10.1111/2041-210X.12330)
+
 ## Everglades Monitoring Systems
 
 - [EV1] [Dickey, S. (2011). Near-Real-Time Internet Streaming of Audio from the Florida Everglades](https://fiord.com/images/embedded_syst/compulab/GladeBox.pdf) (GladesBox v2 paper; includes reference to the pilot deployment)

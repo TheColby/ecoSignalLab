@@ -615,6 +615,7 @@ Outputs:
 - Documentation automation: [`docs/DOCS_AUTOMATION.md`](docs/DOCS_AUTOMATION.md)
 - References: [`docs/REFERENCES.md`](docs/REFERENCES.md)
 - NSF ecology + ecoacoustics papers: [`docs/REFERENCES.md#nsf-supported-ecology-and-ecoacoustics-papers`](docs/REFERENCES.md#nsf-supported-ecology-and-ecoacoustics-papers)
+- Long-term audio analysis (calmness/diversity): [`docs/REFERENCES.md#long-term-audio-analysis-calmness-and-diversity`](docs/REFERENCES.md#long-term-audio-analysis-calmness-and-diversity)
 - Attribution: [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md)
 
 ## License
