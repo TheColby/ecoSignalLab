@@ -1,5 +1,7 @@
 # RF64 and Large Files in `esl`
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 This guide explains what RF64 is, why it matters, and how to run `esl` safely on very large recordings.
 
 ## Short answer

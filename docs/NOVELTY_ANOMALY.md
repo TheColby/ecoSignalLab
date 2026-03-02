@@ -1,5 +1,7 @@
 # Novelty and Anomaly Semantics
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 This document specifies the exact novelty/anomaly methods implemented in `esl`, including defaults and peak-picking behavior.
 
 Primary code paths:

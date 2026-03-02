@@ -1,5 +1,7 @@
 # Validation Harness
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 `esl validate` runs dataset-level regression and quality checks and writes machine-readable reports.
 
 Command:

@@ -1,5 +1,7 @@
 # Similarity Search
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 `esl similar` finds the most similar files in a folder given one input query file.
 
 ## Quick Start (Default)

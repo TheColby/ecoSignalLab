@@ -1,8 +1,41 @@
 # Task Recipes (Beginner)
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 If you have an audio file and want to understand it, start here.
 
 Use `input.wav` as your source and copy/paste exactly.
+
+## Recipe Index (By Goal)
+
+- [Recipe 1: Analyze one file and generate plots](#recipe-1-analyze-one-file-and-generate-plots)
+- [Recipe 2: Extract the single most novel moment](#recipe-2-extract-the-single-most-novel-moment)
+- [Recipe 3: Extract top-k moments instead of one](#recipe-3-extract-top-k-moments-instead-of-one)
+- [Recipe 4: Export ML-ready features](#recipe-4-export-ml-ready-features)
+- [Recipe 5: Batch analyze a folder](#recipe-5-batch-analyze-a-folder)
+- [Recipe 6: Compare architectural variants](#recipe-6-compare-architectural-variants)
+- [Recipe 7: Generate DSP signal/window reference graphs](#recipe-7-generate-dsp-signalwindow-reference-graphs)
+- [Recipe 8: Find the most similar files in a folder](#recipe-8-find-the-most-similar-files-in-a-folder)
+
+## Recipe Index by Device Type
+
+- Phone/laptop built-in mic (single/dual channel):
+  - [Recipe 1](#recipe-1-analyze-one-file-and-generate-plots), [Recipe 2](#recipe-2-extract-the-single-most-novel-moment), [Recipe 4](#recipe-4-export-ml-ready-features)
+- USB stereo interface / handheld stereo recorder:
+  - [Recipe 1](#recipe-1-analyze-one-file-and-generate-plots), [Recipe 5](#recipe-5-batch-analyze-a-folder), [Recipe 8](#recipe-8-find-the-most-similar-files-in-a-folder)
+- Ambisonic B-format recorder (FOA, multichannel WAV/RF64):
+  - [Recipe 1](#recipe-1-analyze-one-file-and-generate-plots), [Recipe 3](#recipe-3-extract-top-k-moments-instead-of-one), [Recipe 5](#recipe-5-batch-analyze-a-folder), [RF64 guide](RF64_AND_LARGE_FILES.md)
+- Multichannel array / Atmos-capable workflow:
+  - [Recipe 5](#recipe-5-batch-analyze-a-folder), [Recipe 6](#recipe-6-compare-architectural-variants), [Schema contract](SCHEMA.md)
+- Remote sensor node / long-duration monitor:
+  - [Recipe 2](#recipe-2-extract-the-single-most-novel-moment), [Recipe 3](#recipe-3-extract-top-k-moments-instead-of-one), [Moments workflow](MOMENTS_EXTRACTION.md), [RF64 guide](RF64_AND_LARGE_FILES.md)
+
+## Recipe Index by Input Format
+
+- Uncompressed (`WAV`, `RF64`, `FLAC`, `AIFF`, `CAF`):
+  - [Recipe 1](#recipe-1-analyze-one-file-and-generate-plots), [Recipe 5](#recipe-5-batch-analyze-a-folder), [RF64 guide](RF64_AND_LARGE_FILES.md)
+- Compressed (`MP3`, `AAC`, `OGG`, `Opus`, `M4A`, `WMA`, `ALAC`):
+  - [Recipe 1](#recipe-1-analyze-one-file-and-generate-plots), [Recipe 8](#recipe-8-find-the-most-similar-files-in-a-folder), [Troubleshooting decode issues](TROUBLESHOOTING.md#ffmpeg-decode-errors-for-mp3aacogg)
 
 ## Recipe 1: Analyze one file and generate plots
 

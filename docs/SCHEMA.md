@@ -1,5 +1,7 @@
 # esl Output Schema
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 This document defines the JSON output contract for `esl analyze`, including schema versioning and provenance fields.
 
 - Canonical source: `src/esl/schema/spec.py`

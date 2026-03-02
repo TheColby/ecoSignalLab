@@ -1,5 +1,7 @@
 # Attribution and Open-Source Usage
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 This file tracks algorithmic inspiration, adapted implementation patterns, and third-party code context for `esl`.
 
 Principle: `esl` does not intentionally copy uncredited code. Where implementation details are inspired by prior work, we document the source and licensing context here.

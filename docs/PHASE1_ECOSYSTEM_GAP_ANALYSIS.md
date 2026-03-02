@@ -1,5 +1,7 @@
 # ecoSignalLab (esl) Phase 1: Ecosystem and Gap Analysis
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 Date: 2026-02-18
 
 This document delivers:

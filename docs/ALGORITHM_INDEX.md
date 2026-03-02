@@ -1,5 +1,7 @@
 # Algorithm Index
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 This index maps `esl` code paths to algorithm families and citation anchors.
 
 Primary bibliography: [`docs/REFERENCES.md`](REFERENCES.md)

@@ -33,8 +33,11 @@ esl quickstart
 
 ## Pick Your Goal
 
+- I want one navigation page with links to everything:
+  - [`docs/INDEX.md`](docs/INDEX.md)
 - I want simple copy-paste tasks:
   - [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
+  - Includes a hyperlinked **Recipe Index by Device Type**
 - I got an error and need a fix now:
   - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - I do not know the terms yet:
@@ -565,6 +568,8 @@ Outputs:
 
 ## Documentation
 
+- Documentation index (hyperlinked map + device-type recipe index):
+  - [`docs/INDEX.md`](docs/INDEX.md)
 - Getting started: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
 - Task recipes: [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
 - Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)

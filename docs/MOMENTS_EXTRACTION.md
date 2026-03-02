@@ -1,5 +1,7 @@
 # Moments Extraction
 
+Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+
 `esl` can detect interesting acoustic moments in long recordings and export:
 - timestamped moments CSV
 - per-moment WAV clips
