@@ -1,0 +1,54 @@
+.TH ESL-ANALYZE 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.SH NAME
+esl-analyze \- analyze one audio file with ecoSignalLab
+.SH SYNOPSIS
+.B esl analyze
+.I input
+.RI [ options ]
+.SH DESCRIPTION
+Run metric extraction for a single input file and export machine-readable
+artifacts plus optional plots and ML outputs.
+.SH COMMON OPTIONS
+.TP
+\fB\-\-json\fR \fIPATH\fR
+Write result JSON.
+.TP
+\fB\-\-csv\fR \fIPATH\fR
+Write summary CSV.
+.TP
+\fB\-\-parquet\fR \fIPATH\fR
+Write summary Parquet.
+.TP
+\fB\-\-hdf5\fR \fIPATH\fR
+Write HDF5 export.
+.TP
+\fB\-\-mat\fR \fIPATH\fR
+Write MATLAB .mat export.
+.TP
+\fB\-\-calibration\fR \fIPATH\fR
+Calibration YAML/JSON file.
+.TP
+\fB\-\-metrics\fR \fILIST\fR
+Comma-separated metric IDs.
+.TP
+\fB\-\-plot\fR
+Generate static plots.
+.TP
+\fB\-\-interactive\fR
+Generate interactive Plotly output.
+.TP
+\fB\-\-similarity-matrix\fR
+Generate similarity matrix plot.
+.TP
+\fB\-\-novelty-matrix\fR
+Generate novelty matrix plot.
+.TP
+\fB\-\-verbosity\fR \fI0..3\fR
+Verbosity level.
+.TP
+\fB\-\-debug\fR \fI0..2\fR
+Debug level.
+.SH EXAMPLE
+.B esl analyze input.wav --out-dir out --json out/input.json --csv out/input.csv --plot
+.SH SEE ALSO
+.BR esl (1)

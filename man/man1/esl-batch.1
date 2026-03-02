@@ -1,0 +1,47 @@
+.TH ESL-BATCH 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.SH NAME
+esl-batch \- batch analysis for directories of audio files
+.SH SYNOPSIS
+.B esl batch
+.I input_dir
+.B \-\-out
+.I out_dir
+.RI [ options ]
+.SH DESCRIPTION
+Run analysis across a folder of supported audio files and emit per-file outputs
+plus batch index summaries.
+.SH COMMON OPTIONS
+.TP
+\fB\-\-metrics\fR \fILIST\fR
+Comma-separated analysis metric set.
+.TP
+\fB\-\-report-metrics\fR \fILIST\fR
+Metric means to expose as columns in batch index CSV.
+.TP
+\fB\-\-csv\fR
+Write per-file CSV outputs.
+.TP
+\fB\-\-parquet\fR
+Write per-file Parquet outputs.
+.TP
+\fB\-\-hdf5\fR
+Write per-file HDF5 outputs.
+.TP
+\fB\-\-mat\fR
+Write per-file MATLAB outputs.
+.TP
+\fB\-\-plot\fR
+Generate plots per file.
+.TP
+\fB\-\-calibration\fR \fIPATH\fR
+Calibration YAML/JSON path.
+.TP
+\fB\-\-verbosity\fR \fI0..3\fR
+Verbosity level.
+.TP
+\fB\-\-debug\fR \fI0..2\fR
+Debug level.
+.SH EXAMPLE
+.B esl batch input_dir --out out_batch --metrics rms_dbfs,snr_db,spl_a_db --report-metrics snr_db,spl_a_db --csv --parquet
+.SH SEE ALSO
+.BR esl (1)

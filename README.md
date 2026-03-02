@@ -257,6 +257,12 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+Or use install script (installs package and man pages):
+
+```bash
+bash scripts/install.sh
+```
+
 Optional extras:
 
 ```bash
@@ -583,6 +589,8 @@ Outputs:
 
 - Documentation index (hyperlinked map + device-type recipe index):
   - [`docs/INDEX.md`](docs/INDEX.md)
+- Man pages:
+  - [`docs/MANPAGES.md`](docs/MANPAGES.md)
 - Getting started: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
 - Task recipes: [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
 - Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)

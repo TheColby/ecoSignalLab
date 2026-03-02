@@ -1,0 +1,41 @@
+.TH ESL-MOMENTS 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.SH NAME
+esl-moments \- extract interesting moments as clips and timestamp tables
+.SH SYNOPSIS
+.B esl moments extract
+.I input
+.RI [ options ]
+.SH DESCRIPTION
+Run chunked detection metrics, rank candidate windows, and export selected
+moments as WAV clips plus CSV/JSON reports.
+.SH SELECTION OPTIONS
+.TP
+\fB\-\-single\fR
+Extract only the highest-ranked moment.
+.TP
+\fB\-\-top-k\fR \fIN\fR
+Extract top N ranked moments.
+.TP
+\fB\-\-all\fR
+Extract all detected moments.
+.SH WINDOW OPTIONS
+.TP
+\fB\-\-event-window\fR \fISECONDS\fR
+Symmetric clip window around event center.
+.TP
+\fB\-\-window-before\fR \fISECONDS\fR
+Explicit time before event center.
+.TP
+\fB\-\-window-after\fR \fISECONDS\fR
+Explicit time after event center.
+.SH RANKING OPTIONS
+.TP
+\fB\-\-rank-metric\fR \fIID\fR
+Metric used for ranking (default: novelty_curve).
+.TP
+\fB\-\-metrics\fR \fILIST\fR
+Comma-separated detection metric set.
+.SH EXAMPLE
+.B esl moments extract input_24h.wav --out out/moments --top-k 12 --rank-metric novelty_curve --window-before 5 --window-after 7
+.SH SEE ALSO
+.BR esl (1)

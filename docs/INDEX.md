@@ -8,6 +8,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 - [Task Recipes (Beginner)](TASK_RECIPES.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Glossary](GLOSSARY.md)
+- [Man Pages](MANPAGES.md)
 
 ## Recipe Index by Device Type
 
@@ -60,3 +61,4 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 - [Attribution](ATTRIBUTION.md)
 - [Release Process](RELEASE.md)
 - [Documentation Automation](DOCS_AUTOMATION.md)
+- [Man Pages](MANPAGES.md)

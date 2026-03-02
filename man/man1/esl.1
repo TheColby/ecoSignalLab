@@ -1,0 +1,97 @@
+.TH ESL 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.SH NAME
+esl \- ecoSignalLab command-line acoustic analysis toolkit
+.SH SYNOPSIS
+.B esl
+.RI [ global-options ] " command " [ command-options ]
+.br
+.B esl
+.B quickstart
+.SH DESCRIPTION
+\fBesl\fR is a CLI-first toolkit for environmental and architectural acoustics.
+It supports multi-channel analysis, calibration-aware metrics, novelty detection,
+batch processing, and machine-learning exports.
+.SH PRIMARY COMMANDS
+.TP
+\fBesl analyze\fR
+Analyze one audio file and export JSON/CSV/Parquet/HDF5/MAT + plots.
+.TP
+\fBesl batch\fR
+Analyze a directory of files with optional recursive scan and report metrics.
+.TP
+\fBesl moments extract\fR
+Find interesting moments and export clips plus timestamped CSV/JSON reports.
+.TP
+\fBesl similar\fR
+Find the N most similar files in a corpus relative to a query file.
+.TP
+\fBesl stream\fR
+Run chunked streaming-style analysis with threshold rules and alert traces.
+.TP
+\fBesl calibrate check\fR
+Run calibration drift checks from tone captures.
+.TP
+\fBesl schema\fR
+Print or export the active JSON output schema.
+.TP
+\fBesl docs\fR
+Build documentation in HTML/PDF.
+.SH GLOBAL CLI BEHAVIOR
+.TP
+\fB\-\-verbosity 0..3\fR
+0=silent, 1=summary, 2=detailed, 3=full diagnostic.
+.TP
+\fB\-\-debug 0..2\fR
+0=none, 1=processing details, 2=internal traces.
+.TP
+\fB\-\-device auto|cpu|cuda|mps\fR
+Select compute backend for tensor and ML-adjacent paths.
+.SH CALIBRATION FIELDS
+Calibration YAML/JSON may define:
+.IP \(bu 2
+\fBdbfs_reference\fR
+.IP \(bu 2
+\fBspl_reference_db\fR
+.IP \(bu 2
+\fBweighting\fR (A/C/Z)
+.IP \(bu 2
+\fBmic_sensitivity_mv_pa\fR
+.IP \(bu 2
+\fBpreamp_gain_db\fR
+.IP \(bu 2
+\fBadc_full_scale_vrms\fR
+.IP \(bu 2
+\fBcalibration_tone_file\fR
+.PP
+Precision pressure conversion (\fBPa <-> dBFS\fR) is available when
+\fBmic_sensitivity_mv_pa\fR, \fBpreamp_gain_db\fR, and
+\fBadc_full_scale_vrms\fR are all provided.
+.SH EXAMPLES
+.TP
+Analyze one file:
+.B esl analyze input.wav --out-dir out --json out/input.json --plot
+.TP
+Extract one top-ranked moment:
+.B esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8
+.TP
+Run similarity search:
+.B esl similar query.wav corpus_dir --top-k 10 --json out/similarity.json
+.TP
+Run calibration drift check with pressure chain:
+.B esl calibrate check --tone calib.wav --calibration examples/calibration.yaml --preamp-gain-db 34 --adc-full-scale-vrms 1.0
+.SH FILES
+.TP
+\fBdocs/\fR
+Project documentation.
+.TP
+\fBman/man1/\fR
+Man page sources included in installation.
+.TP
+\fBexamples/calibration.yaml\fR
+Calibration example profile.
+.SH SEE ALSO
+.BR esl-analyze (1),
+.BR esl-batch (1),
+.BR esl-moments (1),
+.BR esl-similar (1),
+.BR esl-calibrate (1)

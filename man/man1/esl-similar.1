@@ -1,0 +1,48 @@
+.TH ESL-SIMILAR 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.SH NAME
+esl-similar \- find most similar files in a corpus
+.SH SYNOPSIS
+.B esl similar
+.I query.wav
+.I corpus_dir
+.RI [ options ]
+.SH DESCRIPTION
+Compare one query file to a folder of candidates and rank by distance.
+Supports feature, single-metric, and multi-metric similarity modes.
+.SH MODES
+.TP
+\fB\-\-mode auto|feature|metric|metrics\fR
+Select comparison mode.
+.TP
+\fB\-\-metric\fR \fIID\fR
+Metric ID for single-metric mode.
+.TP
+\fB\-\-metrics\fR \fILIST\fR
+Metric list for multi-metric mode.
+.SH DISTANCE FUNCTIONS
+.TP
+\fB\-\-distance cosine\fR
+Cosine distance.
+.TP
+\fB\-\-distance euclidean\fR
+Euclidean distance.
+.TP
+\fB\-\-distance manhattan\fR
+Manhattan distance.
+.SH COMMON OPTIONS
+.TP
+\fB\-\-top-k\fR \fIN\fR
+Number of results.
+.TP
+\fB\-\-feature-set\fR \fIauto|core|librosa|all\fR
+Feature backend in feature mode.
+.TP
+\fB\-\-json\fR \fIPATH\fR
+Output JSON ranking.
+.TP
+\fB\-\-csv\fR \fIPATH\fR
+Output CSV ranking.
+.SH EXAMPLE
+.B esl similar query.wav corpus_dir --mode auto --distance cosine --top-k 10 --json out/similarity.json
+.SH SEE ALSO
+.BR esl (1)

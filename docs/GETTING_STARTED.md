@@ -15,6 +15,12 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+Install helper (includes man pages):
+
+```bash
+bash scripts/install.sh
+```
+
 Optional extras:
 
 ```bash
@@ -93,6 +99,7 @@ flowchart LR
 ## Related Docs
 
 - [`../README.md`](../README.md)
+- [`MANPAGES.md`](MANPAGES.md)
 - [`TASK_RECIPES.md`](TASK_RECIPES.md)
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 - [`GLOSSARY.md`](GLOSSARY.md)

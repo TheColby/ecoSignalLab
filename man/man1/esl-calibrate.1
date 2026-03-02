@@ -1,0 +1,48 @@
+.TH ESL-CALIBRATE 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.SH NAME
+esl-calibrate \- calibration utilities for drift and pressure-chain checks
+.SH SYNOPSIS
+.B esl calibrate check
+.B \-\-tone
+.I tone.wav
+.RI [ options ]
+.SH DESCRIPTION
+Compute calibration drift relative to expected dBFS reference and report
+optional precision pressure-chain estimates when full analog-chain metadata
+is provided.
+.SH OPTIONS
+.TP
+\fB\-\-calibration\fR \fIPATH\fR
+Calibration YAML/JSON profile.
+.TP
+\fB\-\-dbfs-reference\fR \fIDBFS\fR
+Expected tone level in dBFS.
+.TP
+\fB\-\-spl-reference-db\fR \fIDB\fR
+Reference SPL for offset mapping.
+.TP
+\fB\-\-mic-sensitivity-mv-pa\fR \fIMV_PER_PA\fR
+Microphone sensitivity metadata.
+.TP
+\fB\-\-preamp-gain-db\fR \fIDB\fR
+Analog preamp gain metadata.
+.TP
+\fB\-\-adc-full-scale-vrms\fR \fIVRMS\fR
+ADC full-scale RMS voltage metadata.
+.TP
+\fB\-\-max-drift-db\fR \fIDB\fR
+Absolute drift threshold for pass/fail.
+.TP
+\fB\-\-history\fR \fIPATH\fR
+Optional history CSV append path.
+.TP
+\fB\-\-out\fR \fIPATH\fR
+Output report JSON.
+.SH NOTES
+Precision \fBPa <-> dBFS\fR conversion requires:
+\fBmic_sensitivity_mv_pa\fR, \fBpreamp_gain_db\fR, and
+\fBadc_full_scale_vrms\fR.
+.SH EXAMPLE
+.B esl calibrate check --tone calib/1k_94db.wav --calibration examples/calibration.yaml --out calib/check_report.json
+.SH SEE ALSO
+.BR esl (1)

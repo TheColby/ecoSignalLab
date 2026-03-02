@@ -88,6 +88,16 @@ Issues = "https://github.com/TheColby/ecoSignalLab/issues"
 [tool.setuptools]
 package-dir = { "" = "src" }
 
+[tool.setuptools.data-files]
+"share/man/man1" = [
+  "man/man1/esl.1",
+  "man/man1/esl-analyze.1",
+  "man/man1/esl-batch.1",
+  "man/man1/esl-moments.1",
+  "man/man1/esl-similar.1",
+  "man/man1/esl-calibrate.1",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
