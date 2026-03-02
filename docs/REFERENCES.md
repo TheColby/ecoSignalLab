@@ -47,6 +47,14 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [P3] [Merimaa, J., & Pulkki, V. (2005). Spatial impulse response rendering I: Analysis and synthesis](https://pubmed.ncbi.nlm.nih.gov/16334689/)
 - [P4] [Farina, A. (2000). Simultaneous measurement of impulse response and distortion with a swept-sine technique](https://www.researchgate.net/publication/2456363)
 
+## Acoustic Forensics and Surveillance (Rob Maher and Collaborators)
+
+- [RMA1] [Maher, R. C. (2009). Audio forensic examination: authenticity, enhancement, and interpretation. IEEE Signal Processing Magazine, 26(2), 84-94](https://www.montana.edu/rmaher/publications/maher_ieeespmag_0309_84-94.pdf)
+- [RMA2] [Chen, Z., & Maher, R. C. (2006). Semi-automatic classification of bird vocalizations using spectral peak tracks. Journal of the Acoustical Society of America, 120(5), 2974-2984](https://www.montana.edu/rmaher/publications/chen_maher_jasa_0611_2974-2984.pdf)
+- [RMA3] [Maher, R. C., & Studniarz, J. (2012). Automatic search and classification of sound sources in long-term surveillance recordings. Proc. AES 46th Conference: Audio Forensics—Recording, Recovery, Analysis, and Interpretation](https://www.montana.edu/rmaher/publications/maher_aesconf_0612_1-4.pdf)
+- [RMA4] [Maher, R. C., & Hoerr, E. R. (2018). Audio forensic gunshot analysis and multilateration. Proc. AES 145th Convention, Paper 10100](https://www.montana.edu/rmaher/publications/maher_aes_1018_10100.pdf)
+- [RMA5] [Maher, R. C., & Hoerr, E. R. (2019). Forensic comparison of simultaneous recordings of gunshots from a crime scene. Proc. AES 147th Convention, Preprint 10281](https://www.montana.edu/rmaher/publications/maher_aes_1019_10281.pdf)
+
 ## Ecoacoustics Indices
 
 - [E1] [Pieretti, N., Farina, A., & Morri, D. (2011). A new methodology to infer the singing activity of an avian community: The Acoustic Complexity Index (ACI)](https://link.springer.com/article/10.1007/s10336-011-0680-8)
@@ -54,6 +62,11 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [E3] [Sueur, J., et al. (2008). Rapid acoustic survey for biodiversity appraisal](https://onlinelibrary.wiley.com/doi/10.1111/j.1365-2664.2008.01553.x)
 - [E4] [Villanueva-Rivera, L. J., et al. Soundscape Ecology resources](https://soundscapeecology.org/)
 - [E5] [Towsey, M., et al. (2014). Visualization of long-duration acoustic recordings of the environment](https://www.mdpi.com/1424-8220/14/6/10339)
+
+## Everglades Monitoring Systems
+
+- [EV1] [Dickey, S. (2011). Near-Real-Time Internet Streaming of Audio from the Florida Everglades](https://fiord.com/images/embedded_syst/compulab/GladeBox.pdf) (GladesBox v2 paper; includes reference to the pilot deployment)
+- [EV2] Leider, C., Mann, D., & Dickinson, D. (2010). *Wireless multisensor monitoring of the Florida Everglades: A pilot project*. In *Audio Engineering Society Convention 129*. (Cited in [EV1](https://fiord.com/images/embedded_syst/compulab/GladeBox.pdf), References [1])
 
 ## NSF-Supported Ecology and Ecoacoustics Papers
 
