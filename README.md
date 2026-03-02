@@ -364,7 +364,11 @@ esl spatial analyze multichannel.wav \
 ```bash
 esl calibrate check \
   --tone calib/1k_94db.wav \
+  --calibration examples/calibration.yaml \
   --dbfs-reference -20.0 \
+  --mic-sensitivity-mv-pa 12.5 \
+  --preamp-gain-db 34.0 \
+  --adc-full-scale-vrms 1.0 \
   --max-drift-db 1.0 \
   --history calib/history.csv \
   --out calib/check_report.json
@@ -545,10 +549,19 @@ Calibration file supports:
 - `dbfs_reference`
 - `spl_reference_db`
 - `mic_sensitivity_mv_pa`
+- `preamp_gain_db`
+- `adc_full_scale_vrms`
 - `weighting`: `A|C|Z`
 - `calibration_tone_file`
 
 Example: [`examples/calibration.yaml`](examples/calibration.yaml)
+
+Precision note:
+- Offset mapping (`dbfs_reference` + `spl_reference_db`) provides `dBFS <-> SPL` conversion.
+- Physical pressure conversion (`Pa <-> dBFS`) is supported when all three are provided:
+  - `mic_sensitivity_mv_pa`
+  - `preamp_gain_db`
+  - `adc_full_scale_vrms`
 
 ## Project mode
 
@@ -576,7 +589,7 @@ Outputs:
 - Glossary: [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - Real-input KPI algorithm comparison: [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
 - Signal/window visual guide (generated graphs): [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
-- Easy scripts folder: [`scripts/easy/README.md`](scripts/easy/README.md)
+- Easy scripts catalog (expanded starter workflows): [`scripts/easy/README.md`](scripts/easy/README.md)
 - System design: [`DESIGN.md`](DESIGN.md)
 - Architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Metrics reference: [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)

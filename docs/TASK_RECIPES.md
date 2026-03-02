@@ -6,6 +6,9 @@ If you have an audio file and want to understand it, start here.
 
 Use `input.wav` as your source and copy/paste exactly.
 
+Need one-command helpers instead of typing long flags?
+- [`../scripts/easy/README.md`](../scripts/easy/README.md)
+
 ## Recipe Index (By Goal)
 
 - [Recipe 1: Analyze one file and generate plots](#recipe-1-analyze-one-file-and-generate-plots)

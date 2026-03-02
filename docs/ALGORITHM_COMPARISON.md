@@ -33,39 +33,56 @@ Outputs:
 
 ### Metric drift (%)
 
-$$
-\Delta m = 100 \cdot \frac{m_{\text{cand}} - m_{\text{base}}}{|m_{\text{base}}| + \varepsilon}
-$$
+Formula:
 
-where \(m_{\mathrm{base}}\) is a baseline metric and \(m_{\mathrm{cand}}\) is the candidate metric.
+```text
+delta_m_pct = 100 * (m_cand - m_base) / (abs(m_base) + eps)
+```
+
+where:
+- `m_base` is a baseline metric value
+- `m_cand` is a candidate metric value
+- `eps` is a very small stabilizer constant (for divide-by-zero safety)
 
 Plain English: values near 0% indicate stable behavior across runs.
 
 ### Flag disagreement rate
 
-$$
-r_{\text{flag}} = \frac{1}{K} \sum_{k=1}^{K} \mathbb{1}\!\left(f_{\text{base},k} \neq f_{\text{cand},k}\right)
-$$
+Formula:
 
-where \(f^{(k)}\) are boolean validity flags (`clipping`, `dc_offset`, `ir_detected`, etc.).
+```text
+r_flag = (1 / K) * sum_{k=1..K} I( f_base[k] != f_cand[k] )
+```
+
+where:
+- `K` is number of compared flags
+- `I(condition)` is 1 if condition is true, else 0
+- `f_base[k]` and `f_cand[k]` are baseline/candidate boolean flags
+- flag examples include `clipping`, `dc_offset`, `ir_detected`
 
 Plain English: lower is better; high disagreement means behavior changed.
 
 ### Runtime factor
 
-$$
-\mathrm{RTF} = \frac{t_{\text{runtime}}}{t_{\text{audio}}}
-$$
+Formula:
 
-where \(t_{\mathrm{runtime}}\) is wall-clock analysis time and \(t_{\mathrm{audio}}\) is input duration.
+```text
+rtf = t_runtime / t_audio
+```
+
+where:
+- `t_runtime` is wall-clock runtime
+- `t_audio` is source audio duration
 
 Plain English: lower is faster; `RTF < 1` means faster than real time.
 
 ### Schema compatibility score
 
-$$
-s_{\text{schema}} = \frac{N_{\text{present}}}{N_{\text{required}}}
-$$
+Formula:
+
+```text
+s_schema = n_present / n_required
+```
 
 where required fields come from the active schema version contract.
 

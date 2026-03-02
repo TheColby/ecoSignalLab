@@ -84,6 +84,16 @@ For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`]
 - IR detection and IR fit quality flags
 - SNR confidence and low-confidence indicator
 
+`metadata.calibration` may include:
+- `dbfs_reference`, `spl_reference_db`, `weighting`
+- `mic_sensitivity_mv_pa`
+- `preamp_gain_db`
+- `adc_full_scale_vrms`
+- `calibration_tone_file`
+
+Precision pressure-chain conversion (`Pa <-> dBFS`) is available when
+`mic_sensitivity_mv_pa`, `preamp_gain_db`, and `adc_full_scale_vrms` are all present.
+
 ## Metrics Node Contract
 
 For each metric ID:

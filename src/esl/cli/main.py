@@ -779,6 +779,20 @@ def _run_calibrate_check(args: argparse.Namespace) -> int:
         if profile is not None
         else None
     )
+    preamp_gain_db = (
+        float(args.preamp_gain_db)
+        if args.preamp_gain_db is not None
+        else profile.preamp_gain_db
+        if profile is not None
+        else None
+    )
+    adc_full_scale_vrms = (
+        float(args.adc_full_scale_vrms)
+        if args.adc_full_scale_vrms is not None
+        else profile.adc_full_scale_vrms
+        if profile is not None
+        else None
+    )
 
     out_path = Path(args.out)
     cfg = CalibrationCheckConfig(
@@ -788,6 +802,8 @@ def _run_calibrate_check(args: argparse.Namespace) -> int:
         spl_reference_db=spl_reference_db,
         weighting=weighting,
         mic_sensitivity_mv_pa=mic_sensitivity_mv_pa,
+        preamp_gain_db=preamp_gain_db,
+        adc_full_scale_vrms=adc_full_scale_vrms,
         calibration_profile=profile,
         device_id=args.device_id,
         history_csv=Path(args.history) if args.history else None,
@@ -805,6 +821,9 @@ def _run_calibrate_check(args: argparse.Namespace) -> int:
             "drift_db": report.get("drift_db"),
             "max_drift_db": report.get("max_drift_db"),
             "within_tolerance": report.get("within_tolerance"),
+            "pressure_chain_supported": report.get("pressure_chain_supported"),
+            "measured_pa_rms": report.get("measured_pa_rms"),
+            "measured_db_spl_from_pa": report.get("measured_db_spl_from_pa"),
         },
     )
     return 0 if within_tolerance else 2
@@ -1103,7 +1122,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Decode behavior: native formats use soundfile first; compressed formats fall back to ffmpeg/ffprobe.\n"
             "Compute device: use --device auto|cpu|cuda|mps on analyze/batch/spatial/pipeline run.\n"
             "Calibration file keys: dbfs_reference, spl_reference_db, weighting (A|C|Z), "
-            "mic_sensitivity_mv_pa, calibration_tone_file."
+            "mic_sensitivity_mv_pa, preamp_gain_db, adc_full_scale_vrms, calibration_tone_file."
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -1133,7 +1152,8 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Calibration YAML/JSON path.\n"
-            "Supports 0 dBFS to SPL mapping, weighting (A/C/Z), mic sensitivity, and calibration tone."
+            "Supports 0 dBFS to SPL mapping, weighting (A/C/Z), mic sensitivity, preamp gain, "
+            "ADC full-scale voltage, and calibration tone."
         ),
     )
     pa.add_argument(
@@ -1451,6 +1471,18 @@ def _build_parser() -> argparse.ArgumentParser:
     pcal_check.add_argument("--spl-reference-db", type=float, default=None, help="Reference SPL for dbfs mapping")
     pcal_check.add_argument("--weighting", default=None, help="Weighting hint (A/C/Z)")
     pcal_check.add_argument("--mic-sensitivity-mv-pa", type=float, default=None, help="Mic sensitivity metadata")
+    pcal_check.add_argument(
+        "--preamp-gain-db",
+        type=float,
+        default=None,
+        help="Analog preamp gain in dB (required with mic sensitivity + ADC FS for Pa<->dBFS conversion)",
+    )
+    pcal_check.add_argument(
+        "--adc-full-scale-vrms",
+        type=float,
+        default=None,
+        help="ADC full-scale RMS voltage in volts (required with mic sensitivity + gain for Pa<->dBFS conversion)",
+    )
     pcal_check.add_argument("--sample-rate", type=int, default=None, help="Optional resample rate for tone read")
     pcal_check.add_argument("--max-drift-db", type=float, default=1.0, help="Pass/fail absolute drift threshold")
     pcal_check.add_argument("--device-id", default=None, help="Device identifier for history tracking")

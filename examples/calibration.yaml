@@ -2,4 +2,6 @@ dbfs_reference: -20.0
 spl_reference_db: 74.0
 weighting: A
 mic_sensitivity_mv_pa: 12.5
+preamp_gain_db: 34.0
+adc_full_scale_vrms: 1.0
 calibration_tone_file: calibrator_1k.wav

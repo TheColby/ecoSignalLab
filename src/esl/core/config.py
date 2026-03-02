@@ -18,6 +18,8 @@ class CalibrationProfile:
     spl_reference_db: float = 94.0
     weighting: Weighting = "Z"
     mic_sensitivity_mv_pa: float | None = None
+    preamp_gain_db: float | None = None
+    adc_full_scale_vrms: float | None = None
     calibration_tone_file: str | None = None
 
 

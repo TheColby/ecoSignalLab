@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 
 from esl.core.audio import read_audio
-from esl.core.calibration import db
+from esl.core.calibration import db, dbfs_to_pa, precision_chain_available
 from esl.core.config import CalibrationProfile
 
 
@@ -24,6 +24,8 @@ class CalibrationCheckConfig:
     spl_reference_db: float = 94.0
     weighting: str = "Z"
     mic_sensitivity_mv_pa: float | None = None
+    preamp_gain_db: float | None = None
+    adc_full_scale_vrms: float | None = None
     calibration_profile: CalibrationProfile | None = None
     device_id: str | None = None
     history_csv: Path | None = None
@@ -41,6 +43,24 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
     offset = float(cfg.spl_reference_db - cfg.dbfs_reference)
     spl_estimate_db = float(measured_dbfs + offset)
 
+    profile_for_pressure: CalibrationProfile | None = cfg.calibration_profile
+    if profile_for_pressure is None:
+        profile_for_pressure = CalibrationProfile(
+            dbfs_reference=float(cfg.dbfs_reference),
+            spl_reference_db=float(cfg.spl_reference_db),
+            weighting=str(cfg.weighting).upper(),
+            mic_sensitivity_mv_pa=cfg.mic_sensitivity_mv_pa,
+            preamp_gain_db=cfg.preamp_gain_db,
+            adc_full_scale_vrms=cfg.adc_full_scale_vrms,
+            calibration_tone_file=None,
+        )
+    pressure_supported = precision_chain_available(profile_for_pressure)
+    measured_pa_rms: float | None = None
+    measured_db_spl_from_pa: float | None = None
+    if pressure_supported:
+        measured_pa_rms = float(dbfs_to_pa(measured_dbfs, profile_for_pressure))
+        measured_db_spl_from_pa = float(20.0 * np.log10(max(measured_pa_rms / 20e-6, 1e-18)))
+
     report = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "tone_path": str(cfg.tone_path.resolve()),
@@ -53,15 +73,21 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
         "mic_sensitivity_mv_pa": (
             None if cfg.mic_sensitivity_mv_pa is None else float(cfg.mic_sensitivity_mv_pa)
         ),
+        "preamp_gain_db": None if cfg.preamp_gain_db is None else float(cfg.preamp_gain_db),
+        "adc_full_scale_vrms": None if cfg.adc_full_scale_vrms is None else float(cfg.adc_full_scale_vrms),
         "measured_rms": rms,
         "measured_dbfs": measured_dbfs,
         "drift_db": drift_db,
         "max_drift_db": float(cfg.max_drift_db),
         "within_tolerance": within_tolerance,
         "spl_estimate_db": spl_estimate_db,
+        "pressure_chain_supported": pressure_supported,
+        "measured_pa_rms": measured_pa_rms,
+        "measured_db_spl_from_pa": measured_db_spl_from_pa,
         "assumptions": [
             "Drift compares measured tone RMS (dBFS) against configured dbfs_reference.",
             "SPL estimate is a reference offset mapping, not a compliance measurement.",
+            "Precision Pa<->dBFS conversion requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms.",
         ],
         "profile": (
             {
@@ -69,6 +95,8 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
                 "spl_reference_db": cfg.calibration_profile.spl_reference_db,
                 "weighting": cfg.calibration_profile.weighting,
                 "mic_sensitivity_mv_pa": cfg.calibration_profile.mic_sensitivity_mv_pa,
+                "preamp_gain_db": cfg.calibration_profile.preamp_gain_db,
+                "adc_full_scale_vrms": cfg.calibration_profile.adc_full_scale_vrms,
                 "calibration_tone_file": cfg.calibration_profile.calibration_tone_file,
             }
             if cfg.calibration_profile is not None

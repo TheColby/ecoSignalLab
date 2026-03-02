@@ -50,8 +50,14 @@ Or use copy-paste helper scripts:
 ```bash
 bash scripts/easy/02_analyze_and_plot.sh input.wav out
 bash scripts/easy/03_extract_single_moment.sh input.wav out/moments
+bash scripts/easy/08_batch_full_exports.sh input_dir out_batch
+bash scripts/easy/09_similarity_search.sh query.wav corpus_dir out/similarity 10
+bash scripts/easy/10_analyze_with_calibration.sh input.wav examples/calibration.yaml out_calibrated
 bash scripts/easy/05_generate_signal_graphs.sh docs/examples/signal_window_guide
 ```
+
+Full script catalog:
+- [`../scripts/easy/README.md`](../scripts/easy/README.md)
 
 Expected outputs:
 - `out/input.json`

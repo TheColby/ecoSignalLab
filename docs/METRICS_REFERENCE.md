@@ -20,6 +20,8 @@ Scope:
 - `dB(v) = 20*log10(max(|v|, eps))`
 - `dB_power(p) = 10*log10(max(p, eps))`
 - `L_SPL = L_dBFS + (spl_reference_db - dbfs_reference)` when calibration is provided
+- Optional precision pressure chain:
+  - `Pa_to_dBFS` and `dBFS_to_Pa` require `mic_sensitivity_mv_pa`, `preamp_gain_db`, and `adc_full_scale_vrms`
 - `M(f,t)`: magnitude spectrogram
 - `P(f,t) = M(f,t)^2`: power spectrogram
 - `eps`: small positive constant for numerical stability
