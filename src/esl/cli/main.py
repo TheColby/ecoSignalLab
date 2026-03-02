@@ -5,12 +5,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
 
 from esl.core import AnalysisConfig, IngestConfig, analyze, load_calibration
-from esl.core.audio import iter_supported_files
+from esl.core.audio import iter_supported_files, probe_sample_rate
 from esl.docsgen import build_docs
 from esl.io import (
     save_apx_csv,
@@ -54,15 +55,105 @@ def _safe_name(text: str) -> str:
     return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in text).strip("_") or "profile"
 
 
+def _to_samples(seconds: float, sample_rate: int, flag_name: str) -> int:
+    if not math.isfinite(seconds) or seconds <= 0.0:
+        raise ValueError(f"{flag_name} must be a positive finite number.")
+    samples = int(round(seconds * float(sample_rate)))
+    if samples < 1:
+        raise ValueError(
+            f"{flag_name}={seconds} is too small for sample_rate={sample_rate}; resolved sample count is < 1."
+        )
+    return samples
+
+
+def _resolve_chunk_duration_seconds(args: argparse.Namespace) -> float | None:
+    choices = [
+        ("chunk_seconds", 1.0),
+        ("chunk_minutes", 60.0),
+        ("chunk_hours", 3600.0),
+        ("chunk_days", 86400.0),
+    ]
+    specified: list[tuple[str, float]] = []
+    for name, scale in choices:
+        raw = getattr(args, name, None)
+        if raw is not None:
+            if not isinstance(raw, (int, float)) or not math.isfinite(float(raw)) or float(raw) <= 0.0:
+                raise ValueError(f"--{name.replace('_', '-')} must be a positive finite number.")
+            specified.append((name, float(raw) * scale))
+    if not specified:
+        return None
+    if len(specified) > 1:
+        labels = ", ".join(f"--{name.replace('_', '-')}" for name, _ in specified)
+        raise ValueError(f"Specify only one chunk-duration flag at a time: {labels}")
+    return specified[0][1]
+
+
+def _resolve_window_samples(
+    args: argparse.Namespace,
+    *,
+    input_path: Path | None,
+    default_frame_size: int | None = None,
+    default_hop_size: int | None = None,
+    default_chunk_size: int | None = None,
+) -> tuple[int | None, int | None, int | None, int | None]:
+    frame_size = int(getattr(args, "frame_size", default_frame_size) or 0) if default_frame_size is not None or hasattr(args, "frame_size") else None
+    hop_size = int(getattr(args, "hop_size", default_hop_size) or 0) if default_hop_size is not None or hasattr(args, "hop_size") else None
+    chunk_size_raw = getattr(args, "chunk_size", default_chunk_size)
+    chunk_size = int(chunk_size_raw) if chunk_size_raw is not None else None
+    sample_rate_raw = getattr(args, "sample_rate", None)
+    sample_rate = int(sample_rate_raw) if sample_rate_raw is not None else None
+
+    frame_seconds = getattr(args, "frame_seconds", None)
+    hop_seconds = getattr(args, "hop_seconds", None)
+    chunk_duration_s = _resolve_chunk_duration_seconds(args)
+    needs_sr = frame_seconds is not None or hop_seconds is not None or chunk_duration_s is not None
+    resolved_sr = sample_rate
+    if needs_sr and resolved_sr is None:
+        if input_path is None:
+            raise ValueError(
+                "Duration-based window flags require --sample-rate when input path metadata is unavailable."
+            )
+        try:
+            resolved_sr = probe_sample_rate(input_path)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Unable to infer sample rate from {input_path}. Set --sample-rate explicitly."
+            ) from exc
+
+    if resolved_sr is not None:
+        if frame_seconds is not None:
+            frame_size = _to_samples(float(frame_seconds), resolved_sr, "--frame-seconds")
+        if hop_seconds is not None:
+            hop_size = _to_samples(float(hop_seconds), resolved_sr, "--hop-seconds")
+        if chunk_duration_s is not None:
+            chunk_size = _to_samples(float(chunk_duration_s), resolved_sr, "--chunk-*")
+
+    if frame_size is not None and frame_size < 1:
+        raise ValueError("--frame-size must be >= 1")
+    if hop_size is not None and hop_size < 1:
+        raise ValueError("--hop-size must be >= 1")
+    if chunk_size is not None and chunk_size < 1:
+        raise ValueError("--chunk-size must be >= 1")
+
+    return frame_size, hop_size, chunk_size, resolved_sr
+
+
 def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: Path) -> AnalysisConfig:
     calibration = load_calibration(args.calibration) if args.calibration else None
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=input_path,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=None,
+    )
     return AnalysisConfig(
         input_path=input_path,
         output_dir=out_dir,
-        frame_size=args.frame_size,
-        hop_size=args.hop_size,
-        sample_rate=args.sample_rate,
-        chunk_size=args.chunk_size,
+        frame_size=int(frame_size or 2048),
+        hop_size=int(hop_size or 512),
+        sample_rate=resolved_sr,
+        chunk_size=chunk_size,
         metrics=_metric_list(args.metrics),
         calibration=calibration,
         project=args.project,
@@ -641,14 +732,21 @@ def _run_stream(args: argparse.Namespace) -> int:
         raise FileNotFoundError(f"Input file not found: {input_path}")
     out_dir = Path(args.out)
     calibration = load_calibration(args.calibration) if args.calibration else None
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=input_path,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=131072,
+    )
     cfg = StreamRunConfig(
         input_path=input_path,
         output_dir=out_dir,
         metrics=_metric_list(args.metrics),
-        frame_size=args.frame_size,
-        hop_size=args.hop_size,
-        sample_rate=args.sample_rate,
-        chunk_size=args.chunk_size,
+        frame_size=int(frame_size or 2048),
+        hop_size=int(hop_size or 512),
+        sample_rate=resolved_sr,
+        chunk_size=int(chunk_size or 131072),
         calibration=calibration,
         seed=args.seed,
         rules_path=args.rules,
@@ -689,6 +787,13 @@ def _run_spatial_analyze(args: argparse.Namespace) -> int:
     _mkdir(out_dir)
     calibration = load_calibration(args.calibration) if args.calibration else None
     array_config = load_array_config(args.array_config)
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=input_path,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=None,
+    )
 
     metric_list = _metric_list(args.metrics) or list(SPATIAL_DEFAULT_METRICS)
     if args.doa and "doa_azimuth_proxy_deg" not in metric_list:
@@ -699,10 +804,10 @@ def _run_spatial_analyze(args: argparse.Namespace) -> int:
     cfg = AnalysisConfig(
         input_path=input_path,
         output_dir=out_dir,
-        frame_size=args.frame_size,
-        hop_size=args.hop_size,
-        sample_rate=args.sample_rate,
-        chunk_size=args.chunk_size,
+        frame_size=int(frame_size or 2048),
+        hop_size=int(hop_size or 512),
+        sample_rate=resolved_sr,
+        chunk_size=chunk_size,
         metrics=metric_list,
         calibration=calibration,
         verbosity=args.verbosity,
@@ -880,6 +985,13 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
     calibration = load_calibration(args.calibration) if args.calibration else None
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=input_path,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=131072,
+    )
 
     selection_mode = "all"
     top_k: int | None = None
@@ -903,10 +1015,10 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
         rules_path=args.rules,
         metrics=_metric_list(args.metrics) or None,
         calibration=calibration,
-        frame_size=args.frame_size,
-        hop_size=args.hop_size,
-        sample_rate=args.sample_rate,
-        chunk_size=args.chunk_size,
+        frame_size=int(frame_size or 2048),
+        hop_size=int(hop_size or 512),
+        sample_rate=resolved_sr,
+        chunk_size=int(chunk_size or 131072),
         seed=args.seed,
         max_chunks=args.max_chunks,
         stream_report_path=args.stream_report,
@@ -1198,10 +1310,16 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--ml-export", action="store_true", help="Export ML-ready features")
     pa.add_argument("--project", default=None, help="Project name")
     pa.add_argument("--variant", default=None, help="Variant name")
-    pa.add_argument("--frame-size", type=int, default=2048)
-    pa.add_argument("--hop-size", type=int, default=512)
+    pa.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    pa.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    pa.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    pa.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
     pa.add_argument("--sample-rate", type=int, default=None)
-    pa.add_argument("--chunk-size", type=int, default=None)
+    pa.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples (enables chunked mode)")
+    pa.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
+    pa.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
+    pa.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
+    pa.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
     pa.add_argument("--metrics", default=None, help="Comma-separated metric list")
     pa.add_argument(
         "--profile",
@@ -1262,10 +1380,16 @@ def _build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--ml-export", action="store_true")
     pb.add_argument("--project", default=None)
     pb.add_argument("--variant", default=None)
-    pb.add_argument("--frame-size", type=int, default=2048)
-    pb.add_argument("--hop-size", type=int, default=512)
+    pb.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    pb.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    pb.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    pb.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
     pb.add_argument("--sample-rate", type=int, default=None)
-    pb.add_argument("--chunk-size", type=int, default=None)
+    pb.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples (enables chunked mode)")
+    pb.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
+    pb.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
+    pb.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
+    pb.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
     pb.add_argument("--metrics", default=None)
     pb.add_argument(
         "--report-metrics",
@@ -1394,10 +1518,16 @@ def _build_parser() -> argparse.ArgumentParser:
     pst.add_argument("--rules", default=None, help="Alert rules JSON/YAML path")
     pst.add_argument("--metrics", default="spl_a_db,ndsi,novelty_curve", help="Comma-separated metric list")
     pst.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
-    pst.add_argument("--frame-size", type=int, default=2048)
-    pst.add_argument("--hop-size", type=int, default=512)
+    pst.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    pst.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    pst.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    pst.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
     pst.add_argument("--sample-rate", type=int, default=None)
-    pst.add_argument("--chunk-size", type=int, default=131072)
+    pst.add_argument("--chunk-size", type=int, default=131072, help="Chunk size in samples")
+    pst.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
+    pst.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
+    pst.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
+    pst.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
     pst.add_argument("--seed", type=int, default=42)
     pst.add_argument("--max-chunks", type=int, default=None, help="Optional cap on processed chunks")
     pst.add_argument(
@@ -1432,10 +1562,16 @@ def _build_parser() -> argparse.ArgumentParser:
     psp_an.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
     psp_an.add_argument("--project", default=None, help="Project name")
     psp_an.add_argument("--variant", default=None, help="Variant name")
-    psp_an.add_argument("--frame-size", type=int, default=2048)
-    psp_an.add_argument("--hop-size", type=int, default=512)
+    psp_an.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    psp_an.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    psp_an.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    psp_an.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
     psp_an.add_argument("--sample-rate", type=int, default=None)
-    psp_an.add_argument("--chunk-size", type=int, default=None)
+    psp_an.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples")
+    psp_an.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
+    psp_an.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
+    psp_an.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
+    psp_an.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
     psp_an.add_argument("--seed", type=int, default=42)
     psp_an.add_argument(
         "--verbosity",
@@ -1525,10 +1661,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Comma-separated metrics for detection pass",
     )
     pmom_ex.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
-    pmom_ex.add_argument("--frame-size", type=int, default=2048)
-    pmom_ex.add_argument("--hop-size", type=int, default=512)
+    pmom_ex.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    pmom_ex.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    pmom_ex.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    pmom_ex.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
     pmom_ex.add_argument("--sample-rate", type=int, default=None)
     pmom_ex.add_argument("--chunk-size", type=int, default=131072, help="Detection chunk size in samples")
+    pmom_ex.add_argument("--chunk-seconds", type=float, default=None, help="Detection chunk size in seconds (overrides --chunk-size)")
+    pmom_ex.add_argument("--chunk-minutes", type=float, default=None, help="Detection chunk size in minutes (overrides --chunk-size)")
+    pmom_ex.add_argument("--chunk-hours", type=float, default=None, help="Detection chunk size in hours (overrides --chunk-size)")
+    pmom_ex.add_argument("--chunk-days", type=float, default=None, help="Detection chunk size in days (overrides --chunk-size)")
     pmom_ex.add_argument("--seed", type=int, default=42)
     pmom_ex.add_argument("--max-chunks", type=int, default=None, help="Optional cap for detection chunks")
     pmom_ex.add_argument("--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk")

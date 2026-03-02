@@ -36,6 +36,11 @@ def test_cli_help_contains_output_and_debug_flags(capsys: pytest.CaptureFixture[
     assert "--parquet" in help_text
     assert "--hdf5" in help_text
     assert "--mat" in help_text
+    assert "--frame-seconds" in help_text
+    assert "--hop-seconds" in help_text
+    assert "--chunk-minutes" in help_text
+    assert "--chunk-hours" in help_text
+    assert "--chunk-days" in help_text
 
 
 def test_cli_batch_help_contains_report_metrics(capsys: pytest.CaptureFixture[str]) -> None:

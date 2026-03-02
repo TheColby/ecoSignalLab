@@ -199,7 +199,7 @@ Streaming-style monitoring with alerts:
 ```bash
 esl stream long_capture.wav \
   --out stream_out \
-  --chunk-size 2880000 \
+  --chunk-minutes 0.5 \
   --metrics novelty_curve,spl_a_db,ndsi \
   --rules rules/stream_alerts.yaml
 ```
@@ -212,7 +212,7 @@ esl moments extract long_capture.wav \
   --single \
   --rank-metric novelty_curve \
   --event-window 12 \
-  --chunk-size 2880000
+  --chunk-minutes 0.5
 ```
 
 ## Choosing `--chunk-size`
@@ -240,6 +240,13 @@ where:
 Example at 96 kHz, 4 channels, float32:
 - `--chunk-size 960000` is 10 s chunks
 - Raw sample matrix is about \(960000 \cdot 4 \cdot 4 = 15{,}360{,}000\) bytes (~14.65 MiB/chunk)
+
+Alternative (human-readable chunk flags):
+- `--chunk-seconds 10`
+- `--chunk-minutes 0.5`
+- `--chunk-hours 1`
+- `--chunk-days 1`
+- only one duration chunk flag can be set at once
 
 ## Operational notes
 

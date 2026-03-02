@@ -356,6 +356,33 @@ esl stream input.wav \
   --rules rules/stream_alerts.yaml
 ```
 
+### Human-readable window and chunk sizes
+
+You can now set frame/hop/chunk values in seconds/minutes/hours/days instead of manual sample math.
+
+Precedence rule:
+- duration flags override sample-count flags (`--frame-seconds` over `--frame-size`, etc.)
+
+Supported duration flags:
+- `--frame-seconds`
+- `--hop-seconds`
+- `--chunk-seconds`
+- `--chunk-minutes`
+- `--chunk-hours`
+- `--chunk-days`
+
+Example (24-hour style workflow, no manual sample conversion):
+
+```bash
+esl stream input_24h.wav \
+  --sample-rate 96000 \
+  --frame-seconds 1.0 \
+  --hop-seconds 0.5 \
+  --chunk-minutes 10 \
+  --metrics spl_a_db,ndsi,novelty_curve \
+  --out stream_out
+```
+
 ### Spatial analyze + beam map
 
 ```bash

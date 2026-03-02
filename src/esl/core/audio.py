@@ -260,6 +260,19 @@ def read_audio(path: str | Path, target_sr: int | None = None) -> AudioBuffer:
         return _read_ffmpeg(p, target_sr)
 
 
+def probe_sample_rate(path: str | Path) -> int:
+    """Return source sample rate without decoding the full file when possible."""
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"Audio file not found: {p}")
+    try:
+        info = sf.info(str(p))
+        return int(info.samplerate)
+    except Exception:
+        probe = _ffprobe_summary(p)
+        return int(probe["sample_rate"])
+
+
 def stream_audio(
     path: str | Path,
     chunk_size: int = 131072,

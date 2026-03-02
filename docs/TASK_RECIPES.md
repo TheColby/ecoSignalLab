@@ -19,6 +19,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 6: Compare architectural variants](#recipe-6-compare-architectural-variants)
 - [Recipe 7: Generate DSP signal/window reference graphs](#recipe-7-generate-dsp-signalwindow-reference-graphs)
 - [Recipe 8: Find the most similar files in a folder](#recipe-8-find-the-most-similar-files-in-a-folder)
+- [Recipe 9: Use minute/hour/day window flags](#recipe-9-use-minutehourday-window-flags)
 
 ## Recipe Index by Device Type
 
@@ -249,6 +250,25 @@ Many useful options:
 Expected outputs:
 - `out/similarity.json`
 - `out/similarity.csv`
+
+## Recipe 9: Use minute/hour/day window flags
+
+```bash
+esl analyze input_24h.wav \
+  --out-dir out \
+  --frame-seconds 1.0 \
+  --hop-seconds 0.5 \
+  --chunk-minutes 10 \
+  --metrics rms_dbfs,spl_a_db,novelty_curve
+```
+
+What this does:
+- avoids manual sample conversion
+- keeps framing readable for long recordings
+
+Rules:
+- duration flags override sample-count flags
+- only one of `--chunk-seconds|--chunk-minutes|--chunk-hours|--chunk-days` can be set at once
 
 ## Which command should I use?
 
