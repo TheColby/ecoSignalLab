@@ -20,6 +20,8 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 7: Generate DSP signal/window reference graphs](#recipe-7-generate-dsp-signalwindow-reference-graphs)
 - [Recipe 8: Find the most similar files in a folder](#recipe-8-find-the-most-similar-files-in-a-folder)
 - [Recipe 9: Use minute/hour/day window flags](#recipe-9-use-minutehourday-window-flags)
+- [Recipe 10: Check your setup and file before analysis](#recipe-10-check-your-setup-and-file-before-analysis)
+- [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
 
 ## Recipe Index by Device Type
 
@@ -269,6 +271,44 @@ What this does:
 Rules:
 - duration flags override sample-count flags
 - only one of `--chunk-seconds|--chunk-minutes|--chunk-hours|--chunk-days` can be set at once
+
+## Recipe 10: Check your setup and file before analysis
+
+```bash
+esl doctor input.wav
+```
+
+What this does:
+- checks core environment readiness
+- reports FFmpeg/ffprobe availability
+- inspects the input file without running a full analysis
+- prints the next command you should probably run
+
+Expected output:
+- status
+- dependency readiness
+- input format / duration / channels / sample rate / size
+- recommended next commands
+
+## Recipe 11: Print a quick human-readable summary
+
+```bash
+esl simple input.wav
+```
+
+What this does:
+- prints the main facts without making you parse a large JSON document
+- works well as a first look before a full `analyze` run
+
+Expected output:
+- duration
+- channels
+- sample rate
+- RMS
+- peak
+- A-weighted level
+- SNR
+- clipping state
 
 ## Which command should I use?
 

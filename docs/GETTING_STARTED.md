@@ -38,6 +38,12 @@ esl quickstart
 Or run these directly:
 
 ```bash
+# Check your environment and input file first
+esl doctor input.wav
+
+# Print a compact human-readable summary
+esl simple input.wav
+
 # Analyze one file
 esl analyze input.wav --out-dir out --json out/input.json --plot --device auto
 
@@ -75,11 +81,14 @@ Expected outputs:
 ## 3) Common issues
 
 - `zsh: command not found: esl`
+  - Start with: `.venv/bin/python -m esl doctor`
   - Activate your environment: `source .venv/bin/activate`
   - Or run module form: `.venv/bin/python -m esl --help`
 - Compressed decode fails (`mp3/aac/ogg/...`)
+  - Start with: `esl doctor input.mp3`
   - Install FFmpeg and ensure `ffprobe` is on `PATH`.
 - Very large WAV inputs fail or truncate near 4 GB
+  - Start with: `esl doctor input_24h.wav`
   - Use RF64 and follow [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 - Empty/weak moments extraction output
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
@@ -102,6 +111,7 @@ flowchart LR
 - [`MANPAGES.md`](MANPAGES.md)
 - [`TASK_RECIPES.md`](TASK_RECIPES.md)
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
+- [`ANNOUNCEMENT_FAQ.md`](ANNOUNCEMENT_FAQ.md)
 - [`GLOSSARY.md`](GLOSSARY.md)
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`ML_FEATURES.md`](ML_FEATURES.md)

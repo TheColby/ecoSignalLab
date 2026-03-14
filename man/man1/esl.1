@@ -13,6 +13,12 @@ It supports multi-channel analysis, calibration-aware metrics, novelty detection
 batch processing, and machine-learning exports.
 .SH PRIMARY COMMANDS
 .TP
+\fBesl doctor\fR
+Check environment readiness, decode dependencies, and optional input-file metadata.
+.TP
+\fBesl simple\fR
+Print a compact human-readable summary for one file.
+.TP
 \fBesl analyze\fR
 Analyze one audio file and export JSON/CSV/Parquet/HDF5/MAT + plots.
 .TP
@@ -67,6 +73,12 @@ Precision pressure conversion (\fBPa <-> dBFS\fR) is available when
 \fBmic_sensitivity_mv_pa\fR, \fBpreamp_gain_db\fR, and
 \fBadc_full_scale_vrms\fR are all provided.
 .SH EXAMPLES
+.TP
+Check environment + input readiness:
+.B esl doctor input.wav
+.TP
+Print a short summary:
+.B esl simple input.wav
 .TP
 Analyze one file:
 .B esl analyze input.wav --out-dir out --json out/input.json --plot

@@ -63,10 +63,12 @@ def test_python_module_help_entrypoint() -> None:
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
     proc = subprocess.run([sys.executable, "-m", "esl", "--help"], capture_output=True, text=True, env=env, check=False)
     assert proc.returncode == 0
+    assert "doctor" in proc.stdout
     assert "ecoSignalLab CLI" in proc.stdout
     assert "features" in proc.stdout
     assert "moments" in proc.stdout
     assert "similar" in proc.stdout
+    assert "simple" in proc.stdout
     assert "quickstart" in proc.stdout
 
 
@@ -75,8 +77,17 @@ def test_cli_quickstart_outputs_recipes(capsys: pytest.CaptureFixture[str]) -> N
     assert code == 0
     out = capsys.readouterr().out
     assert "ecoSignalLab Quickstart" in out
+    assert "esl doctor" in out
     assert "esl analyze input.wav" in out
     assert "esl moments extract" in out
+
+
+def test_cli_quickstart_goal_long(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(["quickstart", "--goal", "long", "--input", "day.wav"])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "esl doctor day.wav" in out
+    assert "--chunk-minutes 10" in out
 
 
 def test_cli_benchmark_device_smoke(capsys: pytest.CaptureFixture[str]) -> None:
@@ -91,6 +102,30 @@ def test_cli_missing_file_shows_friendly_hint(capsys: pytest.CaptureFixture[str]
     assert code == 1
     err = capsys.readouterr().err
     assert "verify the file/path exists" in err
+
+
+def test_cli_doctor_and_simple_smoke(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    sr = 8000
+    t = np.linspace(0, 0.25, int(sr * 0.25), endpoint=False)
+    x = (0.1 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
+    wav = tmp_path / "in.wav"
+    doctor_json = tmp_path / "doctor.json"
+    simple_json = tmp_path / "simple.json"
+    sf.write(wav, x, sr)
+
+    code_doctor = main(["doctor", str(wav), "--json-out", str(doctor_json)])
+    assert code_doctor == 0
+    out_doctor = capsys.readouterr().out
+    assert "status:" in out_doctor
+    assert "recommendations:" in out_doctor
+    assert doctor_json.exists()
+
+    code_simple = main(["simple", str(wav), "--json-out", str(simple_json)])
+    assert code_simple == 0
+    out_simple = capsys.readouterr().out
+    assert "summary:" in out_simple
+    assert "rms_dbfs" in out_simple
+    assert simple_json.exists()
 
 
 def test_cli_batch_report_metrics_columns(tmp_path: Path) -> None:

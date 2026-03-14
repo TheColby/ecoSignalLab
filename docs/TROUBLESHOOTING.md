@@ -4,6 +4,12 @@ Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [T
 
 If a command failed, find the exact message below and use the fix command.
 
+First move if you are not sure what is broken:
+
+```bash
+esl doctor input.wav
+```
+
 ## `zsh: command not found: esl`
 
 Cause:

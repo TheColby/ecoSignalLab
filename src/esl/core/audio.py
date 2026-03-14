@@ -273,6 +273,70 @@ def probe_sample_rate(path: str | Path) -> int:
         return int(probe["sample_rate"])
 
 
+def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
+    """Return best-effort file metadata without decoding the full signal."""
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"Audio file not found: {p}")
+
+    size_bytes = int(p.stat().st_size)
+    ext = p.suffix.lower()
+    payload: dict[str, Any] = {
+        "path": str(p.resolve()),
+        "name": p.name,
+        "extension": ext,
+        "size_bytes": size_bytes,
+        "size_gb": float(size_bytes / 1_000_000_000.0),
+    }
+
+    if ext in SUPPORTED_SPATIAL_EXT:
+        sofa = load_sofa(p)
+        payload.update(
+            {
+                "sample_rate": int(sofa.sample_rate),
+                "channels": int(sofa.ir.shape[1]),
+                "duration_s": float(sofa.ir.shape[0] / max(sofa.sample_rate, 1)),
+                "format_name": "SOFA",
+                "subtype": None,
+                "backend": "h5py",
+                "codec_name": None,
+                "channel_layout": None,
+            }
+        )
+        return payload
+
+    try:
+        info = sf.info(str(p))
+        payload.update(
+            {
+                "sample_rate": int(info.samplerate),
+                "channels": int(info.channels),
+                "duration_s": float(info.frames / max(info.samplerate, 1)),
+                "format_name": info.format,
+                "subtype": info.subtype,
+                "backend": "soundfile",
+                "codec_name": None,
+                "channel_layout": None,
+            }
+        )
+        return payload
+    except Exception:
+        probe = _ffprobe_summary(p)
+        payload.update(
+            {
+                "sample_rate": int(probe["sample_rate"]),
+                "channels": int(probe["channels"]),
+                "duration_s": float(probe["duration_s"]) if probe.get("duration_s") is not None else None,
+                "format_name": ext.lstrip(".").upper() or "unknown",
+                "subtype": None,
+                "backend": "ffprobe",
+                "codec_name": probe.get("codec_name"),
+                "channel_layout": probe.get("channel_layout"),
+            }
+        )
+        return payload
+
+
 def stream_audio(
     path: str | Path,
     chunk_size: int = 131072,

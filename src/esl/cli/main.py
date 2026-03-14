@@ -1161,6 +1161,158 @@ def _run_docs(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_doctor(args: argparse.Namespace) -> int:
+    from esl.core.doctor import DoctorConfig, run_doctor
+
+    input_path = Path(args.input) if args.input else None
+    if input_path is not None and not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    report = run_doctor(
+        DoctorConfig(
+            input_path=input_path,
+            requested_device=args.device,
+            strict=bool(args.strict),
+        )
+    )
+    if args.json_out:
+        out = Path(args.json_out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(f"doctor_json: {out}")
+
+    print(f"status: {report.get('status')}")
+    print(f"esl_version: {report.get('esl_version')}")
+    platform_info = report.get("platform", {})
+    print(
+        "platform:",
+        {
+            "python": platform_info.get("python"),
+            "platform": platform_info.get("platform"),
+        },
+    )
+    core = report.get("core_dependencies", {})
+    print(
+        "core_dependencies:",
+        {
+            "soundfile": core.get("soundfile", {}).get("installed"),
+            "ffmpeg": core.get("ffmpeg", {}).get("available"),
+            "ffprobe": core.get("ffprobe", {}).get("available"),
+        },
+    )
+    device = report.get("device", {})
+    print(
+        "device:",
+        {
+            "requested": device.get("requested"),
+            "resolved": device.get("resolved"),
+            "torch_available": device.get("torch_available"),
+            "device_name": device.get("device_name"),
+        },
+    )
+    if report.get("input"):
+        inp = report["input"]
+        print(
+            "input:",
+            {
+                "path": inp.get("path"),
+                "format": inp.get("format_name"),
+                "duration_s": inp.get("duration_s"),
+                "channels": inp.get("channels"),
+                "sample_rate": inp.get("sample_rate"),
+                "layout_hint": inp.get("layout_hint"),
+                "size_gb": inp.get("size_gb"),
+            },
+        )
+    if report.get("blockers"):
+        print("blockers:")
+        for item in report["blockers"]:
+            print(f"- {item}")
+    if report.get("warnings"):
+        print("warnings:")
+        for item in report["warnings"]:
+            print(f"- {item}")
+    if report.get("recommendations"):
+        print("recommendations:")
+        for item in report["recommendations"]:
+            print(f"- {item}")
+    return 2 if bool(args.strict) and (report.get("blockers") or report.get("warnings")) else 0
+
+
+def _run_simple(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    calibration = load_calibration(args.calibration) if args.calibration else None
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=input_path,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=None,
+    )
+    cfg = AnalysisConfig(
+        input_path=input_path,
+        output_dir=Path("."),
+        frame_size=int(frame_size or 2048),
+        hop_size=int(hop_size or 512),
+        sample_rate=resolved_sr,
+        chunk_size=chunk_size,
+        metrics=["rms_dbfs", "peak_dbfs", "spl_a_db", "snr_db"],
+        calibration=calibration,
+        verbosity=0,
+        debug=0,
+        seed=42,
+        compute_device=args.device,
+    )
+    result = analyze(cfg)
+    meta = result.get("metadata", {})
+    metrics = result.get("metrics", {})
+    validity = meta.get("validity_flags", {})
+
+    def _fmt(metric_name: str) -> str:
+        payload = metrics.get(metric_name, {})
+        if not isinstance(payload, dict):
+            return "N/A"
+        summary = payload.get("summary", {})
+        if not isinstance(summary, dict):
+            return "N/A"
+        value = summary.get("mean")
+        units = payload.get("units")
+        if not isinstance(value, (int, float)):
+            return "N/A"
+        return f"{float(value):.2f} {units or ''}".strip()
+
+    print(f"file: {meta.get('input_path')}")
+    print(
+        "signal:",
+        {
+            "duration_s": round(float(meta.get("duration_s", 0.0)), 3),
+            "channels": meta.get("channels"),
+            "sample_rate": meta.get("sample_rate"),
+            "layout_hint": meta.get("channel_layout_hint"),
+        },
+    )
+    print(
+        "summary:",
+        {
+            "rms_dbfs": _fmt("rms_dbfs"),
+            "peak_dbfs": _fmt("peak_dbfs"),
+            "spl_a_db": _fmt("spl_a_db"),
+            "snr_db": _fmt("snr_db"),
+            "clipping": validity.get("clipping"),
+            "calibration_applied": validity.get("calibration_applied"),
+        },
+    )
+    if args.json_out:
+        out = Path(args.json_out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(result, indent=2), encoding="utf-8")
+        print(f"json: {out}")
+    return 0
+
+
 def _run_benchmark_device(args: argparse.Namespace) -> int:
     from esl.ml import benchmark_tensor_backend
 
@@ -1193,33 +1345,85 @@ def _run_benchmark_device(args: argparse.Namespace) -> int:
 
 
 def _run_quickstart(args: argparse.Namespace) -> int:
-    lines = [
-        "ecoSignalLab Quickstart",
-        "",
-        "You have one audio file and want results fast. Start here:",
-        "",
-        "1) Analyze one file (JSON + plots):",
-        "   esl analyze input.wav --out-dir out --plot --json out/input.json",
-        "",
-        "2) Extract interesting moments as clips + CSV:",
-        "   esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8",
-        "",
-        "3) Extract ML-ready feature vectors:",
-        "   esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
-        "",
-        "4) Check compute backend (CPU/CUDA/MPS):",
-        "   esl benchmark device --device auto --frames 16384 --features 256 --iters 20",
-        "",
-        "Need help with a command? Use:",
-        "   esl <command> --help",
-        "",
-        "Beginner docs:",
-        "   docs/GETTING_STARTED.md",
-        "   docs/TASK_RECIPES.md",
-        "   docs/TROUBLESHOOTING.md",
-        "",
-        "If decode fails on compressed audio, install ffmpeg and ensure ffprobe is on PATH.",
-    ]
+    in_file = str(args.input or "input.wav")
+    long_file = str(args.long_input or in_file)
+    in_arg = f'"{in_file}"' if any(ch.isspace() for ch in in_file) else in_file
+    long_arg = f'"{long_file}"' if any(ch.isspace() for ch in long_file) else long_file
+    goals: dict[str, list[str]] = {
+        "doctor": [
+            "1) Check your environment first:",
+            f"   esl doctor {in_arg}",
+        ],
+        "analyze": [
+            "1) Analyze one file (JSON + plots):",
+            f"   esl analyze {in_arg} --out-dir out --plot --json out/{Path(in_file).stem}.json",
+        ],
+        "moments": [
+            "1) Extract interesting moments as clips + CSV:",
+            f"   esl moments extract {in_arg} --out out/moments --single --rank-metric novelty_curve --event-window 8",
+        ],
+        "features": [
+            "1) Extract ML-ready feature vectors:",
+            f"   esl features extract {in_arg} --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
+        ],
+        "similar": [
+            "1) Find the most similar files in a folder:",
+            f"   esl similar {in_arg} corpus_dir --top-k 5 --json out/similarity.json --csv out/similarity.csv",
+        ],
+        "batch": [
+            "1) Batch analyze a folder:",
+            "   esl batch input_dir --out out_batch --csv --parquet --hdf5 --mat --plot",
+        ],
+        "long": [
+            "1) Inspect the long file first:",
+            f"   esl doctor {long_arg}",
+            "",
+            "2) Run chunked monitoring-friendly analysis:",
+            f"   esl stream {long_arg} --out stream_out --frame-seconds 1 --hop-seconds 0.5 --chunk-minutes 10 --metrics spl_a_db,ndsi,novelty_curve",
+            "",
+            "3) Extract the most novel event safely:",
+            f"   esl moments extract {long_arg} --out out/moments --single --rank-metric novelty_curve --chunk-minutes 10 --event-window 8",
+        ],
+    }
+    lines = ["ecoSignalLab Quickstart", ""]
+    if args.goal == "all":
+        lines.extend(
+            [
+                "You have one audio file and want results fast. Start here:",
+                "",
+                "1) Check your environment:",
+                f"   esl doctor {in_arg}",
+                "",
+                "2) Analyze one file (JSON + plots):",
+                f"   esl analyze {in_arg} --out-dir out --plot --json out/{Path(in_file).stem}.json",
+                "",
+                "3) Extract interesting moments as clips + CSV:",
+                f"   esl moments extract {in_arg} --out out/moments --single --rank-metric novelty_curve --event-window 8",
+                "",
+                "4) Extract ML-ready feature vectors:",
+                f"   esl features extract {in_arg} --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
+                "",
+                "5) If the file is huge, use long-file mode:",
+                f"   esl quickstart --goal long --input {long_arg}",
+            ]
+        )
+    else:
+        lines.extend(goals[str(args.goal)])
+    lines.extend(
+        [
+            "",
+            "Need help with a command? Use:",
+            "   esl <command> --help",
+            "",
+            "Beginner docs:",
+            "   docs/GETTING_STARTED.md",
+            "   docs/TASK_RECIPES.md",
+            "   docs/TROUBLESHOOTING.md",
+            "   docs/ANNOUNCEMENT_FAQ.md",
+            "",
+            "If decode fails on compressed audio, install ffmpeg and ensure ffprobe is on PATH.",
+        ]
+    )
     for line in lines:
         print(line)
     return 0
@@ -1230,7 +1434,7 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="esl",
         description="ecoSignalLab CLI for acoustic analysis, ML export, and reproducible reporting.",
         epilog=(
-            "First time here? Run: esl quickstart\n"
+            "First time here? Run: esl doctor or esl quickstart\n"
             "Decode behavior: native formats use soundfile first; compressed formats fall back to ffmpeg/ffprobe.\n"
             "Compute device: use --device auto|cpu|cuda|mps on analyze/batch/spatial/pipeline run.\n"
             "Calibration file keys: dbfs_reference, spl_reference_db, weighting (A|C|Z), "
@@ -1239,6 +1443,46 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawTextHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
+
+    # doctor
+    pdoc = sub.add_parser("doctor", help="Check environment, dependencies, and optional input readiness")
+    pdoc.add_argument("input", nargs="?", default=None, help="Optional input audio file to inspect")
+    pdoc.add_argument("--json-out", default=None, help="Optional doctor report JSON path")
+    pdoc.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Device preference to validate for tensor workflows: auto|cpu|cuda|mps",
+    )
+    pdoc.add_argument(
+        "--strict",
+        action="store_true",
+        help="Return nonzero if warnings or blockers are found",
+    )
+    pdoc.set_defaults(func=_run_doctor)
+
+    # simple
+    psimple = sub.add_parser("simple", help="Print a compact human-readable summary for one file")
+    psimple.add_argument("input", help="Input audio file path")
+    psimple.add_argument("--json-out", default=None, help="Optional full analysis JSON output path")
+    psimple.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    psimple.add_argument("--sample-rate", type=int, default=None, help="Optional target sample rate")
+    psimple.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    psimple.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    psimple.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    psimple.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psimple.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples")
+    psimple.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
+    psimple.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
+    psimple.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
+    psimple.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    psimple.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
+    )
+    psimple.set_defaults(func=_run_simple)
 
     # analyze
     pa = sub.add_parser("analyze", help="Analyze an audio file")
@@ -1762,6 +2006,18 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # quickstart
     pqs = sub.add_parser("quickstart", help="Print copy-paste commands for first-time users")
+    pqs.add_argument(
+        "--goal",
+        default="all",
+        choices=["all", "doctor", "analyze", "moments", "features", "similar", "batch", "long"],
+        help="Print commands for one goal instead of the full starter set",
+    )
+    pqs.add_argument("--input", default="input.wav", help="Placeholder input filename to use in printed commands")
+    pqs.add_argument(
+        "--long-input",
+        default=None,
+        help="Placeholder long-file input filename to use in long-file commands",
+    )
     pqs.set_defaults(func=_run_quickstart)
 
     # benchmark
@@ -1800,7 +2056,7 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
         print("hint: run with --debug 1 (or --debug 2) for more details where available.", file=sys.stderr)
-        print("hint: start with: esl quickstart", file=sys.stderr)
+        print("hint: start with: esl doctor or esl quickstart", file=sys.stderr)
         return 1
 
 

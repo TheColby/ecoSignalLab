@@ -13,7 +13,9 @@ bash scripts/easy/<script>.sh ...
 ## Fastest Start
 
 ```bash
+bash scripts/easy/00_doctor.sh input.wav
 bash scripts/easy/02_analyze_and_plot.sh input.wav out
+bash scripts/easy/18_simple_summary.sh input.wav
 bash scripts/easy/03_extract_single_moment.sh input.wav out/moments
 bash scripts/easy/17_extract_features_all.sh input.wav out/features/vectors.npz out/features/vectors_meta.json
 ```
@@ -22,12 +24,18 @@ bash scripts/easy/17_extract_features_all.sh input.wav out/features/vectors.npz 
 
 ### Single-file workflows
 
+- `00_doctor.sh`
+  - inspect environment readiness and optional input file metadata.
+  - usage: `bash scripts/easy/00_doctor.sh [input.wav]`
 - `01_stretch_2x.sh`
   - quick FFmpeg 2x stretch utility.
   - usage: `bash scripts/easy/01_stretch_2x.sh <input.wav> [output.wav]`
 - `02_analyze_and_plot.sh`
   - analyze one file and generate plots.
   - usage: `bash scripts/easy/02_analyze_and_plot.sh <input.wav> [out_dir]`
+- `18_simple_summary.sh`
+  - print a compact human-readable summary for one file.
+  - usage: `bash scripts/easy/18_simple_summary.sh <input.wav>`
 - `10_analyze_with_calibration.sh`
   - analyze with calibration and export JSON/CSV/Parquet/HDF5/MAT.
   - usage: `bash scripts/easy/10_analyze_with_calibration.sh <input.wav> <calibration.yaml|json> [out_dir]`

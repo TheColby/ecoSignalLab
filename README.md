@@ -9,7 +9,7 @@
 
 Want to understand what is happening inside your environmental audio recordings? `esl` is an open-source, production-oriented acoustic analytics SDK for environmental, architectural, and industrial audio workflows.
 
-If you know nothing yet except “I have an audio file and need actionable acoustic insights,” this README is for you. On the other hand, if you are an expert in audio analysis, bioacoustics, or acoustic ecology, this repo can provide actionable insidghts into your long-duration audio files.
+If you know nothing yet except “I have an audio file and need actionable acoustic insights,” this README is for you. On the other hand, if you are an expert in audio analysis, bioacoustics, or acoustic ecology, this repo can provide actionable insights into your long-duration audio files.
 
 **Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable acoustic analysis** toolkit.
 
@@ -18,12 +18,20 @@ If you know nothing yet except “I have an audio file and need actionable acous
 If you just downloaded this and want one immediate win, run this:
 
 ```bash
+esl doctor input.wav
 esl analyze input.wav --out-dir out --json out/input.json --plot --device auto
 ```
 
 Expected result:
+- an environment/input readiness report
 - a metrics file at `out/input.json`
 - generated plots in `out/input_plots/`
+
+If you want the shortest human-readable summary instead of full exports, run:
+
+```bash
+esl simple input.wav
+```
 
 If you want an `esl` onboarding flow (analysis + clips + plots), run:
 
@@ -40,6 +48,8 @@ esl quickstart
   - Includes a hyperlinked **Recipe Index by Device Type**
 - I got an error and need a fix now:
   - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- I am about to announce this and want the likely complaints handled:
+  - [`docs/ANNOUNCEMENT_FAQ.md`](docs/ANNOUNCEMENT_FAQ.md)
 - I do not know the terms yet:
   - [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - I want ready-made scripts:
@@ -54,13 +64,19 @@ esl quickstart
 ## First 5 Minutes (Copy/Paste)
 
 ```bash
+# 0) Check the environment and file first
+esl doctor input.wav
+
 # 1) Analyze one file
 esl analyze input.wav --out-dir out --json out/input.json --plot --device auto
 
-# 2) Extract the single most novel moment
+# 2) Get a short human-readable summary
+esl simple input.wav
+
+# 3) Extract the single most novel moment
 esl moments extract input.wav --out out/moments --single --rank-metric novelty_curve --event-window 8
 
-# 3) Export ML-ready frame features
+# 4) Export ML-ready frame features
 esl features extract input.wav --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json
 ```
 
@@ -129,6 +145,7 @@ See:
 - [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
 - [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- [`docs/ANNOUNCEMENT_FAQ.md`](docs/ANNOUNCEMENT_FAQ.md)
 - [`docs/GLOSSARY.md`](docs/GLOSSARY.md)
 - [`docs/ALGORITHM_COMPARISON.md`](docs/ALGORITHM_COMPARISON.md)
 - [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
