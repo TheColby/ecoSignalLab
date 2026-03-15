@@ -96,4 +96,11 @@ def with_resolution_profile(base: AnalysisConfig, profile: ResolutionProfile) ->
         compute_device=base.compute_device,
         make_plots=base.make_plots,
         ml_export=base.ml_export,
+        summary_only=base.summary_only,
+        streamable_only=base.streamable_only,
+        allow_full_read=base.allow_full_read,
+        max_series_points=base.max_series_points,
+        frame_table_csv=base.frame_table_csv,
+        checkpoint_dir=base.checkpoint_dir,
+        resume=base.resume,
     )

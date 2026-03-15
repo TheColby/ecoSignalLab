@@ -90,6 +90,7 @@ Expected outputs:
 - Very large WAV inputs fail or truncate near 4 GB
   - Start with: `esl doctor input_24h.wav`
   - Use RF64 and follow [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
+  - For long scans, prefer: `esl analyze input_24h.wav --out-dir out --chunk-hours 1 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume`
 - Empty/weak moments extraction output
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
   - See full fixes in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)

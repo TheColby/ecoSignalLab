@@ -22,6 +22,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 9: Use minute/hour/day window flags](#recipe-9-use-minutehourday-window-flags)
 - [Recipe 10: Check your setup and file before analysis](#recipe-10-check-your-setup-and-file-before-analysis)
 - [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
+- [Recipe 12: Safely scan a huge multi-day or multi-year file](#recipe-12-safely-scan-a-huge-multi-day-or-multi-year-file)
 
 ## Recipe Index by Device Type
 
@@ -309,6 +310,46 @@ Expected output:
 - A-weighted level
 - SNR
 - clipping state
+
+## Recipe 12: Safely scan a huge multi-day or multi-year file
+
+```bash
+esl analyze input_very_long.wav \
+  --out-dir out \
+  --chunk-hours 1 \
+  --streamable-only \
+  --summary-only \
+  --frame-table-csv out/frame_table.csv \
+  --checkpoint-dir out/checkpoints \
+  --resume
+```
+
+What this does:
+- keeps analysis out-of-core
+- avoids hidden full-file loads for non-streaming metrics
+- writes a compact JSON summary
+- writes a disk-backed FrameTable CSV for frame-wise rows
+- lets you resume after interruption
+
+When to use this:
+- day-scale recordings
+- sensor deployments
+- RF64 archives
+- giant multichannel render exports
+
+Related follow-up:
+
+```bash
+esl moments extract input_very_long.wav \
+  --out out/moments \
+  --single \
+  --rank-metric novelty_curve \
+  --chunk-hours 1 \
+  --event-window 30
+```
+
+That second command answers:
+"Where is the most interesting moment?" before you spend time on a bigger sweep.
 
 ## Which command should I use?
 

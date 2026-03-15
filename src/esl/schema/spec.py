@@ -32,6 +32,7 @@ def analysis_output_schema() -> dict:
             "analysis_mode": {"type": "string", "enum": ["full", "streaming"]},
             "metric_catalog": {"type": "object"},
             "library_versions": {"type": "object"},
+            "artifacts": {"type": "object"},
             "metadata": {
                 "type": "object",
                 "required": [
@@ -66,6 +67,7 @@ def analysis_output_schema() -> dict:
                     "metric_catalog_version": {"type": ["string", "null"]},
                     "channel_metrics": {"type": ["object", "null"]},
                     "validity_flags": {"type": ["object", "null"]},
+                    "analysis_strategy": {"type": ["object", "null"]},
                     "calibration": {"type": ["object", "null"]},
                     "assumptions": {"type": "array", "items": {"type": "string"}},
                     "warnings": {"type": "array", "items": {"type": "string"}},

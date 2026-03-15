@@ -69,6 +69,13 @@ Tabular exports (classical ML):
 - `<prefix>_frame_table.parquet` (optional; pandas/pyarrow runtime)
 - `<prefix>_frame_features.csv` (legacy long-form table, preserved for compatibility)
 
+Out-of-core tabular export for very long files:
+- `esl analyze ... --chunk-* --summary-only --frame-table-csv out/frame_table.csv`
+- this writes the canonical FrameTable incrementally during chunked analysis
+- the sidecar metadata file is `out/frame_table.csv.meta.json`
+
+Plain English: for multi-day or multi-year material, the CSV sidecar is the first-class product; the JSON summary is just the compact report.
+
 Tensor exports (DL workflows):
 - `<prefix>_frame_features.npy` (`[frames, features]`, legacy compatible)
 - `<prefix>_frame_tensor.npy` (`[channels, frames, features]`, canonical)
@@ -80,6 +87,19 @@ Clip-level vector:
 Metadata:
 - `<prefix>_ml_metadata.json` includes column names, timestamps, tensor layout, tensor shape, seed, config/pipeline hash, and `esl_version`.
 - `compute_device` metadata includes requested/resolved device and CUDA/MPS availability.
+
+## Long-Duration Note
+
+For very large recordings, prefer this sequence:
+
+1. `esl analyze ... --summary-only --frame-table-csv ...`
+2. load the FrameTable CSV with pandas/Polars
+3. derive Parquet/HDF5/tensor batches downstream
+
+Why:
+- frame-wise rows can be appended safely during chunked analysis
+- JSON time-series fields are a bad container for multi-million-frame runs
+- tensor materialization should happen after filtering or batching, not during the first pass
 
 ## Device Selection (CPU/CUDA/MPS)
 

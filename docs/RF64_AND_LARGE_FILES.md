@@ -135,6 +135,65 @@ Practical guidance:
 - Use WAV/RF64 or FLAC for measurement-quality and calibration-sensitive workflows.
 - Use MP3 only when lossy compression side-effects are acceptable for your use case.
 
+## What about a 2-year file?
+
+Suppose you really mean:
+- `96 kHz`
+- `32-bit float`
+- `2 years`
+
+Then
+
+$$
+T = 2 \cdot 365 \cdot 24 \cdot 3600 = 63{,}072{,}000 \text{ s}
+$$
+
+and
+
+$$
+B = T \cdot f_s \cdot C \cdot \frac{32}{8}
+$$
+
+where:
+- \(B\) is bytes
+- \(T\) is duration in seconds
+- \(f_s\) is sample rate
+- \(C\) is channels
+
+Mono is:
+
+$$
+B = 63{,}072{,}000 \cdot 96{,}000 \cdot 1 \cdot 4
+= 24{,}219{,}648{,}000{,}000
+$$
+
+which is about `24.22 TB`.
+
+Scaling by channels:
+
+| Channels | Approx size |
+|---:|---:|
+| 1 | 24.22 TB |
+| 2 | 48.44 TB |
+| 4 | 96.88 TB |
+| 8 | 193.76 TB |
+| 16 | 387.51 TB |
+
+This means:
+- classic WAV is impossible in practice
+- RF64 is the minimum sane single-file container
+- hourly or daily sharding is often a better operational choice than one giant file
+
+Sequential read time for a mono `24.22 TB` file:
+
+| Sustained read rate | One full pass |
+|---:|---:|
+| 200 MB/s | 33.6 h |
+| 500 MB/s | 13.5 h |
+| 1 GB/s | 6.7 h |
+
+Plain English: you do not want a hidden full-file read anywhere in the pipeline.
+
 ## How `esl` handles RF64
 
 `esl` native decode supports:
@@ -181,10 +240,29 @@ flowchart TD
     B -->|No| D["WAV or RF64 both fine"]
     C --> E{"Need full-file non-streaming metrics?"}
     D --> E
-    E -->|Yes| F["Run analyze with sufficient RAM"]
-    E -->|No| G["Prefer stream/moments workflows"]
-    G --> H["Tune chunk-size and event windows"]
+    E -->|Yes| F["Shard the file or provision large RAM + long runtimes"]
+    E -->|No| G["Use out-of-core chunked analysis"]
+    G --> H["summary-only JSON + FrameTable CSV + checkpoints"]
+    H --> I["stream / moments extract for coarse scan and clip export"]
 ```
+
+### What `esl` does now
+
+For chunked `analyze` runs, `esl` now supports:
+- out-of-core chunk iteration without materializing the whole signal
+- resumable checkpoints via `--checkpoint-dir` and `--resume`
+- disk-backed frame export via `--frame-table-csv`
+- `--summary-only` to omit giant in-JSON frame series
+- `--streamable-only` to avoid accidentally requesting full-context metrics
+
+Why the flags matter:
+- `--summary-only`: keep JSON bounded
+- `--frame-table-csv`: write frame-wise rows incrementally to disk
+- `--checkpoint-dir`: persist progress during long scans
+- `--resume`: continue after interruption
+- `--streamable-only`: keep analysis in the out-of-core path
+
+If you request a non-streaming metric with `--chunk-*`, `esl analyze` now stops and tells you why unless you explicitly pass `--allow-full-read`.
 
 ### Command patterns
 
@@ -214,6 +292,40 @@ esl moments extract long_capture.wav \
   --event-window 12 \
   --chunk-minutes 0.5
 ```
+
+True long-duration first pass:
+
+```bash
+esl analyze two_year_capture.wav \
+  --out-dir out \
+  --chunk-hours 1 \
+  --streamable-only \
+  --summary-only \
+  --frame-table-csv out/two_year_frame_table.csv \
+  --checkpoint-dir out/checkpoints \
+  --resume
+```
+
+Why this command is structured this way:
+- `--chunk-hours 1`: one-hour blocks keep memory bounded
+- `--streamable-only`: avoids full-context metrics
+- `--summary-only`: JSON stays small enough to be useful
+- `--frame-table-csv`: preserves frame-wise outputs for downstream ML/statistics
+- `--checkpoint-dir` + `--resume`: long jobs survive interruptions
+
+Find only the most novel moment first:
+
+```bash
+esl moments extract two_year_capture.wav \
+  --out out/moments \
+  --single \
+  --rank-metric novelty_curve \
+  --chunk-hours 1 \
+  --event-window 30
+```
+
+This is often the right first question:
+"Where are the interesting parts?" not "Can I compute every metric on 24.22 TB right now?"
 
 ## Choosing `--chunk-size`
 
@@ -248,14 +360,36 @@ Alternative (human-readable chunk flags):
 - `--chunk-days 1`
 - only one duration chunk flag can be set at once
 
+## Out-of-core architecture in plain English
+
+```mermaid
+flowchart LR
+    A["RF64 or sharded audio"] --> B["stream_audio()"]
+    B --> C["Chunk-local metric compute"]
+    C --> D["Running summaries"]
+    C --> E["FrameTable CSV sidecar"]
+    D --> F["summary-only JSON"]
+    D --> G["checkpoint state"]
+    E --> H["Pandas / Parquet / ML downstream"]
+    G --> I["resume after interruption"]
+```
+
+The important idea is that `esl` now separates:
+- full-context metrics that genuinely need the whole signal
+- chunk-safe metrics that can be accumulated online
+
+That separation is what makes multi-day and multi-year first-pass analysis practical.
+
 ## Operational notes
 
-- Some metrics are intentionally non-streaming for correctness.  
+- Some metrics are intentionally non-streaming for correctness.
+- Chunked `analyze` is now strict about that distinction unless you pass `--allow-full-read`.
 - Very long files may still be constrained by RAM and runtime depending on metric set and workflow.
 - For early exploration on massive recordings, start with:
   - smaller selected metric lists
   - chunked commands
   - moments extraction before full metric sweeps
+  - sharded archives when operationally possible
 
 ## Troubleshooting checklist for large files
 

@@ -295,12 +295,18 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
             {
                 "sample_rate": int(sofa.sample_rate),
                 "channels": int(sofa.ir.shape[1]),
+                "num_samples": int(sofa.ir.shape[0]),
                 "duration_s": float(sofa.ir.shape[0] / max(sofa.sample_rate, 1)),
                 "format_name": "SOFA",
                 "subtype": None,
                 "backend": "h5py",
                 "codec_name": None,
                 "channel_layout": None,
+                "decoder_provenance": {
+                    "decoder_used": "h5py",
+                    "ffmpeg_version": None,
+                    "ffprobe": None,
+                },
             }
         )
         return payload
@@ -311,12 +317,18 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
             {
                 "sample_rate": int(info.samplerate),
                 "channels": int(info.channels),
+                "num_samples": int(info.frames),
                 "duration_s": float(info.frames / max(info.samplerate, 1)),
                 "format_name": info.format,
                 "subtype": info.subtype,
                 "backend": "soundfile",
                 "codec_name": None,
                 "channel_layout": None,
+                "decoder_provenance": {
+                    "decoder_used": "soundfile",
+                    "ffmpeg_version": None,
+                    "ffprobe": None,
+                },
             }
         )
         return payload
@@ -326,15 +338,89 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
             {
                 "sample_rate": int(probe["sample_rate"]),
                 "channels": int(probe["channels"]),
+                "num_samples": (
+                    int(round(float(probe["duration_s"]) * float(probe["sample_rate"])))
+                    if probe.get("duration_s") is not None
+                    else None
+                ),
                 "duration_s": float(probe["duration_s"]) if probe.get("duration_s") is not None else None,
                 "format_name": ext.lstrip(".").upper() or "unknown",
                 "subtype": None,
                 "backend": "ffprobe",
                 "codec_name": probe.get("codec_name"),
                 "channel_layout": probe.get("channel_layout"),
+                "decoder_provenance": {
+                    "decoder_used": "ffmpeg",
+                    "ffmpeg_version": _ffmpeg_version(),
+                    "ffprobe": probe,
+                },
             }
         )
         return payload
+
+
+def _stream_ffmpeg(
+    path: Path,
+    *,
+    chunk_size: int,
+    target_sr: int | None,
+) -> Generator[AudioChunk, None, None]:
+    """Stream decoded float32 frames from ffmpeg stdout.
+
+    This avoids full-buffer decode for long compressed recordings and any file
+    that SoundFile cannot stream directly.
+    """
+    probe = _ffprobe_summary(path)
+    channels = int(probe["channels"])
+    sample_rate = int(target_sr or probe["sample_rate"])
+    bytes_per_frame = 4 * channels
+    read_size = max(int(chunk_size), 1) * bytes_per_frame
+    cmd = [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-i",
+        str(path),
+        "-f",
+        "f32le",
+        "-acodec",
+        "pcm_f32le",
+        "-ac",
+        str(channels),
+        "-ar",
+        str(sample_rate),
+        "-",
+    ]
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except FileNotFoundError as exc:
+        raise RuntimeError("ffmpeg executable not found on PATH") from exc
+
+    assert proc.stdout is not None
+    assert proc.stderr is not None
+    start = 0
+    idx = 0
+    pending = b""
+    while True:
+        block = proc.stdout.read(read_size)
+        if not block:
+            break
+        pending += block
+        frames = len(pending) // bytes_per_frame
+        usable = frames * bytes_per_frame
+        if frames <= 0:
+            continue
+        raw = pending[:usable]
+        pending = pending[usable:]
+        samples = np.frombuffer(raw, dtype=np.float32).reshape(-1, channels).copy()
+        yield AudioChunk(index=idx, start_sample=start, sample_rate=sample_rate, samples=samples)
+        start += int(samples.shape[0])
+        idx += 1
+
+    stderr = proc.stderr.read().decode("utf-8", errors="ignore").strip()
+    return_code = proc.wait()
+    if return_code != 0:
+        raise RuntimeError(f"ffmpeg streaming decode failed for {path}: {stderr}")
 
 
 def stream_audio(
@@ -363,13 +449,19 @@ def stream_audio(
             for block in f.blocks(blocksize=chunk_size, dtype="float32", always_2d=True):
                 out, sr = _resample_if_needed(block, src_sr, target_sr)
                 yield AudioChunk(index=idx, start_sample=start, sample_rate=sr, samples=out)
-                start += block.shape[0]
+                start += int(out.shape[0])
                 idx += 1
             return
     except Exception:
         pass
 
-    # Fallback when streaming decode is unavailable.
+    try:
+        yield from _stream_ffmpeg(p, chunk_size=chunk_size, target_sr=target_sr)
+        return
+    except Exception:
+        pass
+
+    # Last-resort fallback when streaming decode is unavailable anywhere.
     buf = read_audio(p, target_sr=target_sr)
     idx = 0
     for start in range(0, buf.num_samples, chunk_size):

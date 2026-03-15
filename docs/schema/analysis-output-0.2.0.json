@@ -48,6 +48,9 @@
     "library_versions": {
       "type": "object"
     },
+    "artifacts": {
+      "type": "object"
+    },
     "metadata": {
       "type": "object",
       "required": [
@@ -169,6 +172,12 @@
           ]
         },
         "validity_flags": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "analysis_strategy": {
           "type": [
             "object",
             "null"

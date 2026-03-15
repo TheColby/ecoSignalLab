@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import soundfile as sf
 
@@ -150,8 +150,33 @@ def _load_stream_report(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _iter_stream_chunks(stream_report: dict[str, Any], report_path: Path | None = None) -> Iterable[dict[str, Any]]:
+    artifacts = stream_report.get("artifacts", {})
+    if isinstance(artifacts, dict):
+        jsonl_path = artifacts.get("chunks_jsonl")
+        if isinstance(jsonl_path, str) and jsonl_path:
+            p = Path(jsonl_path)
+            if not p.is_absolute() and report_path is not None:
+                p = (report_path.parent / p).resolve()
+            if p.exists():
+                with p.open("r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        payload = json.loads(line)
+                        if isinstance(payload, dict):
+                            yield payload
+                return
+    chunks = stream_report.get("chunks", [])
+    if isinstance(chunks, list):
+        for chunk in chunks:
+            if isinstance(chunk, dict):
+                yield chunk
+
+
 def _collect_windows(
-    chunks: list[dict[str, Any]],
+    chunks: Iterable[dict[str, Any]],
     pre_roll_s: float,
     post_roll_s: float,
     merge_gap_s: float,
@@ -211,7 +236,7 @@ def _collect_windows(
             return max(0.0, center - b), min(float(duration_s), center + a)
         return max(0.0, start - float(pre_roll_s)), min(float(duration_s), end + float(post_roll_s))
 
-    windows: list[dict[str, Any]] = []
+    merged: list[dict[str, Any]] = []
     for ch in chunks:
         alerts = ch.get("alerts", [])
         if not isinstance(alerts, list) or len(alerts) < int(min_alerts_per_chunk):
@@ -225,25 +250,21 @@ def _collect_windows(
             if isinstance(a, dict) and "metric" in a:
                 metrics.add(str(a["metric"]))
         score = _chunk_metric_value(ch, rank_metric, alerts)
-        windows.append(
-            {
-                "start_s": s,
-                "end_s": e,
-                "alerts": len(alerts),
-                "metrics": metrics,
-                "chunk_indices": [int(ch.get("index", -1))],
-                "rank_metric": rank_metric,
-                "rank_score": float(score),
-                "event_center_s": center,
-            }
-        )
-    if not windows:
-        return []
-
-    windows.sort(key=lambda x: float(x["start_s"]))
-    merged: list[dict[str, Any]] = [windows[0]]
-    for w in windows[1:]:
+        window = {
+            "start_s": s,
+            "end_s": e,
+            "alerts": len(alerts),
+            "metrics": metrics,
+            "chunk_indices": [int(ch.get("index", -1))],
+            "rank_metric": rank_metric,
+            "rank_score": float(score),
+            "event_center_s": center,
+        }
+        if not merged:
+            merged.append(window)
+            continue
         prev = merged[-1]
+        w = window
         if float(w["start_s"]) <= float(prev["end_s"]) + float(merge_gap_s):
             prev["end_s"] = max(float(prev["end_s"]), float(w["end_s"]))
             prev["alerts"] = int(prev["alerts"]) + int(w["alerts"])
@@ -301,13 +322,12 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
         )
         stream_report_file, stream_report = run_stream_analysis(stream_cfg)
 
-    chunks = stream_report.get("chunks", [])
-    if not isinstance(chunks, list):
-        chunks = []
-    duration_s = float(stream_report.get("chunks", [{}])[-1].get("end_s", 0.0)) if chunks else 0.0
+    duration_s = float(stream_report.get("source_duration_s") or 0.0)
+    if duration_s <= 0.0:
+        duration_s = float("inf")
 
     windows = _collect_windows(
-        chunks=chunks,
+        chunks=_iter_stream_chunks(stream_report, report_path=stream_report_file),
         pre_roll_s=cfg.pre_roll_s,
         post_roll_s=cfg.post_roll_s,
         merge_gap_s=cfg.merge_gap_s,

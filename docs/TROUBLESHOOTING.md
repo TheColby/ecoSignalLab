@@ -76,6 +76,8 @@ Cause:
 Fix:
 - use RF64 container for long/high-rate/multichannel capture.
 - review large-file workflow guidance in [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
+- for huge scans, prefer out-of-core analysis:
+  `esl analyze input_long.wav --out-dir out --chunk-hours 1 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume`
 
 ## `esl moments extract` produced no clips
 

@@ -93,7 +93,7 @@ def _input_recommendations(meta: dict[str, Any], compressed_ready: bool) -> list
     if duration_s is not None and (duration_s >= 3600.0 or size_gb >= 4.0 or channels > 2 or sample_rate >= 96_000):
         recs = [
             f'esl doctor "{path}"',
-            f'esl stream "{path}" --out stream_out --frame-seconds 1 --hop-seconds 0.5 --chunk-minutes 10 --metrics spl_a_db,ndsi,novelty_curve',
+            f'esl analyze "{path}" --out-dir out --chunk-minutes 10 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume',
             f'esl moments extract "{path}" --out out/moments --single --rank-metric novelty_curve --chunk-minutes 10 --event-window 8',
         ]
     if channels > 2:

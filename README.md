@@ -534,8 +534,84 @@ Spatial:
 - SOFA IR import (HDF5-based, first measurement decode)
 
 Large files:
-- Chunked mode via `--chunk-size`.
+- Chunked mode via `--chunk-size` or human-readable `--chunk-seconds|--chunk-minutes|--chunk-hours|--chunk-days`.
+- Out-of-core summary workflow via `--streamable-only --summary-only --frame-table-csv --checkpoint-dir --resume`.
 - RF64 guidance (limits, math, and workflows): [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md)
+
+## What It Takes To Handle A 2-Year 96 kHz Float32 WAV
+
+Assume:
+
+$$
+B = T \cdot f_s \cdot C \cdot b
+$$
+
+where:
+- \(B\) is bytes
+- \(T\) is duration in seconds
+- \(f_s\) is sample rate in samples/second
+- \(C\) is channel count
+- \(b\) is bytes/sample
+
+For a 2-year recording:
+
+$$
+T = 2 \cdot 365 \cdot 24 \cdot 3600 = 63{,}072{,}000 \text{ s}
+$$
+
+At `96 kHz` and `32-bit float`, \(b = 4\).
+
+Mono:
+
+$$
+B = 63{,}072{,}000 \cdot 96{,}000 \cdot 1 \cdot 4 = 24{,}219{,}648{,}000{,}000
+$$
+
+That is about:
+- `24.22 TB` for mono
+- `48.44 TB` for stereo
+- `96.88 TB` for 4 channels
+- `387.51 TB` for 16 channels
+
+Practical consequences:
+- classic RIFF/WAV is not enough; use `RF64`, `CAF`, or sharded files
+- a single full-file decode is not acceptable
+- even one sequential read of `24.22 TB` takes about `33.6 h` at `200 MB/s`, `13.5 h` at `500 MB/s`, or `6.7 h` at `1 GB/s`
+
+Plain English: this is not a “load the file and see what happens” problem.
+
+`esl` now supports the correct first-pass workflow for this class of recording:
+- out-of-core chunked analysis for streaming-capable metrics
+- `--summary-only` JSON for bounded output size
+- incremental `--frame-table-csv` export for disk-backed frame features
+- resumable checkpoints via `--checkpoint-dir` and `--resume`
+- `esl stream` and `esl moments extract` as the coarse-scan and event-extraction path
+
+Recommended first-pass command:
+
+```bash
+esl analyze two_year_capture.wav \
+  --out-dir out \
+  --chunk-hours 1 \
+  --streamable-only \
+  --summary-only \
+  --frame-table-csv out/two_year_frame_table.csv \
+  --checkpoint-dir out/checkpoints \
+  --resume
+```
+
+Recommended “find the interesting parts first” command:
+
+```bash
+esl moments extract two_year_capture.wav \
+  --out out/moments \
+  --single \
+  --rank-metric novelty_curve \
+  --chunk-hours 1 \
+  --event-window 30
+```
+
+If you are about to do this with one giant classic `.wav`, stop and read [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md) first.
 
 ## Built-in metric families
 
@@ -591,6 +667,7 @@ Each run emits:
 - JSON schema hardened with `schema_version`, `pipeline_hash`, metric catalog versioning, and decoder provenance.
 - CLI `schema` command now reports schema version and can write the current schema artifact.
 - Canonical ML `FrameTable` contract added for tabular (`CSV/Parquet`) and tensor (`NumPy/Torch`) export semantics.
+- Long-duration out-of-core analysis added via `--streamable-only`, `--summary-only`, `--frame-table-csv`, `--checkpoint-dir`, and `--resume`.
 - Golden metric tests added for basic level metrics, loudness sanity, IR RT/EDT fit quality, NDSI sign behavior, and multichannel aggregation semantics.
 
 ## Calibration model

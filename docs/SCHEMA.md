@@ -40,6 +40,7 @@ Required top-level fields:
 Additional provenance:
 - `metric_catalog.version` and selected metrics
 - `library_versions`
+- optional `artifacts` for large-file sidecars such as `frame_table_csv` and checkpoint JSON
 
 ## Provenance Fields
 
@@ -69,6 +70,7 @@ Snark note: “I think we used the same settings” is not a provenance strategy
 - `subtype`: sample encoding subtype when available (`PCM_24`, `FLOAT`, etc.)
 - `backend`: primary decode backend (`soundfile`, `ffmpeg`, or `h5py`)
 - `compute_device`: requested/resolved compute backend metadata (`cpu|cuda|mps`)
+- `analysis_strategy`: whether the run was out-of-core, whether frame series were omitted from JSON, the summary method, checkpoint directory, and frame-table sidecars
 
 For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 
@@ -83,6 +85,15 @@ For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`]
 - calibration usage
 - IR detection and IR fit quality flags
 - SNR confidence and low-confidence indicator
+
+For long runs, `metadata.analysis_strategy` is especially important:
+- `out_of_core`
+- `summary_statistics`
+- `store_series_in_json`
+- `max_series_points`
+- `frame_table_csv`
+- `checkpoint_dir`
+- `resume`
 
 `metadata.calibration` may include:
 - `dbfs_reference`, `spl_reference_db`, `weighting`
@@ -150,6 +161,20 @@ Notable `moments_report.json` fields:
 - `rank_metric` (default: `novelty_curve`)
 - `event_window_s`, `window_before_s`, `window_after_s`
 - `windows_candidates`, `windows_selected`, `clips_written`
+
+## Large-File Sidecars
+
+When chunked `analyze` is used with large files, the main JSON may intentionally stay compact while sidecars hold long-form data.
+
+Typical sidecars:
+- `artifacts.frame_table_csv`
+- `artifacts.frame_table_metadata_json`
+- `artifacts.checkpoint_state_json`
+
+Where:
+- `frame_table_csv` is the disk-backed frame-wise feature table
+- `frame_table_metadata_json` records column order, frame/hop, and tensor conventions
+- `checkpoint_state_json` stores resumable out-of-core analysis state
 
 Notable `moments.csv` fields:
 - `rank_metric`, `rank_score`, `event_center_s`

@@ -41,6 +41,11 @@ def test_cli_help_contains_output_and_debug_flags(capsys: pytest.CaptureFixture[
     assert "--chunk-minutes" in help_text
     assert "--chunk-hours" in help_text
     assert "--chunk-days" in help_text
+    assert "--summary-only" in help_text
+    assert "--streamable-only" in help_text
+    assert "--frame-table-csv" in help_text
+    assert "--checkpoint-dir" in help_text
+    assert "--resume" in help_text
 
 
 def test_cli_batch_help_contains_report_metrics(capsys: pytest.CaptureFixture[str]) -> None:

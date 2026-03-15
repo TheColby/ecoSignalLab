@@ -43,6 +43,13 @@ class AnalysisConfig:
     compute_device: str = "auto"
     make_plots: bool = False
     ml_export: bool = False
+    summary_only: bool = False
+    streamable_only: bool = False
+    allow_full_read: bool = False
+    max_series_points: int | None = None
+    frame_table_csv: Path | None = None
+    checkpoint_dir: Path | None = None
+    resume: bool = False
 
 
 @dataclass(slots=True)

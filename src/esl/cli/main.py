@@ -164,6 +164,13 @@ def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: 
         compute_device=args.device,
         make_plots=args.plot,
         ml_export=args.ml_export,
+        summary_only=bool(getattr(args, "summary_only", False)),
+        streamable_only=bool(getattr(args, "streamable_only", False)),
+        allow_full_read=bool(getattr(args, "allow_full_read", False)),
+        max_series_points=getattr(args, "max_series_points", None),
+        frame_table_csv=(Path(args.frame_table_csv) if getattr(args, "frame_table_csv", None) else None),
+        checkpoint_dir=(Path(args.checkpoint_dir) if getattr(args, "checkpoint_dir", None) else None),
+        resume=bool(getattr(args, "resume", False)),
     )
 
 
@@ -751,6 +758,9 @@ def _run_stream(args: argparse.Namespace) -> int:
         seed=args.seed,
         rules_path=args.rules,
         max_chunks=args.max_chunks,
+        checkpoint_dir=(Path(args.checkpoint_dir) if args.checkpoint_dir else None),
+        resume=bool(args.resume),
+        chunks_jsonl=(Path(args.chunks_jsonl) if args.chunks_jsonl else None),
     )
     report_path, report = run_stream_analysis(cfg)
     if args.verbosity >= 1:
@@ -1378,8 +1388,8 @@ def _run_quickstart(args: argparse.Namespace) -> int:
             "1) Inspect the long file first:",
             f"   esl doctor {long_arg}",
             "",
-            "2) Run chunked monitoring-friendly analysis:",
-            f"   esl stream {long_arg} --out stream_out --frame-seconds 1 --hop-seconds 0.5 --chunk-minutes 10 --metrics spl_a_db,ndsi,novelty_curve",
+            "2) Run out-of-core chunked analysis:",
+            f"   esl analyze {long_arg} --out-dir out --chunk-minutes 10 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume",
             "",
             "3) Extract the most novel event safely:",
             f"   esl moments extract {long_arg} --out out/moments --single --rank-metric novelty_curve --chunk-minutes 10 --event-window 8",
@@ -1564,6 +1574,42 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
     pa.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
     pa.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    pa.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="Omit frame series from JSON and keep only summaries; recommended for very long files",
+    )
+    pa.add_argument(
+        "--streamable-only",
+        action="store_true",
+        help="Keep only streaming-capable metrics; useful with --chunk-* for long-duration analysis",
+    )
+    pa.add_argument(
+        "--allow-full-read",
+        action="store_true",
+        help="Allow fallback to full-file loading when selected metrics are not streaming-capable",
+    )
+    pa.add_argument(
+        "--max-series-points",
+        type=int,
+        default=None,
+        help="Maximum frame-series points kept in JSON before truncation",
+    )
+    pa.add_argument(
+        "--frame-table-csv",
+        default=None,
+        help="Write canonical FrameTable CSV incrementally during chunked analysis",
+    )
+    pa.add_argument(
+        "--checkpoint-dir",
+        default=None,
+        help="Directory for resumable chunk-analysis checkpoints",
+    )
+    pa.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume chunked analysis from --checkpoint-dir if a checkpoint exists",
+    )
     pa.add_argument("--metrics", default=None, help="Comma-separated metric list")
     pa.add_argument(
         "--profile",
@@ -1772,6 +1818,13 @@ def _build_parser() -> argparse.ArgumentParser:
     pst.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
     pst.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
     pst.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    pst.add_argument("--checkpoint-dir", default=None, help="Directory for resumable stream checkpoints")
+    pst.add_argument("--resume", action="store_true", help="Resume stream analysis from --checkpoint-dir")
+    pst.add_argument(
+        "--chunks-jsonl",
+        default=None,
+        help="Path for disk-backed chunk summaries (default: <out>/stream_chunks.jsonl)",
+    )
     pst.add_argument("--seed", type=int, default=42)
     pst.add_argument("--max-chunks", type=int, default=None, help="Optional cap on processed chunks")
     pst.add_argument(
