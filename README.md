@@ -11,7 +11,7 @@ Want to understand what is happening inside your environmental audio recordings?
 
 If you know nothing yet except “I have an audio file and need actionable acoustic insights,” this README is for you. On the other hand, if you are an expert in audio analysis, bioacoustics, or acoustic ecology, this repo can provide actionable insights into your long-duration audio files.
 
-**Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable acoustic analysis** toolkit.
+**Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable acoustic analysis** toolkit, capable of analyzing multi-year-long audio files.
 
 ## Start in 60 Seconds
 
