@@ -73,6 +73,7 @@ def test_python_module_help_entrypoint() -> None:
     assert "features" in proc.stdout
     assert "moments" in proc.stdout
     assert "similar" in proc.stdout
+    assert "shard" in proc.stdout
     assert "simple" in proc.stdout
     assert "quickstart" in proc.stdout
 

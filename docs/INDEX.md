@@ -9,6 +9,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Announcement FAQ](ANNOUNCEMENT_FAQ.md)
 - [Glossary](GLOSSARY.md)
+- [Shard Workflows](SHARD_WORKFLOWS.md)
 - [Man Pages](MANPAGES.md)
 
 ## Recipe Index by Device Type
@@ -31,6 +32,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 - Sensor node / long-duration deployment:
   - [Task Recipes: Recipe 2](TASK_RECIPES.md#recipe-2-extract-the-single-most-novel-moment)
   - [Task Recipes: Recipe 3](TASK_RECIPES.md#recipe-3-extract-top-k-moments-instead-of-one)
+  - [Task Recipes: Recipe 13](TASK_RECIPES.md#recipe-13-build-and-analyze-a-shard-manifest)
   - [Moments Extraction](MOMENTS_EXTRACTION.md)
   - [RF64 and Large Files](RF64_AND_LARGE_FILES.md)
 
@@ -51,6 +53,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
   - [ML Features / FrameTable](ML_FEATURES.md)
 - Large files and formats:
   - [RF64 and Large Files](RF64_AND_LARGE_FILES.md)
+  - [Shard Workflows](SHARD_WORKFLOWS.md)
 - Project architecture:
   - [Algorithm Index](ALGORITHM_INDEX.md)
   - [Algorithm Comparison](ALGORITHM_COMPARISON.md)

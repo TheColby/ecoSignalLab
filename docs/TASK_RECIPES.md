@@ -23,6 +23,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 10: Check your setup and file before analysis](#recipe-10-check-your-setup-and-file-before-analysis)
 - [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
 - [Recipe 12: Safely scan a huge multi-day or multi-year file](#recipe-12-safely-scan-a-huge-multi-day-or-multi-year-file)
+- [Recipe 13: Build and analyze a shard manifest](#recipe-13-build-and-analyze-a-shard-manifest)
 
 ## Recipe Index by Device Type
 
@@ -350,6 +351,34 @@ esl moments extract input_very_long.wav \
 
 That second command answers:
 "Where is the most interesting moment?" before you spend time on a bigger sweep.
+
+## Recipe 13: Build and analyze a shard manifest
+
+```bash
+esl shard index archive_dir --out out/archive_manifest.json
+
+esl shard analyze out/archive_manifest.json \
+  --out out/shard_analysis \
+  --chunk-hours 1 \
+  --streamable-only \
+  --summary-only \
+  --frame-table-dir out/frame_tables \
+  --checkpoint-dir out/checkpoints \
+  --resume
+```
+
+What this does:
+- treats a folder of hourly/daily shard files as one logical archive
+- creates a cumulative timeline manifest
+- analyzes shards in order
+- writes an archive-level CSV index and report
+
+Use this when:
+- the archive is already split into files
+- you want ten-year scale analysis without pretending it is one normal WAV
+
+See the full guide:
+- [`SHARD_WORKFLOWS.md`](SHARD_WORKFLOWS.md)
 
 ## Which command should I use?
 

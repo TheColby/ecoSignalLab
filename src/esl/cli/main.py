@@ -781,6 +781,105 @@ def _run_stream(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_shard_index(args: argparse.Namespace) -> int:
+    from esl.core.shards import ShardManifestConfig, build_shard_manifest
+
+    input_dir = Path(args.input_dir)
+    if not input_dir.exists():
+        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+    output_path = Path(args.out)
+    manifest_path, manifest = build_shard_manifest(
+        ShardManifestConfig(
+            input_dir=input_dir,
+            output_path=output_path,
+            recursive=not args.no_recursive,
+            order_by=args.order_by,
+        )
+    )
+    print(f"manifest: {manifest_path}")
+    print(
+        "summary:",
+        {
+            "num_shards": manifest.get("num_shards"),
+            "total_duration_s": manifest.get("total_duration_s"),
+            "total_size_gb": manifest.get("total_size_gb"),
+            "order_by": manifest.get("order_by"),
+        },
+    )
+    return 0
+
+
+def _run_shard_analyze(args: argparse.Namespace) -> int:
+    from esl.core.shards import ShardAnalyzeConfig, load_shard_manifest, run_shard_analysis
+
+    manifest_path = Path(args.manifest)
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Shard manifest not found: {manifest_path}")
+    out_dir = Path(args.out)
+    manifest = load_shard_manifest(manifest_path)
+    duration_flags_used = any(
+        getattr(args, name, None) is not None
+        for name in ("frame_seconds", "hop_seconds", "chunk_seconds", "chunk_minutes", "chunk_hours", "chunk_days")
+    )
+    if args.sample_rate is None and duration_flags_used:
+        rates = {
+            int(item["sample_rate"])
+            for item in manifest.get("items", [])
+            if isinstance(item, dict) and isinstance(item.get("sample_rate"), int)
+        }
+        if len(rates) == 1:
+            args.sample_rate = rates.pop()
+        elif len(rates) > 1:
+            raise ValueError(
+                "Duration-based window flags on a shard manifest with mixed sample rates require --sample-rate explicitly."
+            )
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=None,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=None,
+    )
+    report_path, report = run_shard_analysis(
+        ShardAnalyzeConfig(
+            manifest_path=manifest_path,
+            output_dir=out_dir,
+            calibration_path=args.calibration,
+            metrics=_metric_list(args.metrics),
+            report_metrics=_metric_list(args.report_metrics),
+            frame_size=int(frame_size or 2048),
+            hop_size=int(hop_size or 512),
+            sample_rate=resolved_sr,
+            chunk_size=chunk_size,
+            seed=args.seed,
+            compute_device=args.device,
+            summary_only=bool(args.summary_only),
+            streamable_only=bool(args.streamable_only),
+            allow_full_read=bool(args.allow_full_read),
+            max_series_points=args.max_series_points,
+            frame_table_dir=(Path(args.frame_table_dir) if args.frame_table_dir else None),
+            checkpoint_root=(Path(args.checkpoint_dir) if args.checkpoint_dir else None),
+            resume=bool(args.resume),
+            force=bool(args.force),
+        )
+    )
+    print(f"shard_report: {report_path}")
+    print(
+        "summary:",
+        {
+            "num_shards": report.get("num_shards"),
+            "processed": report.get("processed"),
+            "skipped": report.get("skipped"),
+            "errors": report.get("errors"),
+            "archive_duration_s": report.get("archive_duration_s"),
+            "index_csv": report.get("artifacts", {}).get("index_csv"),
+        },
+    )
+    if args.debug >= 1:
+        print(json.dumps(report.get("weighted_metric_means", {}), indent=2))
+    return 0
+
+
 def _run_spatial_analyze(args: argparse.Namespace) -> int:
     from esl.core.spatial import (
         SPATIAL_DEFAULT_METRICS,
@@ -1997,6 +2096,66 @@ def _build_parser() -> argparse.ArgumentParser:
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
     ps.add_argument("--out", default=None, help="Output schema path (prints schema_version and path)")
     ps.set_defaults(func=_run_schema)
+
+    # shard
+    psh = sub.add_parser("shard", help="Shard-manifest workflows for long-duration archives")
+    psh_sub = psh.add_subparsers(dest="shard_cmd", required=True)
+
+    psh_index = psh_sub.add_parser("index", help="Build an ordered shard manifest from a directory of audio files")
+    psh_index.add_argument("input_dir", help="Directory containing shard audio files")
+    psh_index.add_argument("--out", required=True, help="Output shard manifest JSON path")
+    psh_index.add_argument(
+        "--order-by",
+        default="path",
+        choices=["path", "mtime"],
+        help="Shard ordering: path or file modification time",
+    )
+    psh_index.add_argument("--no-recursive", action="store_true", help="Scan only the top-level directory")
+    psh_index.set_defaults(func=_run_shard_index)
+
+    psh_an = psh_sub.add_parser("analyze", help="Analyze an ordered shard manifest as one archive")
+    psh_an.add_argument("manifest", help="Path to shard manifest JSON")
+    psh_an.add_argument("--out", required=True, help="Output directory for shard analysis products")
+    psh_an.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    psh_an.add_argument("--metrics", default=None, help="Comma-separated metric list")
+    psh_an.add_argument(
+        "--report-metrics",
+        default="rms_dbfs,snr_db,ndsi",
+        help="Comma-separated metric IDs to summarize in the archive index/report",
+    )
+    psh_an.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    psh_an.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    psh_an.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    psh_an.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psh_an.add_argument("--sample-rate", type=int, default=None)
+    psh_an.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples")
+    psh_an.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
+    psh_an.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
+    psh_an.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
+    psh_an.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    psh_an.add_argument("--summary-only", action="store_true", help="Omit frame series from per-shard JSON outputs")
+    psh_an.add_argument("--streamable-only", action="store_true", help="Use only streaming-capable metrics")
+    psh_an.add_argument("--allow-full-read", action="store_true", help="Allow full-read fallback for non-streaming metrics")
+    psh_an.add_argument("--max-series-points", type=int, default=None, help="Maximum frame-series points kept in each shard JSON")
+    psh_an.add_argument("--frame-table-dir", default=None, help="Directory for per-shard FrameTable CSV sidecars")
+    psh_an.add_argument("--checkpoint-dir", default=None, help="Root directory for per-shard checkpoint state")
+    psh_an.add_argument("--resume", action="store_true", help="Resume shard analysis using per-shard checkpoints")
+    psh_an.add_argument("--force", action="store_true", help="Recompute shard outputs even if present")
+    psh_an.add_argument("--seed", type=int, default=42)
+    psh_an.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
+        help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
+    )
+    psh_an.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal traces",
+    )
+    psh_an.set_defaults(func=_run_shard_analyze)
 
     # project
     pproj = sub.add_parser("project", help="Project mode reports and comparisons")

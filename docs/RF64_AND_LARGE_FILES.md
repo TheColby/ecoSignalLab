@@ -327,6 +327,8 @@ esl moments extract two_year_capture.wav \
 This is often the right first question:
 "Where are the interesting parts?" not "Can I compute every metric on 24.22 TB right now?"
 
+If your archive is already split into hourly or daily files, stop using a single-file mental model and switch to [`SHARD_WORKFLOWS.md`](SHARD_WORKFLOWS.md).
+
 ## Choosing `--chunk-size`
 
 Chunk duration:
@@ -409,4 +411,5 @@ That separation is what makes multi-day and multi-year first-pass analysis pract
 - [`SCHEMA.md`](SCHEMA.md)
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`METRICS_REFERENCE.md`](METRICS_REFERENCE.md)
+- [`SHARD_WORKFLOWS.md`](SHARD_WORKFLOWS.md)
 - [`REFERENCES.md`](REFERENCES.md)

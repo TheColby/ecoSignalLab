@@ -91,6 +91,9 @@ Expected outputs:
   - Start with: `esl doctor input_24h.wav`
   - Use RF64 and follow [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
   - For long scans, prefer: `esl analyze input_24h.wav --out-dir out --chunk-hours 1 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume`
+- A deployment already has hourly/daily files
+  - Start with: `esl shard index archive_dir --out out/archive_manifest.json`
+  - Then run: `esl shard analyze out/archive_manifest.json --out out/shard_analysis --chunk-hours 1 --streamable-only --summary-only --frame-table-dir out/frame_tables --checkpoint-dir out/checkpoints --resume`
 - Empty/weak moments extraction output
   - Lower thresholds in rules or start with `--single --rank-metric novelty_curve`.
   - See full fixes in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)

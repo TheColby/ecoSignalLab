@@ -115,6 +115,7 @@ If your goal is creative transformation effects, `esl` is not the primary tool f
 
 - Analyze single files with calibrated, multi-channel metrics and full provenance output.
 - Run batch analysis over large datasets and export JSON/CSV/Parquet/HDF5/MAT.
+- Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
 - Generate static and interactive plots, including similarity and novelty matrix views.
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows.
 - Compare architectural design variants (`--project` / `--variant`) with delta reports.
@@ -586,6 +587,7 @@ Plain English: this is not a “load the file and see what happens” problem.
 - incremental `--frame-table-csv` export for disk-backed frame features
 - resumable checkpoints via `--checkpoint-dir` and `--resume`
 - `esl stream` and `esl moments extract` as the coarse-scan and event-extraction path
+- `esl shard index` and `esl shard analyze` when the archive is already split into hourly/daily files
 
 Recommended first-pass command:
 
@@ -612,6 +614,8 @@ esl moments extract two_year_capture.wav \
 ```
 
 If you are about to do this with one giant classic `.wav`, stop and read [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md) first.
+
+If you already have shards instead of one giant file, read [`docs/SHARD_WORKFLOWS.md`](docs/SHARD_WORKFLOWS.md).
 
 ## Built-in metric families
 
@@ -724,6 +728,7 @@ Outputs:
 - Metrics reference: [`docs/METRICS_REFERENCE.md`](docs/METRICS_REFERENCE.md)
 - Output schema contract: [`docs/SCHEMA.md`](docs/SCHEMA.md)
 - RF64 and large-file guide: [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md)
+- Shard-manifest workflows: [`docs/SHARD_WORKFLOWS.md`](docs/SHARD_WORKFLOWS.md)
 - ML FrameTable contract: [`docs/ML_FEATURES.md`](docs/ML_FEATURES.md)
 - Novelty/anomaly semantics: [`docs/NOVELTY_ANOMALY.md`](docs/NOVELTY_ANOMALY.md)
   - Includes committed novelty plot example set: [`docs/examples/novelty_plot_set/`](docs/examples/novelty_plot_set)
