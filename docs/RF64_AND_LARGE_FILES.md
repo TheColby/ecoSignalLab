@@ -329,6 +329,89 @@ This is often the right first question:
 
 If your archive is already split into hourly or daily files, stop using a single-file mental model and switch to [`SHARD_WORKFLOWS.md`](SHARD_WORKFLOWS.md).
 
+## Ten-Year, 8-Channel Novelty Mining
+
+If the question is:
+"Can `esl` find the top 33 most novel moments in a ten-year, 8-channel file?"
+
+The answer is yes, with the correct constraints:
+- the container must be `RF64` or `CAF` rather than classic RIFF/WAV
+- the workflow should be out-of-core and resumable
+- novelty ranking is computed on the mono channel-mean downmix
+- extracted clips preserve all original channels
+
+One file-format correction first:
+- "`32-bit float 24-bit`" is contradictory
+- pick either `32-bit float` or `24-bit PCM`
+
+At `96 kHz`, `8` channels, and `10` years of continuous recording:
+
+$$
+B = T \cdot f_s \cdot C \cdot b
+$$
+
+where:
+- \(T = 315{,}360{,}000\) s
+- \(f_s = 96{,}000\) Hz
+- \(C = 8\)
+- \(b = 4\) bytes/sample for `float32`
+
+$$
+B = 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 = 968{,}785{,}920{,}000{,}000
+$$
+
+That is about `968.79 TB` for `float32`.
+
+If you were actually using `24-bit PCM`, the same recording would be about `726.59 TB`.
+
+### Recommended two-pass command sequence
+
+Pass 1: scan the archive and write disk-backed chunk metrics.
+
+```bash
+esl stream ten_year_8ch_capture.rf64 \
+  --out out/ten_year_stream \
+  --metrics novelty_curve,spectral_change_detection,spl_a_db,ndsi \
+  --frame-seconds 1 \
+  --hop-seconds 1 \
+  --chunk-hours 6 \
+  --checkpoint-dir out/ten_year_stream/checkpoints \
+  --resume
+```
+
+Pass 2: cut the top 33 novelty-ranked moments.
+
+```bash
+esl moments extract ten_year_8ch_capture.rf64 \
+  --out out/ten_year_moments \
+  --stream-report out/ten_year_stream/stream_report.json \
+  --top-k 33 \
+  --rank-metric novelty_curve \
+  --window-before 30 \
+  --window-after 90 \
+  --merge-gap 0
+```
+
+Why this works:
+- `stream` is resumable and keeps chunk details in `stream_chunks.jsonl`
+- `moments extract` reads the existing stream report instead of re-running the scan
+- `--merge-gap 0` prevents adjacent high-novelty chunks from collapsing into fewer than 33 outputs
+
+If you want exactly one clip instead:
+
+```bash
+esl moments extract ten_year_8ch_capture.rf64 \
+  --out out/ten_year_moment \
+  --stream-report out/ten_year_stream/stream_report.json \
+  --single \
+  --rank-metric novelty_curve \
+  --window-before 30 \
+  --window-after 90 \
+  --merge-gap 0
+```
+
+If you skip rules entirely, `esl` now uses the `--rank-metric` values themselves as candidates. That is usually the right default for first-pass novelty mining.
+
 ## Choosing `--chunk-size`
 
 Chunk duration:

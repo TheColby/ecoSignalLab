@@ -96,8 +96,10 @@ esl moments extract input.wav \
 
 If still empty:
 - lower thresholds in your `--rules` file
+- or skip rules entirely and rank directly with `--rank-metric novelty_curve`
 - increase `--event-window`
 - test with `--top-k 5`
+- for huge RF64/CAF archives, use the two-pass workflow in [Task Recipes: Recipe 14](TASK_RECIPES.md#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
 
 ## Plots not opening with `--show`
 

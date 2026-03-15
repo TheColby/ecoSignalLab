@@ -78,6 +78,10 @@ Expected outputs:
 - `out/moments/clips/moment_0001.wav`
 - `out/vectors.npz`
 
+If your input is a huge RF64/CAF archive and you want the top ranked novelty clips instead of a small-file example:
+- use [Task Recipes: Recipe 14](TASK_RECIPES.md#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
+- and read [RF64 and Large Files](RF64_AND_LARGE_FILES.md) first
+
 ## 3) Common issues
 
 - `zsh: command not found: esl`

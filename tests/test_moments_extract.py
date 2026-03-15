@@ -14,12 +14,18 @@ def _write_wav(path: Path, data: np.ndarray, sr: int = 16000) -> None:
     sf.write(path, data.astype(np.float32), sr, subtype="PCM_24")
 
 
-def _write_stream_report(path: Path, wav: Path, chunks: list[dict[str, object]], sr: int = 16000) -> None:
+def _write_stream_report(
+    path: Path,
+    wav: Path,
+    chunks: list[dict[str, object]],
+    sr: int = 16000,
+    channels: int = 1,
+) -> None:
     payload = {
         "mode": "file_stream",
         "input_path": str(wav),
         "sample_rate": sr,
-        "channels": 1,
+        "channels": channels,
         "chunk_size": 16000,
         "metrics": ["novelty_curve"],
         "rules": {},
@@ -295,3 +301,58 @@ def test_moments_extract_top_k_and_all_modes(tmp_path: Path) -> None:
     assert code_all == 0
     all_rows = list(csv.DictReader((all_out / "moments.csv").open("r", encoding="utf-8")))
     assert len(all_rows) == 3
+
+
+def test_moments_extract_top_k_without_rules_uses_rank_metric_only_for_multichannel(tmp_path: Path) -> None:
+    sr = 16_000
+    t = np.arange(6 * sr, dtype=np.float64) / sr
+    channels = []
+    for ch in range(8):
+        channels.append(0.1 * np.sin(2.0 * np.pi * (220.0 + 10.0 * ch) * t))
+    x = np.stack(channels, axis=1)
+    wav = tmp_path / "eight_channel.wav"
+    _write_wav(wav, x, sr)
+
+    chunks: list[dict[str, object]] = [
+        {"index": 0, "start_s": 0.0, "end_s": 1.0, "metric_means": {"novelty_curve": 0.10}, "alerts": []},
+        {"index": 1, "start_s": 1.0, "end_s": 2.0, "metric_means": {"novelty_curve": 0.90}, "alerts": []},
+        {"index": 2, "start_s": 2.0, "end_s": 3.0, "metric_means": {"novelty_curve": 0.25}, "alerts": []},
+        {"index": 3, "start_s": 3.0, "end_s": 4.0, "metric_means": {"novelty_curve": 0.80}, "alerts": []},
+        {"index": 4, "start_s": 4.0, "end_s": 5.0, "metric_means": {"novelty_curve": 0.05}, "alerts": []},
+    ]
+    stream_report = tmp_path / "stream_report.json"
+    _write_stream_report(stream_report, wav=wav, chunks=chunks, sr=sr, channels=8)
+
+    out = tmp_path / "metric_only_topk"
+    code = main(
+        [
+            "moments",
+            "extract",
+            str(wav),
+            "--out",
+            str(out),
+            "--stream-report",
+            str(stream_report),
+            "--top-k",
+            "2",
+            "--rank-metric",
+            "novelty_curve",
+            "--window-before",
+            "0.25",
+            "--window-after",
+            "0.50",
+            "--merge-gap",
+            "0",
+        ]
+    )
+    assert code == 0
+
+    rows = list(csv.DictReader((out / "moments.csv").open("r", encoding="utf-8")))
+    assert len(rows) == 2
+    scores = sorted((float(row["rank_score"]) for row in rows), reverse=True)
+    assert scores == [0.9, 0.8]
+    assert {row["metrics"] for row in rows} == {"novelty_curve"}
+
+    first_clip = Path(rows[0]["wav_path"])
+    info = sf.info(str(first_clip))
+    assert int(info.channels) == 8

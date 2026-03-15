@@ -617,6 +617,66 @@ If you are about to do this with one giant classic `.wav`, stop and read [`docs/
 
 If you already have shards instead of one giant file, read [`docs/SHARD_WORKFLOWS.md`](docs/SHARD_WORKFLOWS.md).
 
+### Ten-year, 8-channel top-33 novelty workflow
+
+Yes, `esl` can do this if you treat it as an out-of-core discovery problem rather than a normal file load.
+
+One terminology fix first:
+- "`32-bit float 24-bit`" is not a single WAV subtype
+- choose either `32-bit float` or `24-bit PCM`
+
+At `96 kHz`, `8` channels, `10` years, and `float32` samples:
+
+$$
+B = T \cdot f_s \cdot C \cdot b
+$$
+
+where:
+- \(T = 315{,}360{,}000\) s
+- \(f_s = 96{,}000\) Hz
+- \(C = 8\)
+- \(b = 4\) bytes/sample
+
+$$
+B = 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 = 968{,}785{,}920{,}000{,}000
+$$
+
+That is about `968.79 TB`.
+
+Recommended workflow:
+
+```bash
+# Pass 1: resumable novelty scan
+esl stream ten_year_8ch_capture.rf64 \
+  --out out/ten_year_stream \
+  --metrics novelty_curve,spectral_change_detection,spl_a_db,ndsi \
+  --frame-seconds 1 \
+  --hop-seconds 1 \
+  --chunk-hours 6 \
+  --checkpoint-dir out/ten_year_stream/checkpoints \
+  --resume
+
+# Pass 2: export the 33 highest-ranked moments
+esl moments extract ten_year_8ch_capture.rf64 \
+  --out out/ten_year_moments \
+  --stream-report out/ten_year_stream/stream_report.json \
+  --top-k 33 \
+  --rank-metric novelty_curve \
+  --window-before 30 \
+  --window-after 90 \
+  --merge-gap 0
+```
+
+Why this is the right shape:
+- `stream` is resumable and keeps chunk summaries on disk
+- `moments extract` reuses that report instead of repeating the scan
+- `--merge-gap 0` preserves distinct ranked events when you want exactly 33 outputs
+- novelty is ranked on the stable mono channel-mean downmix, while the exported clips preserve all original channels
+
+Full details:
+- [`docs/MOMENTS_EXTRACTION.md`](docs/MOMENTS_EXTRACTION.md)
+- [`docs/RF64_AND_LARGE_FILES.md`](docs/RF64_AND_LARGE_FILES.md)
+
 ## Built-in metric families
 
 `esl` ships **74 built-in metrics** by default.

@@ -186,20 +186,21 @@ def _collect_windows(
     event_window_s: float | None,
     window_before_s: float | None,
     window_after_s: float | None,
+    allow_metric_only_candidates: bool = False,
 ) -> list[dict[str, Any]]:
     def _as_float(value: Any) -> float | None:
         if isinstance(value, (int, float)):
             return float(value)
         return None
 
-    def _chunk_metric_value(chunk: dict[str, Any], metric_name: str, alerts: list[dict[str, Any]]) -> float:
+    def _chunk_metric_value(chunk: dict[str, Any], metric_name: str, alerts: list[dict[str, Any]]) -> tuple[float, bool]:
         if metric_name in {"alerts", "alert_count"}:
-            return float(len(alerts))
+            return float(len(alerts)), True
         metric_means = chunk.get("metric_means")
         if isinstance(metric_means, dict):
             val = _as_float(metric_means.get(metric_name))
             if val is not None:
-                return val
+                return val, True
         metrics = chunk.get("metrics")
         if isinstance(metrics, dict):
             payload = metrics.get(metric_name)
@@ -208,7 +209,7 @@ def _collect_windows(
                 if isinstance(summary, dict):
                     val = _as_float(summary.get("mean"))
                     if val is not None:
-                        return val
+                        return val, True
         values: list[float] = []
         for alert in alerts:
             if not isinstance(alert, dict):
@@ -219,8 +220,8 @@ def _collect_windows(
             if alert_val is not None:
                 values.append(alert_val)
         if values:
-            return float(max(values))
-        return float(len(alerts))
+            return float(max(values)), True
+        return float(len(alerts)), False
 
     def _window_bounds(start: float, end: float) -> tuple[float, float]:
         center = 0.5 * (start + end)
@@ -239,7 +240,12 @@ def _collect_windows(
     merged: list[dict[str, Any]] = []
     for ch in chunks:
         alerts = ch.get("alerts", [])
-        if not isinstance(alerts, list) or len(alerts) < int(min_alerts_per_chunk):
+        if not isinstance(alerts, list):
+            continue
+        score, has_rank_metric = _chunk_metric_value(ch, rank_metric, alerts)
+        # If no threshold rules were configured upstream, ranking by the chosen
+        # metric alone is still useful for coarse novelty mining over long files.
+        if len(alerts) < int(min_alerts_per_chunk) and not (allow_metric_only_candidates and has_rank_metric):
             continue
         start = float(ch.get("start_s", 0.0))
         end = float(ch.get("end_s", start))
@@ -249,7 +255,8 @@ def _collect_windows(
         for a in alerts:
             if isinstance(a, dict) and "metric" in a:
                 metrics.add(str(a["metric"]))
-        score = _chunk_metric_value(ch, rank_metric, alerts)
+        if allow_metric_only_candidates and not metrics and has_rank_metric:
+            metrics.add(rank_metric)
         window = {
             "start_s": s,
             "end_s": e,
@@ -325,6 +332,8 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
     duration_s = float(stream_report.get("source_duration_s") or 0.0)
     if duration_s <= 0.0:
         duration_s = float("inf")
+    rules_payload = stream_report.get("rules", {})
+    has_threshold_rules = isinstance(rules_payload, dict) and bool(rules_payload.get("metric_thresholds"))
 
     windows = _collect_windows(
         chunks=_iter_stream_chunks(stream_report, report_path=stream_report_file),
@@ -337,6 +346,7 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
         event_window_s=cfg.event_window_s,
         window_before_s=cfg.window_before_s,
         window_after_s=cfg.window_after_s,
+        allow_metric_only_candidates=not has_threshold_rules,
     )
     windows_candidates = len(windows)
     effective_mode = cfg.selection_mode

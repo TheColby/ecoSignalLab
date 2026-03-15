@@ -24,6 +24,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
 - [Recipe 12: Safely scan a huge multi-day or multi-year file](#recipe-12-safely-scan-a-huge-multi-day-or-multi-year-file)
 - [Recipe 13: Build and analyze a shard manifest](#recipe-13-build-and-analyze-a-shard-manifest)
+- [Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file](#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
 
 ## Recipe Index by Device Type
 
@@ -36,7 +37,7 @@ Need one-command helpers instead of typing long flags?
 - Multichannel array / Atmos-capable workflow:
   - [Recipe 5](#recipe-5-batch-analyze-a-folder), [Recipe 6](#recipe-6-compare-architectural-variants), [Schema contract](SCHEMA.md)
 - Remote sensor node / long-duration monitor:
-  - [Recipe 2](#recipe-2-extract-the-single-most-novel-moment), [Recipe 3](#recipe-3-extract-top-k-moments-instead-of-one), [Moments workflow](MOMENTS_EXTRACTION.md), [RF64 guide](RF64_AND_LARGE_FILES.md)
+  - [Recipe 2](#recipe-2-extract-the-single-most-novel-moment), [Recipe 3](#recipe-3-extract-top-k-moments-instead-of-one), [Recipe 14](#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file), [Moments workflow](MOMENTS_EXTRACTION.md), [RF64 guide](RF64_AND_LARGE_FILES.md)
 
 ## Recipe Index by Input Format
 
@@ -379,6 +380,59 @@ Use this when:
 
 See the full guide:
 - [`SHARD_WORKFLOWS.md`](SHARD_WORKFLOWS.md)
+
+## Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file
+
+First, fix the file-format wording:
+- "`32-bit float 24-bit`" is contradictory
+- choose either `32-bit float` or `24-bit PCM`
+
+For a truly giant file, use a two-pass workflow.
+
+Pass 1:
+
+```bash
+esl stream ten_year_8ch_capture.rf64 \
+  --out out/ten_year_stream \
+  --metrics novelty_curve,spectral_change_detection,spl_a_db,ndsi \
+  --frame-seconds 1 \
+  --hop-seconds 1 \
+  --chunk-hours 6 \
+  --checkpoint-dir out/ten_year_stream/checkpoints \
+  --resume
+```
+
+Pass 2:
+
+```bash
+esl moments extract ten_year_8ch_capture.rf64 \
+  --out out/ten_year_moments \
+  --stream-report out/ten_year_stream/stream_report.json \
+  --top-k 33 \
+  --rank-metric novelty_curve \
+  --window-before 30 \
+  --window-after 90 \
+  --merge-gap 0
+```
+
+What this does:
+- scans the archive in bounded-memory chunks
+- resumes safely after interruption
+- ranks chunks directly by `novelty_curve`
+- exports `33` timestamped clips while preserving all `8` channels
+
+Expected outputs:
+- `out/ten_year_stream/stream_report.json`
+- `out/ten_year_stream/stream_chunks.jsonl`
+- `out/ten_year_moments/moments.csv`
+- `out/ten_year_moments/moments_report.json`
+- `out/ten_year_moments/clips/moment_0001.wav` through `moment_0033.wav`
+
+Notes:
+- use `RF64` or `CAF`, not classic RIFF/WAV
+- novelty ranking uses the mono channel-mean downmix
+- the exported clips keep the source channel count
+- `--merge-gap 0` matters if you want 33 distinct selections instead of merged neighboring windows
 
 ## Which command should I use?
 

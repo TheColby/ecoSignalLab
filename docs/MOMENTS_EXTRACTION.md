@@ -32,6 +32,7 @@ Selection modes:
 Ranking:
 - `--rank-metric novelty_curve` (default) ranks moments by per-chunk novelty score.
 - You can rank by any emitted chunk metric mean, for example `spectral_change_detection` or `spl_a_db`.
+- If you do not provide threshold rules, `esl` still forms candidates from chunks that have a valid `--rank-metric` value.
 
 Snark note: if your `rank_metric` is random, your highlights are random. That is not “discovery,” that is sampling.
 
@@ -161,6 +162,84 @@ esl moments extract input_24h.wav \
   --window-after 6 \
   --merge-gap 0
 ```
+
+## Ten-Year, 8-Channel, Top-33 Workflow
+
+First, one naming correction: "`32-bit float 24-bit`" is not one WAV subtype.
+
+Pick one:
+- `32-bit float` (`FLOAT` / `pcm_f32le`)
+- `24-bit PCM` (`PCM_24` / `pcm_s24le`)
+
+At `96 kHz`, `8` channels, and `10` years of continuous audio, the storage scale is severe:
+
+$$
+B = T \cdot f_s \cdot C \cdot b
+$$
+
+where \(T\) is duration in seconds, \(f_s\) is sample rate, \(C\) is channel count, and \(b\) is bytes per sample.
+
+For `float32`:
+
+$$
+T = 10 \cdot 365 \cdot 24 \cdot 3600 = 315{,}360{,}000 \text{ s}
+$$
+
+$$
+B = 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 = 968{,}785{,}920{,}000{,}000 \text{ bytes}
+$$
+
+That is about `968.79 TB`.
+
+Plain English: use `RF64` or `CAF`, and prefer a two-pass workflow so the expensive scan is resumable.
+
+### Pass 1: Build a resumable novelty scan
+
+```bash
+esl stream ten_year_8ch_capture.rf64 \
+  --out out/ten_year_stream \
+  --metrics novelty_curve,spectral_change_detection,spl_a_db,ndsi \
+  --frame-seconds 1 \
+  --hop-seconds 1 \
+  --chunk-hours 6 \
+  --checkpoint-dir out/ten_year_stream/checkpoints \
+  --resume
+```
+
+What this does:
+- streams the file in bounded-memory chunks
+- writes `stream_chunks.jsonl` instead of keeping years of chunk data in RAM
+- stores resumable state under `out/ten_year_stream/checkpoints`
+
+### Pass 2: Export the top 33 most novel clips
+
+```bash
+esl moments extract ten_year_8ch_capture.rf64 \
+  --out out/ten_year_moments \
+  --stream-report out/ten_year_stream/stream_report.json \
+  --top-k 33 \
+  --rank-metric novelty_curve \
+  --window-before 30 \
+  --window-after 90 \
+  --merge-gap 0
+```
+
+Why these flags:
+- `--top-k 33`: keep the 33 highest-ranked candidate moments
+- `--rank-metric novelty_curve`: rank by spectral-flux novelty
+- `--window-before 30 --window-after 90`: export a 2-minute clip centered asymmetrically around each event
+- `--merge-gap 0`: do not merge adjacent candidate chunks if you truly want 33 separate ranked selections
+
+Output artifacts:
+- `out/ten_year_moments/moments.csv`
+- `out/ten_year_moments/moments_report.json`
+- `out/ten_year_moments/clips/moment_0001.wav` ... `moment_0033.wav`
+
+Important multichannel note:
+- novelty ranking is computed from the stable mono downmix (channel mean)
+- exported clips preserve the original channel count
+
+Plain English: ranking is global and stable, but the clips still come back as 8-channel audio.
 
 ## Ambisonic / Multichannel Notes
 
