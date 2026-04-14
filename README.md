@@ -43,6 +43,8 @@ esl quickstart
 
 - I want one navigation page with links to everything:
   - [`docs/INDEX.md`](docs/INDEX.md)
+- I want the roadmap:
+  - [`ROADMAP.md`](ROADMAP.md)
 - I want simple copy-paste tasks:
   - [`docs/TASK_RECIPES.md`](docs/TASK_RECIPES.md)
   - Includes a hyperlinked **Recipe Index by Device Type**
@@ -116,8 +118,11 @@ If your goal is creative transformation effects, `esl` is not the primary tool f
 - Analyze single files with calibrated, multi-channel metrics and full provenance output.
 - Run batch analysis over large datasets and export JSON/CSV/Parquet/HDF5/MAT.
 - Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
+- Find archive-level top-ranked events with `esl shard moments`.
 - Generate static and interactive plots, including similarity and novelty matrix views.
-- Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows.
+- Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.
+- Verify calibration math with deterministic reference fixtures using `esl calibrate verify`.
+- Emit structured spatial metadata, including Ambisonics-aware layout objects, in analysis outputs.
 - Compare architectural design variants (`--project` / `--variant`) with delta reports.
 - Ingest online datasets (Freesound/HuggingFace), auto-analyze, and summarize.
 - Run regression validation across datasets to catch metric drifts.

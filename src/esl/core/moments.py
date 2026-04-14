@@ -10,11 +10,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+import numpy as np
 import soundfile as sf
 
+from esl.core.audio import AudioBuffer
+from esl.core.context import AnalysisContext
 from esl.core.audio import read_audio
-from esl.core.config import CalibrationProfile
+from esl.core.config import AnalysisConfig, CalibrationProfile
 from esl.core.streaming import StreamRunConfig, run_stream_analysis
+from esl.metrics.registry import create_registry
 
 
 @dataclass(slots=True)
@@ -38,6 +42,7 @@ class MomentsExtractConfig:
     selection_mode: str = "all"  # all | single | top_k
     top_k: int | None = None
     rank_metric: str = "novelty_curve"
+    rank_scope: str = "downmix"  # downmix | per_channel_max | per_channel_mean
     event_window_s: float | None = None
     window_before_s: float | None = None
     window_after_s: float | None = None
@@ -105,6 +110,21 @@ def _clip_with_soundfile(
             sf.write(str(output_path), data, sr, subtype="PCM_24")
             return
         sf.write(str(output_path), data, src_sr, subtype=f.subtype)
+
+
+def _read_segment(input_path: Path, start_s: float, end_s: float, target_sr: int | None = None) -> tuple[np.ndarray, int]:
+    with sf.SoundFile(str(input_path), mode="r") as f:
+        src_sr = int(f.samplerate)
+        start = max(0, int(round(start_s * src_sr)))
+        end = max(start, int(round(end_s * src_sr)))
+        f.seek(start)
+        data = f.read(frames=end - start, dtype="float32", always_2d=True)
+    if target_sr is None or target_sr == src_sr:
+        return np.asarray(data, dtype=np.float32), src_sr
+    buf = read_audio(input_path, target_sr=target_sr)
+    s2 = max(0, int(round(start_s * buf.sample_rate)))
+    e2 = max(s2, int(round(end_s * buf.sample_rate)))
+    return np.asarray(buf.samples[s2:e2], dtype=np.float32), int(buf.sample_rate)
 
 
 def _clip_with_ffmpeg(
@@ -302,6 +322,78 @@ def _select_windows(windows: list[dict[str, Any]], selection_mode: str, top_k: i
     return sorted(selected, key=lambda w: float(w["start_s"]))
 
 
+def _rerank_windows(
+    windows: list[dict[str, Any]],
+    *,
+    input_path: Path,
+    rank_metric: str,
+    rank_scope: str,
+    frame_size: int,
+    hop_size: int,
+    sample_rate: int | None,
+    calibration: CalibrationProfile | None,
+) -> list[dict[str, Any]]:
+    if rank_scope == "downmix" or not windows:
+        return windows
+    if rank_metric in {"alerts", "alert_count"}:
+        raise ValueError(f"--rank-scope {rank_scope} is not supported for rank metric {rank_metric!r}")
+
+    registry = create_registry(with_external=True)
+    registry.get(rank_metric)
+    reranked: list[dict[str, Any]] = []
+    for win in windows:
+        start_s = float(win["start_s"])
+        end_s = float(win["end_s"])
+        samples, seg_sr = _read_segment(input_path, start_s, end_s, target_sr=sample_rate)
+        if samples.ndim != 2 or samples.shape[0] == 0:
+            reranked.append(dict(win))
+            continue
+        channel_scores: list[float] = []
+        for ch_idx in range(samples.shape[1]):
+            ch_samples = samples[:, [ch_idx]]
+            audio = AudioBuffer(
+                samples=ch_samples,
+                sample_rate=seg_sr,
+                source_path=str(input_path),
+                format_name=input_path.suffix.lstrip(".").upper() or "unknown",
+                subtype=None,
+                source_backend="soundfile",
+                decoder_provenance={"decoder_used": "soundfile", "ffmpeg_version": None, "ffprobe": None},
+            )
+            ctx = AnalysisContext(
+                audio=audio,
+                config=AnalysisConfig(
+                    input_path=input_path,
+                    frame_size=frame_size,
+                    hop_size=hop_size,
+                    sample_rate=sample_rate,
+                    metrics=[rank_metric],
+                    calibration=calibration,
+                    verbosity=0,
+                    debug=0,
+                ),
+                calibration=calibration,
+            )
+            result = registry.compute(ctx, [rank_metric])[rank_metric]
+            channel_scores.append(float(result.summary.get("mean", float("nan"))))
+
+        finite_scores = [score for score in channel_scores if np.isfinite(score)]
+        if not finite_scores:
+            reranked.append(dict(win))
+            continue
+        updated = dict(win)
+        if rank_scope == "per_channel_max":
+            best_idx, best_score = max(enumerate(channel_scores), key=lambda item: item[1])
+            updated["rank_score"] = float(best_score)
+            updated["rank_channel"] = f"ch{best_idx + 1}"
+        else:
+            updated["rank_score"] = float(np.mean(np.asarray(finite_scores, dtype=np.float64)))
+            updated["rank_channel"] = "mean"
+        updated["rank_scope"] = rank_scope
+        reranked.append(updated)
+    return reranked
+
+
 def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]]:
     """Extract interesting moments and export clips + timestamp CSV."""
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
@@ -347,6 +439,16 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
         window_before_s=cfg.window_before_s,
         window_after_s=cfg.window_after_s,
         allow_metric_only_candidates=not has_threshold_rules,
+    )
+    windows = _rerank_windows(
+        windows,
+        input_path=cfg.input_path,
+        rank_metric=cfg.rank_metric,
+        rank_scope=cfg.rank_scope,
+        frame_size=cfg.frame_size,
+        hop_size=cfg.hop_size,
+        sample_rate=cfg.sample_rate,
+        calibration=cfg.calibration,
     )
     windows_candidates = len(windows)
     effective_mode = cfg.selection_mode
@@ -401,6 +503,8 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
                 "metrics": ";".join(sorted(str(x) for x in set(win["metrics"]))),
                 "chunk_indices": ";".join(str(x) for x in win["chunk_indices"]),
                 "rank_metric": str(win["rank_metric"]),
+                "rank_scope": str(win.get("rank_scope", cfg.rank_scope)),
+                "rank_channel": str(win.get("rank_channel", "mix")),
                 "rank_score": f"{float(win['rank_score']):.6f}",
                 "event_center_s": f"{float(win['event_center_s']):.3f}",
                 "wav_path": str(out_wav),
@@ -422,6 +526,8 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
                 "metrics",
                 "chunk_indices",
                 "rank_metric",
+                "rank_scope",
+                "rank_channel",
                 "rank_score",
                 "event_center_s",
                 "wav_path",
@@ -445,6 +551,7 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
         "selection_mode": effective_mode,
         "top_k": effective_top_k,
         "rank_metric": cfg.rank_metric,
+        "rank_scope": cfg.rank_scope,
         "event_window_s": cfg.event_window_s,
         "window_before_s": cfg.window_before_s,
         "window_after_s": cfg.window_after_s,

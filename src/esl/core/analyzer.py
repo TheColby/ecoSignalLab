@@ -25,11 +25,14 @@ from esl.core.context import AnalysisContext
 from esl.core.out_of_core import (
     AudioAccumulator,
     FrameTableCsvWriter,
+    FrameTableHdf5Writer,
+    FrameTableParquetDatasetWriter,
     MetricAccumulator,
     RUNNING_SUMMARY_METHOD,
     load_checkpoint,
     save_checkpoint,
 )
+from esl.core.spatial_metadata import infer_spatial_metadata
 from esl.core.utils import canonicalize, config_hash, library_versions, pipeline_hash, set_seed
 from esl.metrics.base import MetricResult
 from esl.metrics.registry import METRIC_CATALOG_VERSION, MetricRegistry, create_registry
@@ -252,10 +255,33 @@ def _assemble_result(
                 "ffprobe": audio.decoder_provenance.get("ffprobe"),
             },
             "channel_layout_hint": detect_signal_layout(audio.channels, audio.source_path),
+            "spatial_metadata": infer_spatial_metadata(
+                audio.channels,
+                audio.source_path,
+                source_channel_layout=(
+                    str(audio.decoder_provenance.get("ffprobe", {}).get("channel_layout"))
+                    if isinstance(audio.decoder_provenance.get("ffprobe"), dict)
+                    else None
+                ),
+            ).to_dict(),
         }
     else:
         resolved_meta = dict(audio_metadata or {})
         resolved_meta.setdefault("channel_layout_hint", detect_signal_layout(int(resolved_meta.get("channels", 1)), config.input_path))
+        resolved_meta.setdefault(
+            "spatial_metadata",
+            infer_spatial_metadata(
+                int(resolved_meta.get("channels", 1)),
+                config.input_path,
+                source_channel_layout=(
+                    str(resolved_meta.get("decoder", {}).get("ffprobe", {}).get("channel_layout"))
+                    if isinstance(resolved_meta.get("decoder"), dict)
+                    and isinstance(resolved_meta.get("decoder", {}).get("ffprobe"), dict)
+                    and resolved_meta.get("decoder", {}).get("ffprobe", {}).get("channel_layout") is not None
+                    else None
+                ),
+            ).to_dict(),
+        )
         resolved_meta.setdefault("decoder", resolved_meta.pop("decoder_provenance", None))
         channel_summary = channel_summary or {"channels": [], "aggregate": {}, "aggregation_rules": {}}
         validity_flags = validity_flags or _validity_flags_from_summary(
@@ -403,8 +429,14 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
     }
 
     frame_writer: FrameTableCsvWriter | None = None
+    frame_parquet_writer: FrameTableParquetDatasetWriter | None = None
+    frame_hdf5_writer: FrameTableHdf5Writer | None = None
     if config.frame_table_csv is not None:
         frame_writer = FrameTableCsvWriter(config.frame_table_csv, append=bool(config.resume))
+    if config.frame_table_parquet_dir is not None:
+        frame_parquet_writer = FrameTableParquetDatasetWriter(config.frame_table_parquet_dir, append=bool(config.resume))
+    if config.frame_table_hdf5 is not None:
+        frame_hdf5_writer = FrameTableHdf5Writer(config.frame_table_hdf5, append=bool(config.resume))
 
     resume_from, audio_acc, metric_acc = _load_stream_state(config=config, metric_names=metric_names)
     processed_chunks = 0
@@ -457,6 +489,10 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
             metric_acc[name].update(result, chunk_offset_s=chunk_offset)
         if frame_writer is not None:
             frame_writer.append_chunk(chunk_metrics, chunk_offset_s=chunk_offset)
+        if frame_parquet_writer is not None:
+            frame_parquet_writer.append_chunk(chunk_metrics, chunk_offset_s=chunk_offset)
+        if frame_hdf5_writer is not None:
+            frame_hdf5_writer.append_chunk(chunk_metrics, chunk_offset_s=chunk_offset)
         processed_chunks += 1
         _save_stream_state(
             config,
@@ -507,6 +543,31 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
             json.dumps(canonicalize(meta_payload), indent=2),
             encoding="utf-8",
         )
+    if config.frame_table_parquet_dir is not None:
+        artifacts["frame_table_parquet_dir"] = str(Path(config.frame_table_parquet_dir).resolve())
+        artifacts["frame_table_parquet_metadata_json"] = str(
+            (Path(config.frame_table_parquet_dir) / "metadata.json").resolve()
+        )
+        if frame_parquet_writer is not None:
+            frame_parquet_writer.metadata_payload(
+                frame_size=config.frame_size,
+                hop_size=config.hop_size,
+                source_channels=int(probe.get("channels") or audio_acc.channels or 1),
+                esl_version=__version__,
+            )
+    if config.frame_table_hdf5 is not None:
+        artifacts["frame_table_hdf5"] = str(Path(config.frame_table_hdf5).resolve())
+        if frame_hdf5_writer is not None:
+            frame_hdf5_writer.metadata_payload(
+                frame_size=config.frame_size,
+                hop_size=config.hop_size,
+                source_channels=int(probe.get("channels") or audio_acc.channels or 1),
+                esl_version=__version__,
+            )
+    if frame_parquet_writer is not None:
+        frame_parquet_writer.close()
+    if frame_hdf5_writer is not None:
+        frame_hdf5_writer.close()
     checkpoint_path = _checkpoint_path(config)
     if checkpoint_path is not None:
         artifacts["checkpoint_state_json"] = str(checkpoint_path.resolve())

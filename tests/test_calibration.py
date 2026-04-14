@@ -1,6 +1,7 @@
 import pytest
 
 from esl.core.calibration import dbfs_to_pa, dbfs_to_spl, pa_to_dbfs, precision_chain_available, spl_to_dbfs
+from esl.core.calibration_check import CalibrationVerifyConfig, run_calibration_verify
 from esl.core.config import CalibrationProfile
 
 
@@ -42,3 +43,17 @@ def test_pa_dbfs_requires_precision_chain() -> None:
         _ = pa_to_dbfs(1.0, profile)
     with pytest.raises(ValueError):
         _ = dbfs_to_pa(-20.0, profile)
+
+
+def test_calibration_verify_fixture_passes(tmp_path) -> None:
+    report_path, report, ok = run_calibration_verify(
+        CalibrationVerifyConfig(
+            fixture="sine_1khz_minus20dbfs",
+            output_path=tmp_path / "verify.json",
+            max_abs_error_db=0.25,
+        )
+    )
+    assert report_path.exists()
+    assert ok is True
+    assert report["fixture"] == "sine_1khz_minus20dbfs"
+    assert abs(float(report["expected_dbfs_rms"]) - float(report["measured_dbfs_rms"])) < 0.25

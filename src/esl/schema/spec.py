@@ -55,6 +55,7 @@ def analysis_output_schema() -> dict:
                     "backend": {"type": ["string", "null"]},
                     "decoder": {"type": ["object", "null"]},
                     "channel_layout_hint": {"type": ["string", "null"]},
+                    "spatial_metadata": {"type": ["object", "null"]},
                     "frame_size": {"type": "integer", "minimum": 1},
                     "hop_size": {"type": "integer", "minimum": 1},
                     "seed": {"type": "integer"},

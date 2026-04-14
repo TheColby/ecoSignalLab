@@ -25,6 +25,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 12: Safely scan a huge multi-day or multi-year file](#recipe-12-safely-scan-a-huge-multi-day-or-multi-year-file)
 - [Recipe 13: Build and analyze a shard manifest](#recipe-13-build-and-analyze-a-shard-manifest)
 - [Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file](#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
+- [Recipe 15: Verify calibration math with a built-in reference fixture](#recipe-15-verify-calibration-math-with-a-built-in-reference-fixture)
 
 ## Recipe Index by Device Type
 
@@ -433,6 +434,29 @@ Notes:
 - novelty ranking uses the mono channel-mean downmix
 - the exported clips keep the source channel count
 - `--merge-gap 0` matters if you want 33 distinct selections instead of merged neighboring windows
+
+## Recipe 15: Verify calibration math with a built-in reference fixture
+
+```bash
+esl calibrate verify \
+  --fixture sine_1khz_minus20dbfs \
+  --out out/calibration_verify.json
+```
+
+What this does:
+- synthesizes a deterministic software reference tone
+- checks measured RMS against the known expected dBFS value
+- writes a compact verification report
+
+Optional:
+
+```bash
+esl calibrate verify \
+  --fixture sine_1khz_minus20dbfs \
+  --calibration examples/calibration.yaml \
+  --write-tone out/reference_tone.wav \
+  --out out/calibration_verify.json
+```
 
 ## Which command should I use?
 

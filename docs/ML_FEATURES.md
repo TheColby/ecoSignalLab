@@ -68,11 +68,16 @@ Tabular exports (classical ML):
 - `<prefix>_frame_table.csv` (wide, one row per timestamp)
 - `<prefix>_frame_table.parquet` (optional; pandas/pyarrow runtime)
 - `<prefix>_frame_features.csv` (legacy long-form table, preserved for compatibility)
+- `<prefix>_frame_table.h5` (appendable HDF5 variant for long-running jobs)
 
 Out-of-core tabular export for very long files:
 - `esl analyze ... --chunk-* --summary-only --frame-table-csv out/frame_table.csv`
 - this writes the canonical FrameTable incrementally during chunked analysis
 - the sidecar metadata file is `out/frame_table.csv.meta.json`
+- `esl analyze ... --frame-table-parquet-dir out/frame_table.parquet`
+  - writes an appendable Parquet dataset directory with `part-*.parquet`
+- `esl analyze ... --frame-table-hdf5 out/frame_table.h5`
+  - writes a resizable HDF5 FrameTable with feature names stored in file metadata
 
 Plain English: for multi-day or multi-year material, the CSV sidecar is the first-class product; the JSON summary is just the compact report.
 
@@ -93,8 +98,9 @@ Metadata:
 For very large recordings, prefer this sequence:
 
 1. `esl analyze ... --summary-only --frame-table-csv ...`
-2. load the FrameTable CSV with pandas/Polars
-3. derive Parquet/HDF5/tensor batches downstream
+2. optionally emit `--frame-table-parquet-dir` and/or `--frame-table-hdf5`
+3. load the FrameTable artifact with pandas/Polars/h5py
+4. derive downstream tensor batches only after filtering or batching
 
 Why:
 - frame-wise rows can be appended safely during chunked analysis

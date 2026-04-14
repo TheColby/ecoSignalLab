@@ -33,6 +33,9 @@ Ranking:
 - `--rank-metric novelty_curve` (default) ranks moments by per-chunk novelty score.
 - You can rank by any emitted chunk metric mean, for example `spectral_change_detection` or `spl_a_db`.
 - If you do not provide threshold rules, `esl` still forms candidates from chunks that have a valid `--rank-metric` value.
+- `--rank-scope downmix` (default) preserves the historical mono downmix ranking behavior.
+- `--rank-scope per_channel_max` reranks each candidate window by the strongest channel.
+- `--rank-scope per_channel_mean` reranks each candidate window by mean channel score.
 
 Snark note: if your `rank_metric` is random, your highlights are random. That is not “discovery,” that is sampling.
 
@@ -240,6 +243,25 @@ Important multichannel note:
 - exported clips preserve the original channel count
 
 Plain English: ranking is global and stable, but the clips still come back as 8-channel audio.
+
+## Per-Channel Ranking Example
+
+```bash
+esl moments extract array_capture.wav \
+  --out out/moments_per_channel \
+  --top-k 12 \
+  --rank-metric novelty_curve \
+  --rank-scope per_channel_max \
+  --window-before 5 \
+  --window-after 7
+```
+
+Use this when:
+- one microphone or one array channel carries the event more strongly than the rest
+- you want ranking to follow the strongest channel instead of the downmix
+
+Tradeoff:
+- this reranks candidate windows from source audio and is more expensive than plain downmix ranking
 
 ## Ambisonic / Multichannel Notes
 

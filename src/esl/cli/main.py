@@ -169,6 +169,10 @@ def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: 
         allow_full_read=bool(getattr(args, "allow_full_read", False)),
         max_series_points=getattr(args, "max_series_points", None),
         frame_table_csv=(Path(args.frame_table_csv) if getattr(args, "frame_table_csv", None) else None),
+        frame_table_parquet_dir=(
+            Path(args.frame_table_parquet_dir) if getattr(args, "frame_table_parquet_dir", None) else None
+        ),
+        frame_table_hdf5=(Path(args.frame_table_hdf5) if getattr(args, "frame_table_hdf5", None) else None),
         checkpoint_dir=(Path(args.checkpoint_dir) if getattr(args, "checkpoint_dir", None) else None),
         resume=bool(getattr(args, "resume", False)),
     )
@@ -858,6 +862,8 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
             allow_full_read=bool(args.allow_full_read),
             max_series_points=args.max_series_points,
             frame_table_dir=(Path(args.frame_table_dir) if args.frame_table_dir else None),
+            frame_table_parquet_root=(Path(args.frame_table_parquet_dir) if args.frame_table_parquet_dir else None),
+            frame_table_hdf5_root=(Path(args.frame_table_hdf5_dir) if args.frame_table_hdf5_dir else None),
             checkpoint_root=(Path(args.checkpoint_dir) if args.checkpoint_dir else None),
             resume=bool(args.resume),
             force=bool(args.force),
@@ -877,6 +883,91 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
     )
     if args.debug >= 1:
         print(json.dumps(report.get("weighted_metric_means", {}), indent=2))
+    return 0
+
+
+def _run_shard_moments(args: argparse.Namespace) -> int:
+    from esl.core.shards import ShardMomentsConfig, load_shard_manifest, run_shard_moments
+
+    manifest_path = Path(args.manifest)
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Shard manifest not found: {manifest_path}")
+    manifest = load_shard_manifest(manifest_path)
+    duration_flags_used = any(
+        getattr(args, name, None) is not None
+        for name in ("frame_seconds", "hop_seconds", "chunk_seconds", "chunk_minutes", "chunk_hours", "chunk_days")
+    )
+    if args.sample_rate is None and duration_flags_used:
+        rates = {
+            int(item["sample_rate"])
+            for item in manifest.get("items", [])
+            if isinstance(item, dict) and isinstance(item.get("sample_rate"), int)
+        }
+        if len(rates) == 1:
+            args.sample_rate = rates.pop()
+        elif len(rates) > 1:
+            raise ValueError(
+                "Duration-based window flags on a shard manifest with mixed sample rates require --sample-rate explicitly."
+            )
+    frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=None,
+        default_frame_size=2048,
+        default_hop_size=512,
+        default_chunk_size=131072,
+    )
+    selection_mode = "all"
+    top_k: int | None = None
+    if bool(args.single):
+        selection_mode = "single"
+        top_k = 1
+    elif args.top_k is not None:
+        if int(args.top_k) < 1:
+            raise ValueError("--top-k must be >= 1")
+        selection_mode = "top_k"
+        top_k = int(args.top_k)
+
+    report_path, report = run_shard_moments(
+        ShardMomentsConfig(
+            manifest_path=manifest_path,
+            output_dir=Path(args.out),
+            stream_root=(Path(args.stream_root) if args.stream_root else None),
+            rules_path=args.rules,
+            metrics=_metric_list(args.metrics),
+            calibration_path=args.calibration,
+            frame_size=int(frame_size or 2048),
+            hop_size=int(hop_size or 512),
+            sample_rate=resolved_sr,
+            chunk_size=int(chunk_size or 131072),
+            seed=int(args.seed),
+            max_chunks=args.max_chunks,
+            pre_roll_s=float(args.pre_roll),
+            post_roll_s=float(args.post_roll),
+            merge_gap_s=float(args.merge_gap),
+            min_alerts_per_chunk=int(args.min_alerts_per_chunk),
+            selection_mode=selection_mode,
+            top_k=top_k,
+            rank_metric=str(args.rank_metric),
+            rank_scope=str(args.rank_scope),
+            event_window_s=(float(args.event_window) if args.event_window is not None else None),
+            window_before_s=(float(args.window_before) if args.window_before is not None else None),
+            window_after_s=(float(args.window_after) if args.window_after is not None else None),
+            resume=bool(args.resume),
+            force_stream=bool(args.force_stream),
+            report_path=(Path(args.report) if args.report else None),
+        )
+    )
+    print(f"shard_moments_report: {report_path}")
+    print(
+        "summary:",
+        {
+            "shards_processed": report.get("shards_processed"),
+            "candidate_windows": report.get("candidate_windows"),
+            "selected_windows": report.get("selected_windows"),
+            "rank_metric": report.get("rank_metric"),
+            "rank_scope": report.get("rank_scope"),
+        },
+    )
     return 0
 
 
@@ -1043,6 +1134,34 @@ def _run_calibrate_check(args: argparse.Namespace) -> int:
     return 0 if within_tolerance else 2
 
 
+def _run_calibrate_verify(args: argparse.Namespace) -> int:
+    from esl.core.calibration_check import CalibrationVerifyConfig, run_calibration_verify
+
+    profile = load_calibration(args.calibration) if args.calibration else None
+    report_path, report, ok = run_calibration_verify(
+        CalibrationVerifyConfig(
+            fixture=str(args.fixture),
+            output_path=Path(args.out),
+            calibration_profile=profile,
+            max_abs_error_db=float(args.max_abs_error_db),
+            write_tone_path=(Path(args.write_tone) if args.write_tone else None),
+        )
+    )
+    print(f"calibration_verify_report: {report_path}")
+    print(
+        "summary:",
+        {
+            "fixture": report.get("fixture"),
+            "expected_dbfs_rms": report.get("expected_dbfs_rms"),
+            "measured_dbfs_rms": report.get("measured_dbfs_rms"),
+            "abs_error_db": report.get("abs_error_db"),
+            "within_tolerance": report.get("within_tolerance"),
+            "pressure_chain_error_db": report.get("pressure_chain_error_db"),
+        },
+    )
+    return 0 if ok else 2
+
+
 def _run_features_extract(args: argparse.Namespace) -> int:
     from esl.viz.feature_vectors import extract_feature_vectors, save_feature_vectors
 
@@ -1138,6 +1257,7 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
         selection_mode=selection_mode,
         top_k=top_k,
         rank_metric=str(args.rank_metric),
+        rank_scope=str(getattr(args, "rank_scope", "downmix")),
         event_window_s=(float(args.event_window) if args.event_window is not None else None),
         window_before_s=(float(args.window_before) if args.window_before is not None else None),
         window_after_s=(float(args.window_after) if args.window_after is not None else None),
@@ -1700,6 +1820,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write canonical FrameTable CSV incrementally during chunked analysis",
     )
     pa.add_argument(
+        "--frame-table-parquet-dir",
+        default=None,
+        help="Write canonical FrameTable as an appendable Parquet dataset directory during chunked analysis",
+    )
+    pa.add_argument(
+        "--frame-table-hdf5",
+        default=None,
+        help="Write canonical FrameTable as an appendable HDF5 file during chunked analysis",
+    )
+    pa.add_argument(
         "--checkpoint-dir",
         default=None,
         help="Directory for resumable chunk-analysis checkpoints",
@@ -2022,6 +2152,19 @@ def _build_parser() -> argparse.ArgumentParser:
     pcal_check.add_argument("--out", default="calibration_check.json", help="Calibration report JSON path")
     pcal_check.set_defaults(func=_run_calibrate_check)
 
+    pcal_verify = pcal_sub.add_parser("verify", help="Verify calibration math/check path with deterministic reference fixtures")
+    pcal_verify.add_argument(
+        "--fixture",
+        default="sine_1khz_minus20dbfs",
+        choices=["sine_1khz_minus20dbfs", "sine_1khz_minus26dbfs"],
+        help="Built-in deterministic reference fixture",
+    )
+    pcal_verify.add_argument("--calibration", default=None, help="Optional calibration YAML/JSON path")
+    pcal_verify.add_argument("--max-abs-error-db", type=float, default=0.25, help="Maximum allowed absolute dBFS error")
+    pcal_verify.add_argument("--write-tone", default=None, help="Optional path to keep the synthesized reference tone WAV")
+    pcal_verify.add_argument("--out", default="calibration_verify.json", help="Calibration verification report JSON path")
+    pcal_verify.set_defaults(func=_run_calibrate_verify)
+
     # features
     pfeat = sub.add_parser("features", help="Feature vector extraction commands")
     pfeat_sub = pfeat.add_subparsers(dest="features_cmd", required=True)
@@ -2078,6 +2221,12 @@ def _build_parser() -> argparse.ArgumentParser:
     select_group.add_argument("--top-k", type=int, default=None, help="Extract top K highest-ranked moments")
     select_group.add_argument("--all", action="store_true", help="Extract all detected moments (default)")
     pmom_ex.add_argument("--rank-metric", default="novelty_curve", help="Metric used to rank moments (default: novelty_curve)")
+    pmom_ex.add_argument(
+        "--rank-scope",
+        default="downmix",
+        choices=["downmix", "per_channel_max", "per_channel_mean"],
+        help="Rank on downmix, max per-channel metric, or mean per-channel metric",
+    )
     pmom_ex.add_argument(
         "--event-window",
         type=float,
@@ -2138,6 +2287,8 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_an.add_argument("--allow-full-read", action="store_true", help="Allow full-read fallback for non-streaming metrics")
     psh_an.add_argument("--max-series-points", type=int, default=None, help="Maximum frame-series points kept in each shard JSON")
     psh_an.add_argument("--frame-table-dir", default=None, help="Directory for per-shard FrameTable CSV sidecars")
+    psh_an.add_argument("--frame-table-parquet-dir", default=None, help="Directory for per-shard Parquet FrameTable datasets")
+    psh_an.add_argument("--frame-table-hdf5-dir", default=None, help="Directory for per-shard HDF5 FrameTable files")
     psh_an.add_argument("--checkpoint-dir", default=None, help="Root directory for per-shard checkpoint state")
     psh_an.add_argument("--resume", action="store_true", help="Resume shard analysis using per-shard checkpoints")
     psh_an.add_argument("--force", action="store_true", help="Recompute shard outputs even if present")
@@ -2156,6 +2307,46 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Debug level: 0=none, 1=processing details, 2=internal traces",
     )
     psh_an.set_defaults(func=_run_shard_analyze)
+
+    psh_mom = psh_sub.add_parser("moments", help="Find top-ranked moments across an ordered shard manifest")
+    psh_mom.add_argument("manifest", help="Path to shard manifest JSON")
+    psh_mom.add_argument("--out", required=True, help="Output directory for archive-level moments products")
+    psh_mom.add_argument("--stream-root", default=None, help="Optional root directory for per-shard stream reports")
+    psh_mom.add_argument("--rules", default=None, help="Optional alert rules JSON/YAML path for shard stream passes")
+    psh_mom.add_argument("--metrics", default="novelty_curve,spectral_change_detection,spl_a_db", help="Comma-separated metrics for shard stream pass")
+    psh_mom.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
+    psh_mom.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
+    psh_mom.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
+    psh_mom.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    psh_mom.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psh_mom.add_argument("--sample-rate", type=int, default=None)
+    psh_mom.add_argument("--chunk-size", type=int, default=131072, help="Detection chunk size in samples")
+    psh_mom.add_argument("--chunk-seconds", type=float, default=None, help="Detection chunk size in seconds (overrides --chunk-size)")
+    psh_mom.add_argument("--chunk-minutes", type=float, default=None, help="Detection chunk size in minutes (overrides --chunk-size)")
+    psh_mom.add_argument("--chunk-hours", type=float, default=None, help="Detection chunk size in hours (overrides --chunk-size)")
+    psh_mom.add_argument("--chunk-days", type=float, default=None, help="Detection chunk size in days (overrides --chunk-size)")
+    psh_mom.add_argument("--seed", type=int, default=42)
+    psh_mom.add_argument("--max-chunks", type=int, default=None, help="Optional cap for detection chunks per shard")
+    psh_mom.add_argument("--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk")
+    psh_mom.add_argument("--post-roll", type=float, default=3.0, help="Seconds after each detected chunk")
+    psh_mom.add_argument("--merge-gap", type=float, default=2.0, help="Merge windows separated by <= this many seconds")
+    psh_mom.add_argument("--min-alerts-per-chunk", type=int, default=1, help="Minimum alerts needed for candidate chunk selection")
+    psh_mom.add_argument("--single", action="store_true", help="Extract only the single highest-ranked archive moment")
+    psh_mom.add_argument("--top-k", type=int, default=None, help="Extract top K highest-ranked archive moments")
+    psh_mom.add_argument("--rank-metric", default="novelty_curve", help="Metric used to rank archive moments")
+    psh_mom.add_argument(
+        "--rank-scope",
+        default="downmix",
+        choices=["downmix", "per_channel_max", "per_channel_mean"],
+        help="Rank on downmix, max per-channel metric, or mean per-channel metric",
+    )
+    psh_mom.add_argument("--event-window", type=float, default=None, help="Symmetric window duration in seconds around event center")
+    psh_mom.add_argument("--window-before", type=float, default=None, help="Seconds before event center for each clip")
+    psh_mom.add_argument("--window-after", type=float, default=None, help="Seconds after event center for each clip")
+    psh_mom.add_argument("--force-stream", action="store_true", help="Recompute shard stream reports even if present under --stream-root")
+    psh_mom.add_argument("--resume", action="store_true", help="Resume shard stream passes if checkpoints are present")
+    psh_mom.add_argument("--report", default=None, help="Output archive moments report JSON path")
+    psh_mom.set_defaults(func=_run_shard_moments)
 
     # project
     pproj = sub.add_parser("project", help="Project mode reports and comparisons")

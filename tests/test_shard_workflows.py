@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from pathlib import Path
 
 import numpy as np
@@ -67,6 +68,10 @@ def test_cli_shard_analyze_writes_archive_report(tmp_path: Path) -> None:
             "--summary-only",
             "--frame-table-dir",
             str(out_dir / "frame_tables"),
+            "--frame-table-parquet-dir",
+            str(out_dir / "frame_tables_parquet"),
+            "--frame-table-hdf5-dir",
+            str(out_dir / "frame_tables_hdf5"),
             "--checkpoint-dir",
             str(out_dir / "checkpoints"),
         ]
@@ -86,3 +91,44 @@ def test_cli_shard_analyze_writes_archive_report(tmp_path: Path) -> None:
     assert shard_json.exists()
     frame_table_csv = out_dir / "frame_tables" / "a_frame_table.csv"
     assert frame_table_csv.exists()
+    assert (out_dir / "frame_tables_hdf5" / "a_frame_table.h5").exists()
+    if importlib.util.find_spec("pyarrow") is not None or importlib.util.find_spec("fastparquet") is not None:
+        assert any((out_dir / "frame_tables_parquet").rglob("part-*.parquet"))
+
+
+def test_cli_shard_moments_writes_archive_level_clips(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    sr = 8000
+    t = np.linspace(0.0, 1.0, sr, endpoint=False)
+    quiet = (0.01 * np.sin(2.0 * np.pi * 220.0 * t)).astype(np.float32)
+    loud = (0.8 * np.sin(2.0 * np.pi * 220.0 * t)).astype(np.float32)
+    sf.write(archive / "a.wav", quiet, sr)
+    sf.write(archive / "b.wav", loud, sr)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+    out_dir = tmp_path / "moments_out"
+    code = main(
+        [
+            "shard",
+            "moments",
+            str(manifest_path),
+            "--out",
+            str(out_dir),
+            "--top-k",
+            "1",
+            "--rank-metric",
+            "novelty_curve",
+            "--window-before",
+            "0.1",
+            "--window-after",
+            "0.1",
+            "--merge-gap",
+            "0",
+        ]
+    )
+    assert code == 0
+    assert (out_dir / "moments.csv").exists()
+    assert (out_dir / "archive_moments_report.json").exists()
+    assert any((out_dir / "clips").glob("moment_*.wav"))

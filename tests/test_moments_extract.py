@@ -356,3 +356,53 @@ def test_moments_extract_top_k_without_rules_uses_rank_metric_only_for_multichan
     first_clip = Path(rows[0]["wav_path"])
     info = sf.info(str(first_clip))
     assert int(info.channels) == 8
+
+
+def test_moments_extract_per_channel_rank_scope_records_channel(tmp_path: Path) -> None:
+    sr = 16_000
+    t = np.arange(2 * sr, dtype=np.float64) / sr
+    left = 0.01 * np.sin(2.0 * np.pi * 220.0 * t)
+    right = np.concatenate(
+        [
+            0.01 * np.sin(2.0 * np.pi * 220.0 * t[:sr]),
+            0.8 * np.sin(2.0 * np.pi * 220.0 * t[sr:]),
+        ]
+    )
+    wav = tmp_path / "stereo.wav"
+    _write_wav(wav, np.stack([left, right], axis=1), sr)
+
+    chunks: list[dict[str, object]] = [
+        {"index": 0, "start_s": 0.0, "end_s": 1.0, "metric_means": {"novelty_curve": 0.1}, "alerts": []},
+        {"index": 1, "start_s": 1.0, "end_s": 2.0, "metric_means": {"novelty_curve": 0.2}, "alerts": []},
+    ]
+    stream_report = tmp_path / "stream_report.json"
+    _write_stream_report(stream_report, wav=wav, chunks=chunks, sr=sr, channels=2)
+
+    out = tmp_path / "per_channel"
+    code = main(
+        [
+            "moments",
+            "extract",
+            str(wav),
+            "--out",
+            str(out),
+            "--stream-report",
+            str(stream_report),
+            "--single",
+            "--rank-metric",
+            "novelty_curve",
+            "--rank-scope",
+            "per_channel_max",
+            "--window-before",
+            "0.1",
+            "--window-after",
+            "0.1",
+            "--merge-gap",
+            "0",
+        ]
+    )
+    assert code == 0
+    rows = list(csv.DictReader((out / "moments.csv").open("r", encoding="utf-8")))
+    assert len(rows) == 1
+    assert rows[0]["rank_scope"] == "per_channel_max"
+    assert rows[0]["rank_channel"] == "ch2"

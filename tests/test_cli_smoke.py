@@ -44,6 +44,8 @@ def test_cli_help_contains_output_and_debug_flags(capsys: pytest.CaptureFixture[
     assert "--summary-only" in help_text
     assert "--streamable-only" in help_text
     assert "--frame-table-csv" in help_text
+    assert "--frame-table-parquet-dir" in help_text
+    assert "--frame-table-hdf5" in help_text
     assert "--checkpoint-dir" in help_text
     assert "--resume" in help_text
 
@@ -76,6 +78,18 @@ def test_python_module_help_entrypoint() -> None:
     assert "shard" in proc.stdout
     assert "simple" in proc.stdout
     assert "quickstart" in proc.stdout
+
+
+def test_cli_moments_and_calibrate_help_include_new_flags(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        main(["moments", "extract", "--help"])
+    out = capsys.readouterr().out
+    assert "--rank-scope" in out
+
+    with pytest.raises(SystemExit):
+        main(["calibrate", "verify", "--help"])
+    out = capsys.readouterr().out
+    assert "--fixture" in out
 
 
 def test_cli_quickstart_outputs_recipes(capsys: pytest.CaptureFixture[str]) -> None:

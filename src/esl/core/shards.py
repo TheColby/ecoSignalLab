@@ -16,6 +16,19 @@ from typing import Any
 
 from esl.core import AnalysisConfig, analyze, load_calibration
 from esl.core.audio import iter_supported_files, probe_audio_metadata
+from esl.core.moments import (
+    _clip_with_ffmpeg,
+    _clip_with_soundfile,
+    _codec_from_subtype,
+    _collect_windows,
+    _ffmpeg_available,
+    _iter_stream_chunks,
+    _load_stream_report,
+    _rerank_windows,
+    _sec_to_hms,
+    _select_windows,
+)
+from esl.core.streaming import StreamRunConfig, run_stream_analysis
 from esl.io import save_json
 from esl.metrics.registry import create_registry
 
@@ -80,9 +93,41 @@ class ShardAnalyzeConfig:
     allow_full_read: bool = False
     max_series_points: int | None = None
     frame_table_dir: Path | None = None
+    frame_table_parquet_root: Path | None = None
+    frame_table_hdf5_root: Path | None = None
     checkpoint_root: Path | None = None
     resume: bool = False
     force: bool = False
+
+
+@dataclass(slots=True)
+class ShardMomentsConfig:
+    manifest_path: Path
+    output_dir: Path
+    stream_root: Path | None = None
+    rules_path: str | None = None
+    metrics: list[str] = field(default_factory=list)
+    calibration_path: str | None = None
+    frame_size: int = 2048
+    hop_size: int = 512
+    sample_rate: int | None = None
+    chunk_size: int = 131072
+    seed: int = 42
+    max_chunks: int | None = None
+    pre_roll_s: float = 3.0
+    post_roll_s: float = 3.0
+    merge_gap_s: float = 2.0
+    min_alerts_per_chunk: int = 1
+    selection_mode: str = "all"
+    top_k: int | None = None
+    rank_metric: str = "novelty_curve"
+    rank_scope: str = "downmix"
+    event_window_s: float | None = None
+    window_before_s: float | None = None
+    window_after_s: float | None = None
+    resume: bool = False
+    force_stream: bool = False
+    report_path: Path | None = None
 
 
 def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]]:
@@ -168,6 +213,20 @@ def _frame_table_path(base_dir: Path | None, relative_path: str) -> Path | None:
     return (base_dir / rel.parent / f"{rel.stem}_frame_table.csv").resolve()
 
 
+def _frame_table_parquet_dir(base_dir: Path | None, relative_path: str) -> Path | None:
+    if base_dir is None:
+        return None
+    rel = Path(relative_path)
+    return (base_dir / rel.parent / f"{rel.stem}_frame_table.parquet").resolve()
+
+
+def _frame_table_hdf5_path(base_dir: Path | None, relative_path: str) -> Path | None:
+    if base_dir is None:
+        return None
+    rel = Path(relative_path)
+    return (base_dir / rel.parent / f"{rel.stem}_frame_table.h5").resolve()
+
+
 def _checkpoint_dir(root: Path | None, relative_path: str) -> Path | None:
     if root is None:
         return None
@@ -230,6 +289,8 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
                         allow_full_read=cfg.allow_full_read,
                         max_series_points=cfg.max_series_points,
                         frame_table_csv=_frame_table_path(cfg.frame_table_dir, relative_path),
+                        frame_table_parquet_dir=_frame_table_parquet_dir(cfg.frame_table_parquet_root, relative_path),
+                        frame_table_hdf5=_frame_table_hdf5_path(cfg.frame_table_hdf5_root, relative_path),
                         checkpoint_dir=_checkpoint_dir(cfg.checkpoint_root, relative_path),
                         resume=cfg.resume,
                     ),
@@ -333,5 +394,182 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
     report_path = (cfg.output_dir / "shard_analysis_report.json").resolve()
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     report["artifacts"]["report_json"] = str(report_path)
+    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report_path, report
+
+
+def _stream_report_path(stream_root: Path, relative_path: str) -> Path:
+    rel = Path(relative_path)
+    return (stream_root / rel.parent / rel.stem / "stream_report.json").resolve()
+
+
+def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:
+    """Find top-ranked moments across a shard manifest and export clips + CSV."""
+    manifest = load_shard_manifest(cfg.manifest_path)
+    items = [item for item in manifest.get("items", []) if isinstance(item, dict)]
+    if not items:
+        raise RuntimeError(f"No shard items found in manifest: {cfg.manifest_path}")
+
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    clips_dir = cfg.output_dir / "clips"
+    clips_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = cfg.output_dir / "moments.csv"
+    report_path = cfg.report_path if cfg.report_path is not None else (cfg.output_dir / "archive_moments_report.json")
+    calibration = load_calibration(cfg.calibration_path) if cfg.calibration_path else None
+    stream_root = (cfg.output_dir / "stream") if cfg.stream_root is None else Path(cfg.stream_root)
+
+    windows_all: list[dict[str, Any]] = []
+    shards_processed = 0
+    ffmpeg_ok = _ffmpeg_available()
+
+    for item in items:
+        shard_path = Path(str(item["path"]))
+        relative_path = str(item.get("relative_path") or shard_path.name)
+        stream_report_path = _stream_report_path(stream_root, relative_path)
+        if not stream_report_path.exists() or cfg.force_stream:
+            stream_report_path.parent.mkdir(parents=True, exist_ok=True)
+            run_stream_analysis(
+                StreamRunConfig(
+                    input_path=shard_path,
+                    output_dir=stream_report_path.parent,
+                    metrics=list(cfg.metrics or [cfg.rank_metric]),
+                    frame_size=cfg.frame_size,
+                    hop_size=cfg.hop_size,
+                    sample_rate=cfg.sample_rate,
+                    chunk_size=cfg.chunk_size,
+                    calibration=calibration,
+                    seed=cfg.seed,
+                    rules_path=cfg.rules_path,
+                    max_chunks=cfg.max_chunks,
+                    checkpoint_dir=(stream_report_path.parent / "checkpoints"),
+                    resume=cfg.resume,
+                )
+            )
+        stream_report = _load_stream_report(stream_report_path)
+        duration_s = float(stream_report.get("source_duration_s") or item.get("duration_s") or 0.0)
+        if duration_s <= 0.0:
+            duration_s = float(item.get("duration_s") or 0.0)
+        rules_payload = stream_report.get("rules", {})
+        has_threshold_rules = isinstance(rules_payload, dict) and bool(rules_payload.get("metric_thresholds"))
+        shard_windows = _collect_windows(
+            chunks=_iter_stream_chunks(stream_report, report_path=stream_report_path),
+            pre_roll_s=cfg.pre_roll_s,
+            post_roll_s=cfg.post_roll_s,
+            merge_gap_s=cfg.merge_gap_s,
+            min_alerts_per_chunk=cfg.min_alerts_per_chunk,
+            duration_s=duration_s if duration_s > 0.0 else float("inf"),
+            rank_metric=cfg.rank_metric,
+            event_window_s=cfg.event_window_s,
+            window_before_s=cfg.window_before_s,
+            window_after_s=cfg.window_after_s,
+            allow_metric_only_candidates=not has_threshold_rules,
+        )
+        shard_windows = _rerank_windows(
+            shard_windows,
+            input_path=shard_path,
+            rank_metric=cfg.rank_metric,
+            rank_scope=cfg.rank_scope,
+            frame_size=cfg.frame_size,
+            hop_size=cfg.hop_size,
+            sample_rate=cfg.sample_rate,
+            calibration=calibration,
+        )
+        archive_offset = float(item.get("start_s") or 0.0)
+        for win in shard_windows:
+            win_copy = dict(win)
+            win_copy["source_path"] = str(shard_path.resolve())
+            win_copy["relative_path"] = relative_path
+            win_copy["archive_start_s"] = float(win["start_s"]) + archive_offset
+            win_copy["archive_end_s"] = float(win["end_s"]) + archive_offset
+            win_copy["archive_event_center_s"] = float(win["event_center_s"]) + archive_offset
+            windows_all.append(win_copy)
+        shards_processed += 1
+
+    effective_mode = cfg.selection_mode
+    selected = _select_windows(windows_all, selection_mode=effective_mode, top_k=cfg.top_k)
+
+    rows: list[dict[str, Any]] = []
+    for idx, win in enumerate(selected, start=1):
+        source_path = Path(str(win["source_path"]))
+        info = probe_audio_metadata(source_path)
+        clip_path = clips_dir / f"moment_{idx:04d}.wav"
+        start_s = float(win["start_s"])
+        end_s = float(win["end_s"])
+        codec = _codec_from_subtype(str(info.get("subtype")) if info.get("subtype") is not None else None)
+        wrote = False
+        if ffmpeg_ok:
+            wrote = _clip_with_ffmpeg(
+                input_path=source_path,
+                output_path=clip_path,
+                start_s=start_s,
+                end_s=end_s,
+                codec=codec,
+                sample_rate=(int(cfg.sample_rate) if cfg.sample_rate is not None else int(info.get("sample_rate") or 0) or None),
+                channels=int(info.get("channels") or 1),
+            )
+        if not wrote:
+            _clip_with_soundfile(source_path, clip_path, start_s, end_s, cfg.sample_rate)
+        rows.append(
+            {
+                "clip_id": f"moment_{idx:04d}",
+                "relative_path": str(win.get("relative_path", "")),
+                "source_path": str(source_path),
+                "start_s": f"{start_s:.3f}",
+                "end_s": f"{end_s:.3f}",
+                "archive_start_s": f"{float(win['archive_start_s']):.3f}",
+                "archive_end_s": f"{float(win['archive_end_s']):.3f}",
+                "archive_start_hms": _sec_to_hms(float(win["archive_start_s"])),
+                "archive_end_hms": _sec_to_hms(float(win["archive_end_s"])),
+                "duration_s": f"{max(0.0, end_s - start_s):.3f}",
+                "rank_metric": str(win["rank_metric"]),
+                "rank_scope": str(win.get("rank_scope", cfg.rank_scope)),
+                "rank_channel": str(win.get("rank_channel", "mix")),
+                "rank_score": f"{float(win['rank_score']):.6f}",
+                "wav_path": str(clip_path),
+            }
+        )
+
+    with csv_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "clip_id",
+                "relative_path",
+                "source_path",
+                "start_s",
+                "end_s",
+                "archive_start_s",
+                "archive_end_s",
+                "archive_start_hms",
+                "archive_end_hms",
+                "duration_s",
+                "rank_metric",
+                "rank_scope",
+                "rank_channel",
+                "rank_score",
+                "wav_path",
+            ],
+        )
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    report = {
+        "created_utc": _now_utc(),
+        "manifest_path": str(Path(cfg.manifest_path).resolve()),
+        "output_dir": str(cfg.output_dir.resolve()),
+        "stream_root": str(stream_root.resolve()),
+        "rank_metric": cfg.rank_metric,
+        "rank_scope": cfg.rank_scope,
+        "selection_mode": effective_mode,
+        "top_k": cfg.top_k,
+        "shards_processed": int(shards_processed),
+        "candidate_windows": int(len(windows_all)),
+        "selected_windows": int(len(selected)),
+        "artifacts": {
+            "moments_csv": str(csv_path.resolve()),
+            "clips_dir": str(clips_dir.resolve()),
+        },
+    }
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report_path, report

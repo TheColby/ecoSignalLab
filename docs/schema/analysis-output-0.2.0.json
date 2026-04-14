@@ -112,6 +112,12 @@
             "null"
           ]
         },
+        "spatial_metadata": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
         "frame_size": {
           "type": "integer",
           "minimum": 1

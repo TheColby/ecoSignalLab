@@ -7,6 +7,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 - [Getting Started](GETTING_STARTED.md)
 - [Task Recipes (Beginner)](TASK_RECIPES.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
+- [Roadmap](../ROADMAP.md)
 - [Announcement FAQ](ANNOUNCEMENT_FAQ.md)
 - [Glossary](GLOSSARY.md)
 - [Shard Workflows](SHARD_WORKFLOWS.md)

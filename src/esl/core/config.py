@@ -48,6 +48,8 @@ class AnalysisConfig:
     allow_full_read: bool = False
     max_series_points: int | None = None
     frame_table_csv: Path | None = None
+    frame_table_parquet_dir: Path | None = None
+    frame_table_hdf5: Path | None = None
     checkpoint_dir: Path | None = None
     resume: bool = False
 

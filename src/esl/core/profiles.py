@@ -101,6 +101,8 @@ def with_resolution_profile(base: AnalysisConfig, profile: ResolutionProfile) ->
         allow_full_read=base.allow_full_read,
         max_series_points=base.max_series_points,
         frame_table_csv=base.frame_table_csv,
+        frame_table_parquet_dir=base.frame_table_parquet_dir,
+        frame_table_hdf5=base.frame_table_hdf5,
         checkpoint_dir=base.checkpoint_dir,
         resume=base.resume,
     )

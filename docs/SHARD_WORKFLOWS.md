@@ -74,6 +74,8 @@ esl shard analyze out/archive_manifest.json \
   --streamable-only \
   --summary-only \
   --frame-table-dir out/frame_tables \
+  --frame-table-parquet-dir out/frame_tables_parquet \
+  --frame-table-hdf5-dir out/frame_tables_hdf5 \
   --checkpoint-dir out/checkpoints \
   --resume
 ```
@@ -84,6 +86,7 @@ What this does:
 - writes an archive-level CSV index
 - writes an archive-level report with weighted metric means
 - supports per-shard resumable checkpoints
+- can emit appendable per-shard FrameTable CSV, Parquet-dataset, and HDF5 artifacts
 
 Artifacts:
 - `out/shard_analysis/shards/.../*.json`
@@ -125,6 +128,8 @@ esl shard analyze out/ten_year_manifest.json \
   --streamable-only \
   --summary-only \
   --frame-table-dir out/ten_year_frame_tables \
+  --frame-table-parquet-dir out/ten_year_frame_tables_parquet \
+  --frame-table-hdf5-dir out/ten_year_frame_tables_hdf5 \
   --checkpoint-dir out/ten_year_checkpoints \
   --resume
 ```
@@ -154,8 +159,41 @@ For long deployments:
 - use `--streamable-only`
 - use `--summary-only`
 - use `--frame-table-dir` if you want downstream frame-wise ML/statistics
+- add `--frame-table-parquet-dir` when you want appendable Parquet datasets
+- add `--frame-table-hdf5-dir` when you want a resizable HDF5 FrameTable per shard
 - use `--checkpoint-dir --resume`
 - avoid `--allow-full-read` unless you intentionally want per-shard full-context metrics
+
+## Archive-Level Moments
+
+Use `shard moments` when you want one ranked event list across the whole manifest timeline:
+
+```bash
+esl shard moments out/ten_year_manifest.json \
+  --out out/ten_year_moments \
+  --top-k 33 \
+  --rank-metric novelty_curve \
+  --rank-scope downmix \
+  --window-before 30 \
+  --window-after 90
+```
+
+This writes:
+- `out/ten_year_moments/moments.csv`
+- `out/ten_year_moments/archive_moments_report.json`
+- `out/ten_year_moments/clips/moment_*.wav`
+
+If you want ranking driven by the strongest source channel instead of the downmix:
+
+```bash
+esl shard moments out/ten_year_manifest.json \
+  --out out/ten_year_moments_per_channel \
+  --top-k 33 \
+  --rank-metric novelty_curve \
+  --rank-scope per_channel_max \
+  --window-before 30 \
+  --window-after 90
+```
 
 ## Related docs
 

@@ -22,6 +22,8 @@ def test_analyzer_emits_runtime_metadata(tmp_path: Path) -> None:
     assert isinstance(result.get("library_versions"), dict)
     meta = result["metadata"]
     assert meta.get("channel_layout_hint") in {"mono", "stereo", "multichannel", "ambisonic_b_format"}
+    assert isinstance(meta.get("spatial_metadata"), dict)
+    assert meta["spatial_metadata"]["layout_hint"] == meta.get("channel_layout_hint")
     assert isinstance(meta.get("runtime"), dict)
     assert "python" in meta["runtime"]
     assert isinstance(meta.get("decoder"), dict)

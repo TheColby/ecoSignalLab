@@ -436,6 +436,183 @@ class FrameTableCsvWriter:
         self._writer = None
 
 
+class _FrameTableChunkRowsMixin:
+    def _rows(self, metric_results: dict[str, MetricResult], chunk_offset_s: float) -> list[dict[str, Any]]:
+        feature_names = sorted(
+            name for name, result in metric_results.items() if result.series and result.timestamps_s
+        )
+        if not feature_names:
+            return []
+        time_rows: dict[float, dict[str, Any]] = {}
+        for name in feature_names:
+            result = metric_results[name]
+            for t, value in zip(result.timestamps_s, result.series):
+                abs_t = float(chunk_offset_s + float(t))
+                row = time_rows.setdefault(abs_t, {"timestamp_s": abs_t})
+                row[name] = float(value)
+        return [time_rows[t] for t in sorted(time_rows)]
+
+
+class FrameTableParquetDatasetWriter(_FrameTableChunkRowsMixin):
+    """Append FrameTable chunks as a Parquet dataset directory.
+
+    Each appended chunk is written as one `part-*.parquet` file. This keeps the
+    write path resumable without rewriting a monolithic Parquet file.
+    """
+
+    def __init__(self, path: str | Path, *, append: bool = False) -> None:
+        self.path = Path(path)
+        self.path.mkdir(parents=True, exist_ok=True)
+        self._append = append
+        self._fieldnames: list[str] | None = None
+        self._available = True
+        self._error: str | None = None
+        existing = sorted(self.path.glob("part-*.parquet")) if append else []
+        self._part_index = len(existing)
+
+    def append_chunk(self, metric_results: dict[str, MetricResult], chunk_offset_s: float) -> None:
+        rows = self._rows(metric_results=metric_results, chunk_offset_s=chunk_offset_s)
+        if not rows:
+            return
+        fieldnames = ["timestamp_s", *sorted(name for name in metric_results.keys() if metric_results[name].series)]
+        self._fieldnames = fieldnames
+        try:
+            import pandas as pd
+        except Exception as exc:
+            self._available = False
+            self._error = f"Parquet FrameTable export requires pandas and pyarrow/fastparquet: {exc}"
+            return
+
+        part_path = self.path / f"part-{self._part_index:08d}.parquet"
+        self._part_index += 1
+        df = pd.DataFrame.from_records(rows, columns=fieldnames)
+        try:
+            df.to_parquet(part_path, index=False)
+        except Exception as exc:
+            self._available = False
+            self._error = str(exc)
+            return
+
+    def metadata_payload(
+        self,
+        *,
+        frame_size: int,
+        hop_size: int,
+        source_channels: int,
+        esl_version: str,
+    ) -> dict[str, Any]:
+        payload = {
+            "frame_table_version": FRAMETABLE_VERSION,
+            "storage_kind": "parquet_dataset_directory",
+            "frame_size": int(frame_size),
+            "hop_size": int(hop_size),
+            "source_channels": int(source_channels),
+            "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+            "tensor_layout": "[channels, frames, features]",
+            "channel_feature_mode": "aggregate_mixdown",
+            "esl_version": esl_version,
+            "columns": self._fieldnames or ["timestamp_s"],
+            "available": bool(self._available),
+            "error": self._error,
+        }
+        (self.path / "metadata.json").write_text(json.dumps(canonicalize(payload), indent=2), encoding="utf-8")
+        return payload
+
+    def close(self) -> None:
+        return None
+
+
+class FrameTableHdf5Writer(_FrameTableChunkRowsMixin):
+    """Append FrameTable rows into a single resizable HDF5 file."""
+
+    def __init__(self, path: str | Path, *, append: bool = False) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._append = append
+        self._fieldnames: list[str] | None = None
+        self._file: Any | None = None
+
+    def _open(self) -> Any:
+        if self._file is not None:
+            return self._file
+        try:
+            import h5py
+        except Exception as exc:
+            raise RuntimeError("HDF5 FrameTable export requires h5py") from exc
+        mode = "a" if self._append and self.path.exists() else "w"
+        self._file = h5py.File(self.path, mode)
+        return self._file
+
+    def append_chunk(self, metric_results: dict[str, MetricResult], chunk_offset_s: float) -> None:
+        rows = self._rows(metric_results=metric_results, chunk_offset_s=chunk_offset_s)
+        if not rows:
+            return
+        fieldnames = ["timestamp_s", *sorted(name for name in metric_results.keys() if metric_results[name].series)]
+        h5 = self._open()
+        data_rows = np.array(
+            [[float(row.get(name, np.nan)) for name in fieldnames[1:]] for row in rows],
+            dtype=np.float64,
+        )
+        timestamps = np.array([float(row["timestamp_s"]) for row in rows], dtype=np.float64)
+        self._fieldnames = fieldnames
+
+        cols_json = json.dumps(fieldnames[1:])
+        if "feature_names_json" in h5.attrs:
+            if str(h5.attrs["feature_names_json"]) != cols_json:
+                raise RuntimeError("FrameTable HDF5 columns changed across appended chunks.")
+        else:
+            h5.attrs["feature_names_json"] = cols_json
+
+        if "timestamps_s" not in h5:
+            h5.create_dataset("timestamps_s", data=timestamps, maxshape=(None,), dtype="f8")
+            h5.create_dataset(
+                "values",
+                data=data_rows,
+                maxshape=(None, data_rows.shape[1]),
+                dtype="f8",
+            )
+        else:
+            ts_ds = h5["timestamps_s"]
+            val_ds = h5["values"]
+            old = int(ts_ds.shape[0])
+            new = old + int(timestamps.shape[0])
+            ts_ds.resize((new,))
+            ts_ds[old:new] = timestamps
+            val_ds.resize((new, data_rows.shape[1]))
+            val_ds[old:new, :] = data_rows
+        h5.flush()
+
+    def metadata_payload(
+        self,
+        *,
+        frame_size: int,
+        hop_size: int,
+        source_channels: int,
+        esl_version: str,
+    ) -> dict[str, Any]:
+        payload = {
+            "frame_table_version": FRAMETABLE_VERSION,
+            "storage_kind": "hdf5_resizable_dataset",
+            "frame_size": int(frame_size),
+            "hop_size": int(hop_size),
+            "source_channels": int(source_channels),
+            "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+            "tensor_layout": "[channels, frames, features]",
+            "channel_feature_mode": "aggregate_mixdown",
+            "esl_version": esl_version,
+            "columns": self._fieldnames or ["timestamp_s"],
+        }
+        h5 = self._open()
+        h5.attrs["frame_table_metadata_json"] = json.dumps(canonicalize(payload))
+        h5.flush()
+        return payload
+
+    def close(self) -> None:
+        if self._file is not None:
+            self._file.close()
+        self._file = None
+
+
 def save_checkpoint(path: str | Path, payload: dict[str, Any]) -> Path:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)

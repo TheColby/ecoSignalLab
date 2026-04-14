@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from pathlib import Path
 
 import numpy as np
@@ -85,6 +86,35 @@ def test_chunked_analyze_writes_frame_table_csv_and_checkpoint(tmp_path: Path) -
     checkpoint_file = checkpoint_dir / "analysis_state.json"
     assert checkpoint_file.exists()
     assert result["artifacts"]["frame_table_csv"] == str(frame_csv.resolve())
+
+
+def test_chunked_analyze_writes_frame_table_parquet_and_hdf5(tmp_path: Path) -> None:
+    sr = 16_000
+    t = np.arange(sr, dtype=np.float64) / sr
+    x = 0.1 * np.sin(2.0 * np.pi * 220.0 * t)
+    wav = _write_wav(tmp_path / "in.wav", x, sr)
+    frame_parquet_dir = tmp_path / "frame_table.parquet"
+    frame_hdf5 = tmp_path / "frame_table.h5"
+
+    result = analyze(
+        AnalysisConfig(
+            input_path=wav,
+            output_dir=tmp_path,
+            metrics=["rms_dbfs", "novelty_curve"],
+            chunk_size=4000,
+            summary_only=True,
+            frame_table_parquet_dir=frame_parquet_dir,
+            frame_table_hdf5=frame_hdf5,
+            verbosity=0,
+        )
+    )
+    assert frame_parquet_dir.exists()
+    assert frame_hdf5.exists()
+    assert result["artifacts"]["frame_table_hdf5"] == str(frame_hdf5.resolve())
+    if importlib.util.find_spec("pyarrow") is not None or importlib.util.find_spec("fastparquet") is not None:
+        assert any(frame_parquet_dir.glob("part-*.parquet"))
+        assert (frame_parquet_dir / "metadata.json").exists()
+        assert result["artifacts"]["frame_table_parquet_dir"] == str(frame_parquet_dir.resolve())
 
 
 def test_stream_resume_appends_jsonl_and_moments_can_read_it(tmp_path: Path) -> None:

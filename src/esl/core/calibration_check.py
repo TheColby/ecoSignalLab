@@ -7,12 +7,14 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+import tempfile
 from typing import Any
 
 import numpy as np
+import soundfile as sf
 
 from esl.core.audio import read_audio
-from esl.core.calibration import db, dbfs_to_pa, precision_chain_available
+from esl.core.calibration import db, dbfs_to_pa, pa_to_dbfs, precision_chain_available
 from esl.core.config import CalibrationProfile
 
 
@@ -31,6 +33,41 @@ class CalibrationCheckConfig:
     history_csv: Path | None = None
     max_drift_db: float = 1.0
     sample_rate: int | None = None
+
+
+REFERENCE_FIXTURES: dict[str, dict[str, float | str]] = {
+    "sine_1khz_minus20dbfs": {
+        "frequency_hz": 1000.0,
+        "duration_s": 1.0,
+        "sample_rate": 48000.0,
+        "dbfs_rms": -20.0,
+        "weighting": "Z",
+    },
+    "sine_1khz_minus26dbfs": {
+        "frequency_hz": 1000.0,
+        "duration_s": 1.0,
+        "sample_rate": 48000.0,
+        "dbfs_rms": -26.0,
+        "weighting": "Z",
+    },
+}
+
+
+@dataclass(slots=True)
+class CalibrationVerifyConfig:
+    fixture: str
+    output_path: Path
+    calibration_profile: CalibrationProfile | None = None
+    max_abs_error_db: float = 0.25
+    write_tone_path: Path | None = None
+
+
+def _fixture_signal(dbfs_rms: float, frequency_hz: float, duration_s: float, sample_rate: int) -> np.ndarray:
+    n = max(int(round(duration_s * sample_rate)), 1)
+    t = np.arange(n, dtype=np.float64) / float(sample_rate)
+    rms_lin = float(np.power(10.0, float(dbfs_rms) / 20.0))
+    peak = min(float(np.sqrt(2.0) * rms_lin), 0.999999)
+    return (peak * np.sin(2.0 * np.pi * float(frequency_hz) * t)).astype(np.float32)
 
 
 def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, Any], bool]:
@@ -142,3 +179,88 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
             )
 
     return cfg.output_path, report, within_tolerance
+
+
+def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str, Any], bool]:
+    """Verify the calibration/check path against a deterministic synthetic reference fixture."""
+    fixture = REFERENCE_FIXTURES.get(cfg.fixture)
+    if fixture is None:
+        raise ValueError(f"Unknown calibration reference fixture: {cfg.fixture}")
+
+    dbfs_rms = float(fixture["dbfs_rms"])
+    sr = int(fixture["sample_rate"])
+    signal = _fixture_signal(
+        dbfs_rms=dbfs_rms,
+        frequency_hz=float(fixture["frequency_hz"]),
+        duration_s=float(fixture["duration_s"]),
+        sample_rate=sr,
+    )
+
+    tone_path = cfg.write_tone_path
+    cleanup_path: Path | None = None
+    if tone_path is None:
+        tmp_dir = Path(tempfile.mkdtemp(prefix="esl_cal_verify_"))
+        cleanup_path = tmp_dir
+        tone_path = tmp_dir / f"{cfg.fixture}.wav"
+    tone_path.parent.mkdir(parents=True, exist_ok=True)
+    sf.write(tone_path, signal, sr, subtype="FLOAT")
+
+    profile = cfg.calibration_profile or CalibrationProfile(
+        dbfs_reference=dbfs_rms,
+        spl_reference_db=94.0,
+        weighting=str(fixture.get("weighting", "Z")).upper(),
+    )
+    check_report_path = cfg.output_path.with_name(cfg.output_path.stem + ".check.json")
+    _, check_report, within = run_calibration_check(
+        CalibrationCheckConfig(
+            tone_path=tone_path,
+            output_path=check_report_path,
+            dbfs_reference=float(profile.dbfs_reference),
+            spl_reference_db=float(profile.spl_reference_db),
+            weighting=str(profile.weighting),
+            mic_sensitivity_mv_pa=profile.mic_sensitivity_mv_pa,
+            preamp_gain_db=profile.preamp_gain_db,
+            adc_full_scale_vrms=profile.adc_full_scale_vrms,
+            calibration_profile=profile,
+            max_drift_db=float(cfg.max_abs_error_db),
+            sample_rate=sr,
+        )
+    )
+
+    measured_dbfs = float(check_report["measured_dbfs"])
+    abs_error_db = abs(measured_dbfs - dbfs_rms)
+    pressure_chain_error_db: float | None = None
+    if precision_chain_available(profile):
+        pa_ref = float(dbfs_to_pa(dbfs_rms, profile))
+        dbfs_back = float(pa_to_dbfs(pa_ref, profile))
+        pressure_chain_error_db = abs(dbfs_back - dbfs_rms)
+
+    verify_report = {
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "fixture": cfg.fixture,
+        "tone_path": str(tone_path.resolve()),
+        "expected_dbfs_rms": dbfs_rms,
+        "measured_dbfs_rms": measured_dbfs,
+        "abs_error_db": abs_error_db,
+        "max_abs_error_db": float(cfg.max_abs_error_db),
+        "within_tolerance": bool(abs_error_db <= float(cfg.max_abs_error_db) and within),
+        "pressure_chain_error_db": pressure_chain_error_db,
+        "calibration_profile": {
+            "dbfs_reference": profile.dbfs_reference,
+            "spl_reference_db": profile.spl_reference_db,
+            "weighting": profile.weighting,
+            "mic_sensitivity_mv_pa": profile.mic_sensitivity_mv_pa,
+            "preamp_gain_db": profile.preamp_gain_db,
+            "adc_full_scale_vrms": profile.adc_full_scale_vrms,
+        },
+        "check_report_path": str(check_report_path.resolve()),
+    }
+    cfg.output_path.write_text(json.dumps(verify_report, indent=2), encoding="utf-8")
+    if cleanup_path is not None and cfg.write_tone_path is None:
+        # Keep the synthesized fixture only when the user asked for it.
+        try:
+            tone_path.unlink(missing_ok=True)
+            cleanup_path.rmdir()
+        except Exception:
+            pass
+    return cfg.output_path, verify_report, bool(verify_report["within_tolerance"])

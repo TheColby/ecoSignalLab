@@ -20,6 +20,8 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import resample_poly
 
+from esl.core.spatial_metadata import infer_spatial_metadata
+
 
 SUPPORTED_NATIVE_EXT = {".wav", ".flac", ".aiff", ".aif", ".rf64", ".caf"}
 SUPPORTED_COMPRESSED_EXT = {".mp3", ".aac", ".ogg", ".opus", ".wma", ".alac", ".m4a"}
@@ -291,6 +293,11 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
 
     if ext in SUPPORTED_SPATIAL_EXT:
         sofa = load_sofa(p)
+        spatial = infer_spatial_metadata(
+            int(sofa.ir.shape[1]),
+            p,
+            source_channel_layout=None,
+        ).to_dict()
         payload.update(
             {
                 "sample_rate": int(sofa.sample_rate),
@@ -307,12 +314,19 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
                     "ffmpeg_version": None,
                     "ffprobe": None,
                 },
+                "channel_layout_hint": spatial["layout_hint"],
+                "spatial_metadata": spatial,
             }
         )
         return payload
 
     try:
         info = sf.info(str(p))
+        spatial = infer_spatial_metadata(
+            int(info.channels),
+            p,
+            source_channel_layout=None,
+        ).to_dict()
         payload.update(
             {
                 "sample_rate": int(info.samplerate),
@@ -329,11 +343,18 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
                     "ffmpeg_version": None,
                     "ffprobe": None,
                 },
+                "channel_layout_hint": spatial["layout_hint"],
+                "spatial_metadata": spatial,
             }
         )
         return payload
     except Exception:
         probe = _ffprobe_summary(p)
+        spatial = infer_spatial_metadata(
+            int(probe["channels"]),
+            p,
+            source_channel_layout=(str(probe.get("channel_layout")) if probe.get("channel_layout") is not None else None),
+        ).to_dict()
         payload.update(
             {
                 "sample_rate": int(probe["sample_rate"]),
@@ -354,6 +375,8 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
                     "ffmpeg_version": _ffmpeg_version(),
                     "ffprobe": probe,
                 },
+                "channel_layout_hint": spatial["layout_hint"],
+                "spatial_metadata": spatial,
             }
         )
         return payload
@@ -472,14 +495,7 @@ def stream_audio(
 
 def detect_signal_layout(channels: int, source_path: str | Path) -> str:
     """Classify high-level channel layout hints."""
-    if channels == 1:
-        return "mono"
-    p = str(source_path).lower()
-    if channels == 4 and any(token in p for token in ("ambi", "bformat", "ambisonic")):
-        return "ambisonic_b_format"
-    if channels > 2:
-        return "multichannel"
-    return "stereo"
+    return infer_spatial_metadata(channels, source_path).layout_hint
 
 
 def iter_supported_files(root: str | Path, patterns: Iterable[str], recursive: bool = True) -> list[Path]:
