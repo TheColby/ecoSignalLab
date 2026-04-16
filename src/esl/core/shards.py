@@ -15,6 +15,13 @@ from pathlib import Path
 from typing import Any
 
 from esl.core import AnalysisConfig, analyze, load_calibration
+from esl.core.similarity import (
+    SimilaritySearchConfig,
+    _aggregate_feature_vector,
+    _distance,
+    _metric_vector,
+    _mode as _similarity_mode,
+)
 from esl.core.audio import iter_supported_files, probe_audio_metadata
 from esl.core.moments import (
     _clip_with_ffmpeg,
@@ -31,6 +38,7 @@ from esl.core.moments import (
 from esl.core.streaming import StreamRunConfig, run_stream_analysis
 from esl.io import save_json
 from esl.metrics.registry import create_registry
+from esl.viz.feature_vectors import extract_feature_vectors
 
 
 SHARD_MANIFEST_VERSION = "1.0.0"
@@ -128,6 +136,27 @@ class ShardMomentsConfig:
     resume: bool = False
     force_stream: bool = False
     report_path: Path | None = None
+
+
+@dataclass(slots=True)
+class ShardSimilarConfig:
+    manifest_path: Path
+    query_path: Path
+    output_dir: Path
+    top_k: int = 5
+    mode: str = "auto"
+    metric: str = "novelty_curve"
+    metrics: list[str] = field(default_factory=list)
+    distance: str = "cosine"
+    feature_set: str = "auto"
+    frame_size: int = 1024
+    hop_size: int = 256
+    sample_rate: int | None = None
+    normalize: bool = True
+    calibration_path: str | None = None
+    seed: int = 42
+    include_query_if_present: bool = False
+    max_shards: int | None = None
 
 
 def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]]:
@@ -401,6 +430,249 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
 def _stream_report_path(stream_root: Path, relative_path: str) -> Path:
     rel = Path(relative_path)
     return (stream_root / rel.parent / rel.stem / "stream_report.json").resolve()
+
+
+def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]:
+    """Rank manifest shards by similarity to a query file."""
+    manifest = load_shard_manifest(cfg.manifest_path)
+    items = [item for item in manifest.get("items", []) if isinstance(item, dict)]
+    if not items:
+        raise RuntimeError(f"No shard items found in manifest: {cfg.manifest_path}")
+    if not cfg.query_path.exists():
+        raise FileNotFoundError(f"Query file not found: {cfg.query_path}")
+    if int(cfg.top_k) < 1:
+        raise ValueError("top_k must be >= 1")
+
+    if cfg.max_shards is not None and int(cfg.max_shards) >= 0:
+        items = items[: int(cfg.max_shards)]
+
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    calibration = load_calibration(cfg.calibration_path) if cfg.calibration_path else None
+    selected_mode = _similarity_mode(
+        SimilaritySearchConfig(
+            input_path=cfg.query_path,
+            corpus_dir=cfg.output_dir,
+            output_dir=cfg.output_dir,
+            mode=cfg.mode,
+        )
+    )
+
+    skipped: list[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
+    query_payload: dict[str, Any]
+
+    if selected_mode == "feature":
+        query_fv = extract_feature_vectors(
+            cfg.query_path,
+            feature_set=cfg.feature_set,
+            frame_size=cfg.frame_size,
+            hop_size=cfg.hop_size,
+            sample_rate=cfg.sample_rate,
+        )
+        query_vec = _aggregate_feature_vector(query_fv.matrix)
+        query_payload = {
+            "path": str(cfg.query_path.resolve()),
+            "feature_backend": query_fv.backend,
+            "num_frames": int(query_fv.matrix.shape[0]),
+            "num_features": int(query_fv.matrix.shape[1]),
+        }
+
+        for item in items:
+            shard_path = Path(str(item["path"]))
+            if not cfg.include_query_if_present and shard_path.resolve() == cfg.query_path.resolve():
+                continue
+            try:
+                fv = extract_feature_vectors(
+                    shard_path,
+                    feature_set=cfg.feature_set,
+                    frame_size=cfg.frame_size,
+                    hop_size=cfg.hop_size,
+                    sample_rate=cfg.sample_rate,
+                )
+                shard_vec = _aggregate_feature_vector(fv.matrix)
+                dist, sim = _distance(query_vec, shard_vec, cfg.distance)
+                rows.append(
+                    {
+                        "path": str(shard_path.resolve()),
+                        "relative_path": str(item.get("relative_path") or shard_path.name),
+                        "shard_index": int(item.get("shard_index", -1)),
+                        "archive_start_s": float(item.get("start_s") or 0.0),
+                        "archive_end_s": float(item.get("end_s") or 0.0),
+                        "duration_s": float(item.get("duration_s") or 0.0),
+                        "channels": int(item.get("channels") or 0),
+                        "sample_rate": int(item.get("sample_rate") or 0),
+                        "distance": float(dist),
+                        "similarity": float(sim),
+                        "distance_kind": cfg.distance,
+                        "feature_backend": fv.backend,
+                        "num_frames": int(fv.matrix.shape[0]),
+                        "num_features": int(fv.matrix.shape[1]),
+                    }
+                )
+            except Exception as exc:
+                skipped.append({"path": str(shard_path.resolve()), "reason": str(exc)})
+
+        rows.sort(key=lambda r: (float(r["distance"]), str(r["path"])))
+        rows = rows[: max(1, int(cfg.top_k))]
+        for idx, row in enumerate(rows, start=1):
+            row["rank"] = idx
+        body = {
+            "mode": "feature",
+            "feature_set": cfg.feature_set,
+            "distance": cfg.distance,
+            "query": query_payload,
+            "results": rows,
+            "skipped": skipped,
+        }
+    else:
+        metric_names = list(cfg.metrics or [])
+        if not metric_names:
+            metric_names = [cfg.metric]
+        if selected_mode == "metric":
+            metric_names = [metric_names[0]]
+
+        registry = create_registry(with_external=True)
+        query_result = analyze(
+            AnalysisConfig(
+                input_path=cfg.query_path,
+                output_dir=cfg.output_dir,
+                metrics=list(metric_names),
+                frame_size=cfg.frame_size,
+                hop_size=cfg.hop_size,
+                sample_rate=cfg.sample_rate,
+                calibration=calibration,
+                verbosity=0,
+                debug=0,
+                seed=cfg.seed,
+            ),
+            registry=registry,
+        )
+        query_vec = _metric_vector(query_result, metric_names)
+        if not all(float(v) == float(v) and abs(float(v)) != float("inf") for v in query_vec.tolist()):
+            raise RuntimeError(f"Query file has non-finite metric means for: {metric_names}")
+
+        cand_rows: list[dict[str, Any]] = []
+        cand_vecs: list[Any] = []
+        for item in items:
+            shard_path = Path(str(item["path"]))
+            if not cfg.include_query_if_present and shard_path.resolve() == cfg.query_path.resolve():
+                continue
+            try:
+                result = analyze(
+                    AnalysisConfig(
+                        input_path=shard_path,
+                        output_dir=cfg.output_dir,
+                        metrics=list(metric_names),
+                        frame_size=cfg.frame_size,
+                        hop_size=cfg.hop_size,
+                        sample_rate=cfg.sample_rate,
+                        calibration=calibration,
+                        verbosity=0,
+                        debug=0,
+                        seed=cfg.seed,
+                    ),
+                    registry=registry,
+                )
+                cand_vec = _metric_vector(result, metric_names)
+                if not all(float(v) == float(v) and abs(float(v)) != float("inf") for v in cand_vec.tolist()):
+                    skipped.append({"path": str(shard_path.resolve()), "reason": "non-finite metric mean(s)"})
+                    continue
+                cand_rows.append(
+                    {
+                        "path": str(shard_path.resolve()),
+                        "relative_path": str(item.get("relative_path") or shard_path.name),
+                        "shard_index": int(item.get("shard_index", -1)),
+                        "archive_start_s": float(item.get("start_s") or 0.0),
+                        "archive_end_s": float(item.get("end_s") or 0.0),
+                        "duration_s": float(result.get("metadata", {}).get("duration_s", item.get("duration_s") or 0.0)),
+                        "channels": int(result.get("metadata", {}).get("channels", item.get("channels") or 0)),
+                        "sample_rate": int(result.get("metadata", {}).get("sample_rate", item.get("sample_rate") or 0)),
+                        "metric_means": {name: float(v) for name, v in zip(metric_names, cand_vec.tolist())},
+                    }
+                )
+                cand_vecs.append(cand_vec)
+            except Exception as exc:
+                skipped.append({"path": str(shard_path.resolve()), "reason": str(exc)})
+
+        if cand_rows:
+            import numpy as np
+            cand_mat = np.vstack(cand_vecs)
+            q_work = query_vec.copy()
+            c_work = cand_mat.copy()
+            if selected_mode == "metrics" and cfg.normalize:
+                all_mat = np.vstack([q_work[None, :], c_work])
+                mu = np.nanmean(all_mat, axis=0)
+                sigma = np.nanstd(all_mat, axis=0)
+                sigma = np.where(sigma < 1e-12, 1.0, sigma)
+                q_work = (q_work - mu) / sigma
+                c_work = (c_work - mu[None, :]) / sigma[None, :]
+
+            rows = []
+            for row, raw_vec, work_vec in zip(cand_rows, cand_mat, c_work):
+                if selected_mode == "metrics":
+                    dist, sim = _distance(q_work, work_vec, cfg.distance)
+                    dist_kind = cfg.distance
+                else:
+                    dist = float(abs(raw_vec[0] - query_vec[0]))
+                    sim = float(1.0 / (1.0 + dist))
+                    dist_kind = "abs_diff"
+                rows.append(
+                    {
+                        **row,
+                        "distance": float(dist),
+                        "similarity": float(sim),
+                        "distance_kind": dist_kind,
+                    }
+                )
+            rows.sort(key=lambda r: (float(r["distance"]), str(r["path"])))
+            rows = rows[: max(1, int(cfg.top_k))]
+            for idx, row in enumerate(rows, start=1):
+                row["rank"] = idx
+
+        body = {
+            "mode": selected_mode,
+            "metrics": metric_names,
+            "distance": cfg.distance,
+            "normalize": bool(cfg.normalize),
+            "query": {
+                "path": str(cfg.query_path.resolve()),
+                "metric_means": {name: float(v) for name, v in zip(metric_names, query_vec.tolist())},
+            },
+            "results": rows,
+            "skipped": skipped,
+        }
+
+    report = {
+        "schema_version": SHARD_MANIFEST_VERSION,
+        "manifest_path": str(Path(cfg.manifest_path).resolve()),
+        "query_path": str(cfg.query_path.resolve()),
+        "output_dir": str(cfg.output_dir.resolve()),
+        "top_k": int(cfg.top_k),
+        "mode_requested": str(cfg.mode),
+        "mode_used": body.get("mode"),
+        "distance": cfg.distance,
+        "candidates_scanned": len(items),
+        "max_shards": cfg.max_shards,
+        "include_query_if_present": bool(cfg.include_query_if_present),
+        "archive_duration_s": float(manifest.get("total_duration_s") or 0.0),
+        "archive_size_gb": float(manifest.get("total_size_gb") or 0.0),
+        "config": {
+            "feature_set": cfg.feature_set,
+            "metric": cfg.metric,
+            "metrics": cfg.metrics or [],
+            "frame_size": int(cfg.frame_size),
+            "hop_size": int(cfg.hop_size),
+            "sample_rate": cfg.sample_rate,
+            "normalize": bool(cfg.normalize),
+            "seed": int(cfg.seed),
+        },
+        **body,
+    }
+    report_path = (cfg.output_dir / f"{cfg.query_path.stem}_shard_similarity.json").resolve()
+    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report_path, report
+
+
 
 
 def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:

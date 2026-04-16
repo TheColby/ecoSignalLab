@@ -19,6 +19,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 6: Compare architectural variants](#recipe-6-compare-architectural-variants)
 - [Recipe 7: Generate DSP signal/window reference graphs](#recipe-7-generate-dsp-signalwindow-reference-graphs)
 - [Recipe 8: Find the most similar files in a folder](#recipe-8-find-the-most-similar-files-in-a-folder)
+- [Recipe 8B: Find the most similar shard in a long archive](#recipe-8b-find-the-most-similar-shard-in-a-long-archive)
 - [Recipe 9: Use minute/hour/day window flags](#recipe-9-use-minutehourday-window-flags)
 - [Recipe 10: Check your setup and file before analysis](#recipe-10-check-your-setup-and-file-before-analysis)
 - [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
@@ -256,6 +257,45 @@ Many useful options:
 Expected outputs:
 - `out/similarity.json`
 - `out/similarity.csv`
+
+## Recipe 8B: Find the most similar shard in a long archive
+
+```bash
+esl shard similar out/archive_manifest.json query.wav \
+  --out out/shard_similarity \
+  --top-k 5 \
+  --json out/shard_similarity/query_shard_similarity.json \
+  --csv out/shard_similarity/query_shard_similarity.csv
+```
+
+What this does:
+- compares one query file against each shard in a manifest
+- ranks the archive shards by similarity
+- preserves archive timeline metadata in the results
+
+How to specify what “similar” means:
+
+- default (`--mode auto`) uses feature similarity
+- single metric:
+  - `--mode metric --metric rms_dbfs`
+- multi-metric:
+  - `--mode metrics --metrics rms_dbfs,snr_db,spl_a_db,ndsi`
+- choose distance:
+  - `--distance cosine|euclidean|manhattan`
+
+Useful options:
+
+- `--feature-set auto|core|librosa|all`
+- `--frame-size`, `--hop-size`
+- `--frame-seconds`, `--hop-seconds`
+- `--sample-rate`
+- `--max-shards`
+- `--include-query`
+- `--calibration` (metric modes)
+
+Expected outputs:
+- `out/shard_similarity/query_shard_similarity.json`
+- `out/shard_similarity/query_shard_similarity.csv`
 
 ## Recipe 9: Use minute/hour/day window flags
 

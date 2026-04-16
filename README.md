@@ -62,6 +62,8 @@ esl quickstart
   - [`docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md`](docs/SIGNAL_WINDOWS_VISUAL_GUIDE.md)
 - I want to find the most similar files in a folder:
   - [`docs/SIMILARITY_SEARCH.md`](docs/SIMILARITY_SEARCH.md)
+- I want to search a long shard archive for the shards most similar to a query:
+  - [`docs/SHARD_WORKFLOWS.md#archive-level-similarity-search`](docs/SHARD_WORKFLOWS.md#archive-level-similarity-search)
 
 ## First 5 Minutes (Copy/Paste)
 
@@ -119,6 +121,7 @@ If your goal is creative transformation effects, `esl` is not the primary tool f
 - Run batch analysis over large datasets and export JSON/CSV/Parquet/HDF5/MAT.
 - Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
 - Find archive-level top-ranked events with `esl shard moments`.
+- Find the archive shards most similar to a query recording with `esl shard similar`.
 - Generate static and interactive plots, including similarity and novelty matrix views.
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.
 - Verify calibration math with deterministic reference fixtures using `esl calibrate verify`.
@@ -135,6 +138,7 @@ esl batch input_dir --out out_dir --csv --parquet --hdf5
 esl project compare --project restaurant_design --root out_dir --baseline A
 esl validate input_dir --out validation_out --rules rules.json
 esl similar query.wav corpus_dir --top-k 5 --json out/similarity.json
+esl shard similar archive_manifest.json query.wav --out out/shard_similarity --top-k 5
 ```
 
 Core goals:

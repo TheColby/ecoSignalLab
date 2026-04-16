@@ -195,9 +195,95 @@ esl shard moments out/ten_year_manifest.json \
   --window-after 90
 ```
 
+## Archive-Level Similarity Search
+
+Use `shard similar` when you want to ask:
+
+- which shard sounds most like this query clip?
+- which day/hour in my archive matches a known reference sound?
+- which deployment period is closest to a target acoustic state?
+
+Quick start:
+
+```bash
+esl shard similar out/ten_year_manifest.json query.wav \
+  --out out/shard_similarity \
+  --top-k 5 \
+  --json out/shard_similarity/query_shard_similarity.json \
+  --csv out/shard_similarity/query_shard_similarity.csv
+```
+
+This writes:
+
+- `out/shard_similarity/query_shard_similarity.json`
+- `out/shard_similarity/query_shard_similarity.csv`
+
+What gets ranked:
+
+- each manifest item is treated as one candidate shard
+- the query file is compared against each shard
+- results preserve archive timeline metadata:
+  - `shard_index`
+  - `relative_path`
+  - `archive_start_s`
+  - `archive_end_s`
+
+Plain English: this tells you which shard is most like your query, and also where that shard sits in the full archive timeline.
+
+### Feature mode
+
+```bash
+esl shard similar out/ten_year_manifest.json query.wav \
+  --out out/shard_similarity \
+  --mode feature \
+  --feature-set all \
+  --distance cosine \
+  --top-k 10
+```
+
+### Single-metric mode
+
+```bash
+esl shard similar out/ten_year_manifest.json query.wav \
+  --out out/shard_similarity_metric \
+  --mode metric \
+  --metric rms_dbfs \
+  --top-k 10
+```
+
+### Multi-metric mode
+
+```bash
+esl shard similar out/ten_year_manifest.json query.wav \
+  --out out/shard_similarity_metrics \
+  --mode metrics \
+  --metrics rms_dbfs,snr_db,spl_a_db,ndsi \
+  --distance euclidean \
+  --normalize \
+  --top-k 10
+```
+
+Useful options:
+
+- `--max-shards N`
+- `--include-query`
+- `--frame-size`, `--hop-size`
+- `--frame-seconds`, `--hop-seconds`
+- `--sample-rate`
+- `--calibration` for metric modes
+
+Where:
+
+- \(x_q\) is the query vector
+- \(x_i\) is shard \(i\)'s vector
+- \(d(x_q, x_i)\) is the chosen distance
+
+Plain English: smaller distance means “more like the query.”
+
 ## Related docs
 
 - [RF64 and Large Files](RF64_AND_LARGE_FILES.md)
 - [Task Recipes](TASK_RECIPES.md)
 - [Schema](SCHEMA.md)
 - [ML Features](ML_FEATURES.md)
+- [Similarity Search](SIMILARITY_SEARCH.md)

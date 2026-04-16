@@ -971,6 +971,119 @@ def _run_shard_moments(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_shard_similar(args: argparse.Namespace) -> int:
+    from esl.core.shards import ShardSimilarConfig, load_shard_manifest, run_shard_similarity
+
+    manifest_path = Path(args.manifest)
+    query_path = Path(args.query)
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Shard manifest not found: {manifest_path}")
+    if not query_path.exists():
+        raise FileNotFoundError(f"Query file not found: {query_path}")
+
+    manifest = load_shard_manifest(manifest_path)
+    duration_flags_used = any(
+        getattr(args, name, None) is not None for name in ("frame_seconds", "hop_seconds")
+    )
+    if args.sample_rate is None and duration_flags_used:
+        rates = {
+            int(item["sample_rate"])
+            for item in manifest.get("items", [])
+            if isinstance(item, dict) and isinstance(item.get("sample_rate"), int)
+        }
+        if len(rates) == 1:
+            args.sample_rate = rates.pop()
+        elif len(rates) > 1:
+            raise ValueError(
+                "Duration-based window flags on a shard manifest with mixed sample rates require --sample-rate explicitly."
+            )
+
+    frame_size, hop_size, _, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=query_path,
+        default_frame_size=1024,
+        default_hop_size=256,
+        default_chunk_size=None,
+    )
+    report_path, report = run_shard_similarity(
+        ShardSimilarConfig(
+            manifest_path=manifest_path,
+            query_path=query_path,
+            output_dir=Path(args.out),
+            top_k=int(args.top_k),
+            mode=str(args.mode),
+            metric=str(args.metric),
+            metrics=_metric_list(args.metrics),
+            distance=str(args.distance),
+            feature_set=str(args.feature_set),
+            frame_size=int(frame_size or 1024),
+            hop_size=int(hop_size or 256),
+            sample_rate=resolved_sr,
+            normalize=bool(args.normalize),
+            calibration_path=args.calibration,
+            seed=int(args.seed),
+            include_query_if_present=bool(args.include_query),
+            max_shards=args.max_shards,
+        )
+    )
+
+    json_path = Path(args.json) if args.json else report_path
+    if json_path != report_path:
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    if args.csv:
+        csv_path = Path(args.csv)
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with csv_path.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "rank",
+                    "shard_index",
+                    "relative_path",
+                    "path",
+                    "archive_start_s",
+                    "archive_end_s",
+                    "distance",
+                    "similarity",
+                    "distance_kind",
+                    "duration_s",
+                    "channels",
+                    "sample_rate",
+                    "metric_means_json",
+                ],
+            )
+            writer.writeheader()
+            for row in report.get("results", []):
+                writer.writerow(
+                    {
+                        "rank": row.get("rank"),
+                        "shard_index": row.get("shard_index"),
+                        "relative_path": row.get("relative_path"),
+                        "path": row.get("path"),
+                        "archive_start_s": row.get("archive_start_s"),
+                        "archive_end_s": row.get("archive_end_s"),
+                        "distance": row.get("distance"),
+                        "similarity": row.get("similarity"),
+                        "distance_kind": row.get("distance_kind"),
+                        "duration_s": row.get("duration_s"),
+                        "channels": row.get("channels"),
+                        "sample_rate": row.get("sample_rate"),
+                        "metric_means_json": json.dumps(row.get("metric_means", {}), sort_keys=True),
+                    }
+                )
+    if int(args.verbosity) >= 1:
+        print(f"shard_similarity_json: {json_path}")
+        if args.csv:
+            print(f"shard_similarity_csv: {args.csv}")
+        for row in report.get("results", []):
+            print(
+                f"#{row.get('rank')} shard={row.get('relative_path')} "
+                f"dist={float(row.get('distance', 0.0)):.6f} sim={float(row.get('similarity', 0.0)):.6f}"
+            )
+    return 0
+
+
 def _run_spatial_analyze(args: argparse.Namespace) -> int:
     from esl.core.spatial import (
         SPATIAL_DEFAULT_METRICS,
@@ -2347,6 +2460,60 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_mom.add_argument("--resume", action="store_true", help="Resume shard stream passes if checkpoints are present")
     psh_mom.add_argument("--report", default=None, help="Output archive moments report JSON path")
     psh_mom.set_defaults(func=_run_shard_moments)
+
+    psh_sim = psh_sub.add_parser("similar", help="Find the most similar shards in an ordered archive manifest")
+    psh_sim.add_argument("manifest", help="Path to shard manifest JSON")
+    psh_sim.add_argument("query", help="Query input audio file")
+    psh_sim.add_argument("--out", required=True, help="Output directory for shard similarity products")
+    psh_sim.add_argument("--top-k", type=int, default=5, help="Number of most-similar shards to report")
+    psh_sim.add_argument(
+        "--mode",
+        default="auto",
+        choices=["auto", "feature", "metric", "metrics"],
+        help="Similarity mode: auto(feature), feature, metric(single), or metrics(multi)",
+    )
+    psh_sim.add_argument("--metric", default="novelty_curve", help="Single metric ID for --mode metric")
+    psh_sim.add_argument("--metrics", default=None, help="Comma-separated metric IDs for --mode metrics")
+    psh_sim.add_argument(
+        "--distance",
+        default="cosine",
+        choices=["cosine", "euclidean", "manhattan"],
+        help="Distance function for feature/multi-metric similarity",
+    )
+    psh_sim.add_argument(
+        "--feature-set",
+        default="auto",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature extraction set for feature mode: auto|core|librosa|all",
+    )
+    psh_sim.add_argument("--frame-size", type=int, default=1024, help="Frame size in samples")
+    psh_sim.add_argument("--hop-size", type=int, default=256, help="Hop size in samples")
+    psh_sim.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
+    psh_sim.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psh_sim.add_argument("--sample-rate", type=int, default=None)
+    psh_sim.add_argument("--normalize", dest="normalize", action="store_true", default=True, help="Normalize multi-metric vectors before distance")
+    psh_sim.add_argument("--no-normalize", dest="normalize", action="store_false", help="Disable multi-metric normalization")
+    psh_sim.add_argument("--calibration", default=None, help="Calibration YAML/JSON path (used for metric-based modes)")
+    psh_sim.add_argument("--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates")
+    psh_sim.add_argument("--include-query", action="store_true", help="Allow the query file to appear in results if it is also a shard")
+    psh_sim.add_argument("--json", default=None, help="Output JSON path (default: <out>/<query_stem>_shard_similarity.json)")
+    psh_sim.add_argument("--csv", default=None, help="Optional CSV output path")
+    psh_sim.add_argument("--seed", type=int, default=42)
+    psh_sim.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    psh_sim.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal traces",
+    )
+    psh_sim.set_defaults(func=_run_shard_similar)
 
     # project
     pproj = sub.add_parser("project", help="Project mode reports and comparisons")

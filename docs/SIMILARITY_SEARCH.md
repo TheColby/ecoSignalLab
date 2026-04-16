@@ -4,6 +4,8 @@ Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [T
 
 `esl similar` finds the most similar files in a folder given one input query file.
 
+If your corpus is a long archive represented by a shard manifest, use [`esl shard similar`](SHARD_WORKFLOWS.md#archive-level-similarity-search) instead.
+
 ## Quick Start (Default)
 
 ```bash

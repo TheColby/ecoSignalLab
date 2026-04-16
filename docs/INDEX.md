@@ -47,6 +47,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
   - [Novelty and Anomaly](NOVELTY_ANOMALY.md)
   - [Moments Extraction](MOMENTS_EXTRACTION.md)
   - [Similarity Search](SIMILARITY_SEARCH.md)
+  - [Shard Workflows](SHARD_WORKFLOWS.md)
 - Metrics and schema:
   - [Metrics Reference](METRICS_REFERENCE.md)
   - [Schema Contract](SCHEMA.md)

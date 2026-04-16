@@ -2,7 +2,24 @@
 
 Quick links: [README](README.md) | [Docs Index](docs/INDEX.md) | [Task Recipes](docs/TASK_RECIPES.md) | [Schema](docs/SCHEMA.md) | [Metrics](docs/METRICS_REFERENCE.md)
 
-This roadmap reflects the current `esl` direction after long-file support, moments extraction, shard workflows, and the first public release hardening pass.
+This roadmap reflects the current `esl` direction after long-file support, moments extraction, shard workflows, shard-level similarity search, and the first public release hardening pass.
+
+## Snapshot
+
+What already exists now:
+
+- `esl shard index`
+- `esl shard analyze`
+- `esl shard moments`
+- `esl shard similar`
+- appendable `FrameTable` sidecars:
+  - CSV
+  - Parquet dataset directory
+  - HDF5
+- calibration verification fixtures with `esl calibrate verify`
+- structured spatial / Ambisonics-aware metadata in analysis outputs
+
+Plain English: we are no longer at the “can this open a big file?” stage. We are at the “can this run long archives in a way that is boringly reliable?” stage.
 
 ## Near Term
 
@@ -34,8 +51,10 @@ This roadmap reflects the current `esl` direction after long-file support, momen
 - `esl shard index`
 - `esl shard analyze`
 - `esl shard moments`
+- `esl shard similar`
 - resumable stream passes
 - archive-level top-k novelty/event extraction
+- archive-level query-to-shard retrieval
 - appendable FrameTable exports
 
 ### 2. Multichannel / Spatial
@@ -70,10 +89,11 @@ This roadmap reflects the current `esl` direction after long-file support, momen
 
 ### 30 Days
 
-- stabilize shard moments
-- finish appendable FrameTable exports
+- stabilize shard moments and shard similarity
+- finish appendable FrameTable export ergonomics
 - improve docs and examples for huge archives
 - increase regression coverage around ranking semantics
+- add retrieval examples for “which day/hour sounds like this?”
 
 ### 60 Days
 
@@ -81,6 +101,7 @@ This roadmap reflects the current `esl` direction after long-file support, momen
 - expand calibration verification fixtures
 - improve Parquet/HDF5 downstream ergonomics
 - add more archive-scale overview plots
+- add query-to-event retrieval beyond whole-shard retrieval
 
 ### 90 Days
 
@@ -94,3 +115,11 @@ This roadmap reflects the current `esl` direction after long-file support, momen
 `esl` should keep getting better at one thing in particular:
 
 turning very large, messy, multichannel acoustic recordings into reproducible, inspectable, ML-ready knowledge without pretending they are small files.
+
+## Next 5 Concrete Builds
+
+1. spatial-aware shard retrieval, not just whole-shard similarity
+2. stronger Ambisonics channel-order / normalization metadata contracts
+3. more calibration verification fixtures and reference reports
+4. archive-scale plots for month/year campaigns
+5. dataset manifests that connect FrameTable outputs to ML training splits

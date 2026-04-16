@@ -132,3 +132,99 @@ def test_cli_shard_moments_writes_archive_level_clips(tmp_path: Path) -> None:
     assert (out_dir / "moments.csv").exists()
     assert (out_dir / "archive_moments_report.json").exists()
     assert any((out_dir / "clips").glob("moment_*.wav"))
+
+
+def test_cli_shard_similar_feature_mode_ranks_closest_shard(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    sr = 16000
+    t = np.arange(sr, dtype=np.float64) / sr
+
+    query = (0.2 * np.sin(2.0 * np.pi * 440.0 * t)).astype(np.float32)
+    close = (0.2 * np.sin(2.0 * np.pi * 440.0 * t + 0.05)).astype(np.float32)
+    far = (0.2 * np.sin(2.0 * np.pi * 880.0 * t)).astype(np.float32)
+
+    query_path = tmp_path / "query.wav"
+    sf.write(query_path, query, sr)
+    sf.write(archive / "0001_close.wav", close, sr)
+    sf.write(archive / "0002_far.wav", far, sr)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    out_dir = tmp_path / "similar_out"
+    out_json = out_dir / "query_shard_similarity.json"
+    out_csv = out_dir / "query_shard_similarity.csv"
+    code = main(
+        [
+            "shard",
+            "similar",
+            str(manifest_path),
+            str(query_path),
+            "--out",
+            str(out_dir),
+            "--top-k",
+            "2",
+            "--json",
+            str(out_json),
+            "--csv",
+            str(out_csv),
+            "--verbosity",
+            "0",
+        ]
+    )
+    assert code == 0
+    assert out_json.exists()
+    assert out_csv.exists()
+
+    payload = json.loads(out_json.read_text(encoding="utf-8"))
+    assert payload["mode_used"] == "feature"
+    assert payload["results"]
+    assert payload["results"][0]["relative_path"] == "0001_close.wav"
+
+
+def test_cli_shard_similar_metric_mode_single_metric(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    sr = 8000
+    t = np.arange(sr, dtype=np.float64) / sr
+
+    query = (0.10 * np.sin(2.0 * np.pi * 300.0 * t)).astype(np.float32)
+    close = (0.11 * np.sin(2.0 * np.pi * 300.0 * t)).astype(np.float32)
+    far = (0.35 * np.sin(2.0 * np.pi * 300.0 * t)).astype(np.float32)
+
+    query_path = tmp_path / "query.wav"
+    sf.write(query_path, query, sr)
+    sf.write(archive / "close.wav", close, sr)
+    sf.write(archive / "far.wav", far, sr)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    out_dir = tmp_path / "similar_metric_out"
+    out_json = out_dir / "metric_similarity.json"
+    code = main(
+        [
+            "shard",
+            "similar",
+            str(manifest_path),
+            str(query_path),
+            "--out",
+            str(out_dir),
+            "--mode",
+            "metric",
+            "--metric",
+            "rms_dbfs",
+            "--top-k",
+            "1",
+            "--json",
+            str(out_json),
+            "--verbosity",
+            "0",
+        ]
+    )
+    assert code == 0
+    payload = json.loads(out_json.read_text(encoding="utf-8"))
+    assert payload["mode_used"] == "metric"
+    assert payload["results"]
+    assert payload["results"][0]["relative_path"] == "close.wav"

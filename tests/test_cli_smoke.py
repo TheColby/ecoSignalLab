@@ -91,6 +91,12 @@ def test_cli_moments_and_calibrate_help_include_new_flags(capsys: pytest.Capture
     out = capsys.readouterr().out
     assert "--fixture" in out
 
+    with pytest.raises(SystemExit):
+        main(["shard", "similar", "--help"])
+    out = capsys.readouterr().out
+    assert "--max-shards" in out
+    assert "--include-query" in out
+
 
 def test_cli_quickstart_outputs_recipes(capsys: pytest.CaptureFixture[str]) -> None:
     code = main(["quickstart"])
