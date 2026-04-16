@@ -13,6 +13,58 @@ If you know nothing yet except “I have an audio file and need actionable acous
 
 **Positioning statement:** `esl` is a **true multichannel and Atmos-aware/capable acoustic analysis** toolkit, capable of analyzing multi-year-long audio files.
 
+## Installation
+
+If you just want `esl` installed with the least drama, use `pipx`.
+
+### Option 1: `pipx` install
+
+```bash
+python3 -m pip install --user pipx
+pipx install "ecosignallab[io,plot,features]"
+```
+
+### Option 2: `uv tool` install
+
+```bash
+uv tool install "ecosignallab[io,plot,features]"
+```
+
+### Option 3: Homebrew install on macOS
+
+If you want a Homebrew-style install from this repo:
+
+```bash
+brew install --HEAD ./Formula/ecosignallab.rb
+```
+
+If you have not cloned the repo and want to install directly from GitHub:
+
+```bash
+brew install --HEAD https://raw.githubusercontent.com/TheColby/ecoSignalLab/main/Formula/ecosignallab.rb
+```
+
+What the Homebrew formula does:
+- installs `python@3.12`
+- installs `ffmpeg`
+- installs `libsndfile`
+- installs `esl`
+- installs the man pages
+
+### Option 4: Local developer install from source
+
+```bash
+bash scripts/install.sh
+```
+
+After any install method, run:
+
+```bash
+esl doctor
+```
+
+Plain English: if `esl doctor` looks happy, you are ready to analyze audio.
+
 ## Start in 60 Seconds
 
 If you just downloaded this and want one immediate win, run this:
@@ -43,6 +95,8 @@ esl quickstart
 
 - I want one navigation page with links to everything:
   - [`docs/INDEX.md`](docs/INDEX.md)
+- I need install help first:
+  - this README section: [`Installation`](#installation)
 - I want the roadmap:
   - [`ROADMAP.md`](ROADMAP.md)
 - I want simple copy-paste tasks:
