@@ -1024,6 +1024,9 @@ def _run_shard_similar(args: argparse.Namespace) -> int:
             seed=int(args.seed),
             include_query_if_present=bool(args.include_query),
             max_shards=args.max_shards,
+            spatial_mode=str(getattr(args, "spatial_mode", "off")),
+            spatial_metrics=_metric_list(getattr(args, "spatial_metrics", None)),
+            spatial_weight=float(getattr(args, "spatial_weight", 0.5)),
         )
     )
 
@@ -1081,6 +1084,18 @@ def _run_shard_similar(args: argparse.Namespace) -> int:
                 f"#{row.get('rank')} shard={row.get('relative_path')} "
                 f"dist={float(row.get('distance', 0.0)):.6f} sim={float(row.get('similarity', 0.0)):.6f}"
             )
+    return 0
+
+
+def _run_shard_plot(args: argparse.Namespace) -> int:
+    from esl.viz import plot_shard_report
+
+    report_path = Path(args.report)
+    if not report_path.exists():
+        raise FileNotFoundError(f"Shard analysis report not found: {report_path}")
+    paths = plot_shard_report(report_path, Path(args.out))
+    print(f"archive_plot_dir: {Path(args.out).resolve()}")
+    print("plots:", [str(path) for path in paths])
     return 0
 
 
@@ -1316,6 +1331,23 @@ def _run_features_extract(args: argparse.Namespace) -> int:
             "features": vectors.matrix.shape[1],
         },
     )
+    return 0
+
+
+def _run_features_manifest(args: argparse.Namespace) -> int:
+    from esl.ml import build_dataset_manifest_from_ml_metadata
+
+    split_values = tuple(float(x) for x in _csv_list(args.split_ratios)) if args.split_ratios else (0.8, 0.1, 0.1)
+    if len(split_values) != 3:
+        raise ValueError("--split-ratios must contain exactly three comma-separated values: train,val,test")
+    out_path, manifest = build_dataset_manifest_from_ml_metadata(
+        input_dir=Path(args.input_dir),
+        output_path=Path(args.out),
+        pattern=str(args.pattern),
+        split_ratios=(split_values[0], split_values[1], split_values[2]),
+    )
+    print(f"dataset_manifest: {out_path}")
+    print("summary:", {"num_samples": manifest.get("num_samples"), "split_counts": manifest.get("split_counts")})
     return 0
 
 
@@ -2269,7 +2301,14 @@ def _build_parser() -> argparse.ArgumentParser:
     pcal_verify.add_argument(
         "--fixture",
         default="sine_1khz_minus20dbfs",
-        choices=["sine_1khz_minus20dbfs", "sine_1khz_minus26dbfs"],
+        choices=[
+            "sine_1khz_minus20dbfs",
+            "sine_1khz_minus26dbfs",
+            "sine_250hz_minus20dbfs",
+            "sine_4khz_minus20dbfs",
+            "sine_1khz_minus12dbfs",
+            "sine_1khz_minus20dbfs_precision_chain",
+        ],
         help="Built-in deterministic reference fixture",
     )
     pcal_verify.add_argument("--calibration", default=None, help="Optional calibration YAML/JSON path")
@@ -2297,6 +2336,17 @@ def _build_parser() -> argparse.ArgumentParser:
     pfeat_ex.add_argument("--sample-rate", type=int, default=None)
     pfeat_ex.add_argument("--meta-json", default=None, help="Optional metadata JSON sidecar path")
     pfeat_ex.set_defaults(func=_run_features_extract)
+
+    pfeat_mf = pfeat_sub.add_parser("manifest", help="Build an ML dataset manifest from exported *_ml_metadata.json files")
+    pfeat_mf.add_argument("input_dir", help="Directory containing exported ML metadata sidecars")
+    pfeat_mf.add_argument("--out", required=True, help="Output dataset manifest JSON path")
+    pfeat_mf.add_argument("--pattern", default="*_ml_metadata.json", help="Glob pattern for metadata sidecars")
+    pfeat_mf.add_argument(
+        "--split-ratios",
+        default="0.8,0.1,0.1",
+        help="Comma-separated train,val,test ratios used deterministically over sorted samples",
+    )
+    pfeat_mf.set_defaults(func=_run_features_manifest)
 
     # moments
     pmom = sub.add_parser("moments", help="Find and export interesting timestamped moments as clips")
@@ -2496,6 +2546,18 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_sim.add_argument("--calibration", default=None, help="Calibration YAML/JSON path (used for metric-based modes)")
     psh_sim.add_argument("--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates")
     psh_sim.add_argument("--include-query", action="store_true", help="Allow the query file to appear in results if it is also a shard")
+    psh_sim.add_argument(
+        "--spatial-mode",
+        default="off",
+        choices=["off", "append", "only"],
+        help="Use spatial metrics for archive retrieval: off, append to base similarity, or spatial-only",
+    )
+    psh_sim.add_argument(
+        "--spatial-metrics",
+        default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
+        help="Comma-separated spatial metrics used when --spatial-mode is append or only",
+    )
+    psh_sim.add_argument("--spatial-weight", type=float, default=0.5, help="Blend weight for spatial distance when --spatial-mode append")
     psh_sim.add_argument("--json", default=None, help="Output JSON path (default: <out>/<query_stem>_shard_similarity.json)")
     psh_sim.add_argument("--csv", default=None, help="Optional CSV output path")
     psh_sim.add_argument("--seed", type=int, default=42)
@@ -2514,6 +2576,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Debug level: 0=none, 1=processing details, 2=internal traces",
     )
     psh_sim.set_defaults(func=_run_shard_similar)
+
+    psh_plot = psh_sub.add_parser("plot", help="Render archive-scale plots from shard_analysis_report.json")
+    psh_plot.add_argument("report", help="Path to shard_analysis_report.json")
+    psh_plot.add_argument("--out", required=True, help="Output directory for archive PNG plots")
+    psh_plot.set_defaults(func=_run_shard_plot)
 
     # project
     pproj = sub.add_parser("project", help="Project mode reports and comparisons")

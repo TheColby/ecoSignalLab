@@ -228,3 +228,89 @@ def test_cli_shard_similar_metric_mode_single_metric(tmp_path: Path) -> None:
     assert payload["mode_used"] == "metric"
     assert payload["results"]
     assert payload["results"][0]["relative_path"] == "close.wav"
+
+
+def test_cli_shard_similar_spatial_append_and_plot(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    sr = 16000
+    t = np.arange(sr, dtype=np.float64) / sr
+
+    query_left = 0.15 * np.sin(2.0 * np.pi * 440.0 * t)
+    query_right = np.roll(query_left, 2)
+    query = np.stack([query_left, query_right], axis=1).astype(np.float32)
+
+    close_left = 0.15 * np.sin(2.0 * np.pi * 430.0 * t)
+    close_right = np.roll(close_left, 2)
+    close = np.stack([close_left, close_right], axis=1).astype(np.float32)
+
+    far_left = 0.15 * np.sin(2.0 * np.pi * 430.0 * t)
+    far_right = np.roll(far_left, 40)
+    far = np.stack([far_left, far_right], axis=1).astype(np.float32)
+
+    query_path = tmp_path / "query.wav"
+    sf.write(query_path, query, sr)
+    sf.write(archive / "close.wav", close, sr)
+    sf.write(archive / "far.wav", far, sr)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    similar_out = tmp_path / "similar_spatial"
+    code = main(
+        [
+            "shard",
+            "similar",
+            str(manifest_path),
+            str(query_path),
+            "--out",
+            str(similar_out),
+            "--top-k",
+            "2",
+            "--spatial-mode",
+            "append",
+            "--spatial-weight",
+            "0.7",
+            "--verbosity",
+            "0",
+        ]
+    )
+    assert code == 0
+    payload = json.loads((similar_out / "query_shard_similarity.json").read_text(encoding="utf-8"))
+    assert payload["config"]["spatial_mode"] == "append"
+    assert payload["results"]
+    assert "distance_components" in payload["results"][0]
+
+    analysis_out = tmp_path / "analysis_out"
+    assert (
+        main(
+            [
+                "shard",
+                "analyze",
+                str(manifest_path),
+                "--out",
+                str(analysis_out),
+                "--metrics",
+                "rms_dbfs,interchannel_coherence",
+                "--report-metrics",
+                "rms_dbfs,interchannel_coherence",
+                "--summary-only",
+                "--streamable-only",
+            ]
+        )
+        == 0
+    )
+    plot_out = tmp_path / "archive_plots"
+    assert (
+        main(
+            [
+                "shard",
+                "plot",
+                str(analysis_out / "shard_analysis_report.json"),
+                "--out",
+                str(plot_out),
+            ]
+        )
+        == 0
+    )
+    assert any(plot_out.glob("archive_metric_*.png"))

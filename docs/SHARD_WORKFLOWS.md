@@ -6,6 +6,30 @@ This guide explains how to treat a long archive as an ordered manifest of shard 
 
 Plain English: if your deployment already produces `hourly` or `daily` files, that is not a nuisance. That is the sane operating model.
 
+## What is a shard?
+
+A shard is one smaller file that belongs to a larger archive.
+
+Example:
+
+- one hour per file
+- one day per file
+- one recorder uptime segment per file
+
+So:
+
+- shard = one piece
+- manifest = the ordered list of pieces
+- archive = the whole timeline
+
+Where:
+
+- \(s_i\) is shard \(i\)
+- \(t_i^{start}\) is that shard's archive-relative start time
+- \(t_i^{end}\) is that shard's archive-relative end time
+
+Plain English: the manifest is what lets a folder of small files behave like one long recording without forcing you to store or process one absurdly large file.
+
 ## Why shards matter
 
 For very large archives:
@@ -271,6 +295,9 @@ Useful options:
 - `--frame-seconds`, `--hop-seconds`
 - `--sample-rate`
 - `--calibration` for metric modes
+- `--spatial-mode off|append|only`
+- `--spatial-metrics ...`
+- `--spatial-weight 0.5`
 
 Where:
 
@@ -279,6 +306,47 @@ Where:
 - \(d(x_q, x_i)\) is the chosen distance
 
 Plain English: smaller distance means “more like the query.”
+
+If you enable spatial retrieval:
+
+```bash
+esl shard similar out/ten_year_manifest.json query.wav \
+  --out out/shard_similarity_spatial \
+  --top-k 10 \
+  --mode feature \
+  --spatial-mode append \
+  --spatial-metrics interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg \
+  --spatial-weight 0.7
+```
+
+Where:
+
+- \(d_f\) is the base feature distance
+- \(d_s\) is the spatial-metric distance
+- \(w\) is `--spatial-weight`
+
+\[
+d = (1-w)d_f + wd_s
+\]
+
+Plain English: with `append`, `esl` blends ordinary timbral similarity with spatial-scene similarity.
+
+## Archive Plots
+
+After `esl shard analyze`, you can render archive-scale overview PNGs:
+
+```bash
+esl shard plot out/shard_analysis/shard_analysis_report.json \
+  --out out/archive_plots
+```
+
+This writes plots such as:
+
+- `archive_duration_timeline.png`
+- `archive_metric_rms_dbfs.png`
+- `archive_metric_ndsi.png`
+
+Plain English: this gives you a bird's-eye view of how the archive changes over time.
 
 ## Related docs
 

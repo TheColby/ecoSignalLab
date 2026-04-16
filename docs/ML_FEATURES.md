@@ -92,6 +92,25 @@ Clip-level vector:
 Metadata:
 - `<prefix>_ml_metadata.json` includes column names, timestamps, tensor layout, tensor shape, seed, config/pipeline hash, and `esl_version`.
 - `compute_device` metadata includes requested/resolved device and CUDA/MPS availability.
+- `<prefix>_dataset_manifest.json` is a single-sample ML manifest that points at the exported artifacts.
+
+## Dataset Manifests
+
+If you already exported many `*_ml_metadata.json` files, you can build one deterministic dataset manifest:
+
+```bash
+esl features manifest ml_exports_root \
+  --out out/dataset_manifest.json \
+  --split-ratios 0.8,0.1,0.1
+```
+
+Where:
+
+- \(N\) is the number of discovered samples
+- samples are sorted deterministically by path
+- split assignment is applied over that sorted order
+
+Plain English: the same folder produces the same manifest and the same train/val/test assignment every time.
 
 ## Long-Duration Note
 

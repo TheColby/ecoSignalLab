@@ -96,6 +96,12 @@ def test_cli_moments_and_calibrate_help_include_new_flags(capsys: pytest.Capture
     out = capsys.readouterr().out
     assert "--max-shards" in out
     assert "--include-query" in out
+    assert "--spatial-mode" in out
+
+    with pytest.raises(SystemExit):
+        main(["features", "manifest", "--help"])
+    out = capsys.readouterr().out
+    assert "--split-ratios" in out
 
 
 def test_cli_quickstart_outputs_recipes(capsys: pytest.CaptureFixture[str]) -> None:

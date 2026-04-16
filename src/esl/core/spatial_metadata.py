@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import Any
 
 
-_FOA_TOKENS = ("ambi", "ambisonic", "bformat", "b_format", "foa", "wxyz")
+_FOA_TOKENS = ("ambi", "ambisonic", "bformat", "b_format", "foa", "wxyz", "ambix", "acn", "fuma")
+_ACN_TOKENS = ("ambix", "acn")
+_FUMA_TOKENS = ("fuma", "wxyz", "bformat", "b_format", "foa")
+_SN3D_TOKENS = ("sn3d",)
+_N3D_TOKENS = ("n3d",)
+_MAXN_TOKENS = ("maxn", "fuma")
 
 
 @dataclass(slots=True)
@@ -21,6 +26,9 @@ class AmbisonicsMetadata:
     component_order: str
     normalization: str
     channels_expected: int
+    format_hint: str | None = None
+    convention_confidence: float = 0.5
+    complete_set: bool = True
 
 
 @dataclass(slots=True)
@@ -42,6 +50,50 @@ class SpatialMetadata:
 
 def _default_labels(channels: int) -> list[str]:
     return [f"ch{i + 1}" for i in range(max(int(channels), 0))]
+
+
+def _perfect_square_order(channels: int) -> int | None:
+    if channels < 1:
+        return None
+    root = int(round(channels**0.5))
+    if root * root != channels:
+        return None
+    order = root - 1
+    return order if order >= 0 else None
+
+
+def _foa_labels(component_order: str) -> list[str]:
+    if component_order.upper() == "ACN":
+        # ACN index order for FOA is 0,1,2,3 -> W,Y,Z,X.
+        return ["W", "Y", "Z", "X"]
+    return ["W", "X", "Y", "Z"]
+
+
+def _infer_ambisonics_convention(path_text: str) -> tuple[str, str, str, float]:
+    component_order = "unknown"
+    normalization = "unknown"
+    format_hint = "b_format"
+    confidence = 0.45
+    if any(token in path_text for token in _ACN_TOKENS):
+        component_order = "ACN"
+        format_hint = "ambix"
+        confidence = 0.85
+    elif any(token in path_text for token in _FUMA_TOKENS):
+        component_order = "FuMa"
+        format_hint = "b_format"
+        confidence = 0.8
+    if any(token in path_text for token in _SN3D_TOKENS):
+        normalization = "SN3D"
+        confidence = max(confidence, 0.9)
+    elif any(token in path_text for token in _N3D_TOKENS):
+        normalization = "N3D"
+        confidence = max(confidence, 0.9)
+    elif any(token in path_text for token in _MAXN_TOKENS):
+        normalization = "maxN"
+        confidence = max(confidence, 0.75)
+    elif component_order == "FuMa":
+        normalization = "maxN"
+    return component_order, normalization, format_hint, confidence
 
 
 def infer_spatial_metadata(
@@ -86,17 +138,43 @@ def infer_spatial_metadata(
         )
 
     if ch == 4 and any(token in path_text for token in _FOA_TOKENS):
+        component_order, normalization, format_hint, confidence = _infer_ambisonics_convention(path_text)
         return SpatialMetadata(
             layout_family="ambisonic",
             layout_hint="ambisonic_b_format",
             channels=4,
-            channel_labels=["W", "X", "Y", "Z"],
+            channel_labels=_foa_labels(component_order),
             source_channel_layout=channel_layout,
             ambisonics=AmbisonicsMetadata(
                 order=1,
-                component_order="WXYZ",
-                normalization="unknown",
+                component_order=component_order,
+                normalization=normalization,
                 channels_expected=4,
+                format_hint=format_hint,
+                convention_confidence=confidence,
+                complete_set=True,
+            ),
+            array_geometry=array_geometry,
+        )
+
+    inferred_order = _perfect_square_order(ch)
+    if inferred_order is not None and inferred_order >= 1 and any(token in path_text for token in _FOA_TOKENS):
+        component_order, normalization, format_hint, confidence = _infer_ambisonics_convention(path_text)
+        labels = _foa_labels(component_order) if inferred_order == 1 else [f"ambi_{i}" for i in range(ch)]
+        return SpatialMetadata(
+            layout_family="ambisonic",
+            layout_hint="ambisonic_higher_order",
+            channels=ch,
+            channel_labels=labels,
+            source_channel_layout=channel_layout,
+            ambisonics=AmbisonicsMetadata(
+                order=inferred_order,
+                component_order=component_order,
+                normalization=normalization,
+                channels_expected=(inferred_order + 1) ** 2,
+                format_hint=format_hint,
+                convention_confidence=confidence,
+                complete_set=((inferred_order + 1) ** 2 == ch),
             ),
             array_geometry=array_geometry,
         )
@@ -109,4 +187,3 @@ def infer_spatial_metadata(
         source_channel_layout=channel_layout,
         array_geometry=array_geometry,
     )
-

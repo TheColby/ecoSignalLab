@@ -25,6 +25,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
 - [Recipe 12: Safely scan a huge multi-day or multi-year file](#recipe-12-safely-scan-a-huge-multi-day-or-multi-year-file)
 - [Recipe 13: Build and analyze a shard manifest](#recipe-13-build-and-analyze-a-shard-manifest)
+- [Recipe 13B: Plot archive-scale shard timelines](#recipe-13b-plot-archive-scale-shard-timelines)
 - [Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file](#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
 - [Recipe 15: Verify calibration math with a built-in reference fixture](#recipe-15-verify-calibration-math-with-a-built-in-reference-fixture)
 
@@ -422,6 +423,22 @@ Use this when:
 See the full guide:
 - [`SHARD_WORKFLOWS.md`](SHARD_WORKFLOWS.md)
 
+## Recipe 13B: Plot archive-scale shard timelines
+
+```bash
+esl shard plot out/shard_analysis/shard_analysis_report.json \
+  --out out/archive_plots
+```
+
+What this does:
+- reads the archive-level shard report
+- plots shard durations over archive time
+- plots each selected report metric over archive time
+
+Expected outputs:
+- `out/archive_plots/archive_duration_timeline.png`
+- `out/archive_plots/archive_metric_*.png`
+
 ## Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file
 
 First, fix the file-format wording:
@@ -497,6 +514,13 @@ esl calibrate verify \
   --write-tone out/reference_tone.wav \
   --out out/calibration_verify.json
 ```
+
+Other fixtures:
+
+- `sine_250hz_minus20dbfs`
+- `sine_4khz_minus20dbfs`
+- `sine_1khz_minus12dbfs`
+- `sine_1khz_minus20dbfs_precision_chain`
 
 ## Which command should I use?
 

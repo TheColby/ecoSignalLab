@@ -108,6 +108,41 @@ Expected outputs:
 
 If your goal is creative transformation effects, `esl` is not the primary tool for that workflow.
 
+## What is a shard?
+
+A shard is just one piece of a bigger recording archive.
+
+Plain English:
+- if one giant ten-year file sounds absurd, that is because it is
+- the sane version is many smaller files
+- each smaller file is a shard
+
+Example:
+- one hour per file
+- one day per file
+- one deployment segment per file
+
+So instead of:
+
+- `10_year_recording.rf64`
+
+you might have:
+
+- `2017/01/01/00.wav`
+- `2017/01/01/01.wav`
+- `2017/01/01/02.wav`
+
+In `esl`:
+- `esl shard index` builds the archive map
+- `esl shard analyze` analyzes the archive shard by shard
+- `esl shard moments` finds archive-level interesting events
+- `esl shard similar` finds which shards most resemble a query recording
+
+Friendly mental model:
+- shard = one chapter
+- manifest = the table of contents
+- archive = the full book
+
 ## Friendly Notes
 
 - Start with defaults first, then tune thresholds gradually once you see real outputs.
@@ -124,6 +159,7 @@ If your goal is creative transformation effects, `esl` is not the primary tool f
 - Find the archive shards most similar to a query recording with `esl shard similar`.
 - Generate static and interactive plots, including similarity and novelty matrix views.
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.
+- Build deterministic ML dataset manifests from exported feature metadata with `esl features manifest`.
 - Verify calibration math with deterministic reference fixtures using `esl calibrate verify`.
 - Emit structured spatial metadata, including Ambisonics-aware layout objects, in analysis outputs.
 - Compare architectural design variants (`--project` / `--variant`) with delta reports.

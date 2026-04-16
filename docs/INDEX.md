@@ -34,6 +34,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
   - [Task Recipes: Recipe 2](TASK_RECIPES.md#recipe-2-extract-the-single-most-novel-moment)
   - [Task Recipes: Recipe 3](TASK_RECIPES.md#recipe-3-extract-top-k-moments-instead-of-one)
   - [Task Recipes: Recipe 13](TASK_RECIPES.md#recipe-13-build-and-analyze-a-shard-manifest)
+  - [Task Recipes: Recipe 13B](TASK_RECIPES.md#recipe-13b-plot-archive-scale-shard-timelines)
   - [Task Recipes: Recipe 14](TASK_RECIPES.md#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
   - [Moments Extraction](MOMENTS_EXTRACTION.md)
   - [RF64 and Large Files](RF64_AND_LARGE_FILES.md)

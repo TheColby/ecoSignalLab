@@ -214,6 +214,69 @@ def _write_parquet(path: Path, rows: list[dict[str, Any]]) -> bool:
         import pandas as pd
     except Exception:
         return False
+
+
+def build_dataset_manifest_from_ml_metadata(
+    input_dir: str | Path,
+    output_path: str | Path,
+    *,
+    pattern: str = "*_ml_metadata.json",
+    split_ratios: tuple[float, float, float] = (0.8, 0.1, 0.1),
+) -> tuple[Path, dict[str, Any]]:
+    """Build a deterministic dataset manifest from exported ML metadata sidecars."""
+    root = Path(input_dir)
+    files = sorted(root.rglob(pattern))
+    samples: list[dict[str, Any]] = []
+    if sum(split_ratios) <= 0.0:
+        split_ratios = (1.0, 0.0, 0.0)
+    total_ratio = float(sum(split_ratios))
+    train_ratio = float(split_ratios[0]) / total_ratio
+    val_ratio = float(split_ratios[1]) / total_ratio
+
+    for idx, meta_path in enumerate(files):
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+        rel = meta_path.resolve().relative_to(root.resolve())
+        position = idx / max(len(files), 1)
+        if position < train_ratio:
+            split = "train"
+        elif position < train_ratio + val_ratio:
+            split = "val"
+        else:
+            split = "test"
+        sample_id = meta_path.stem.removesuffix("_ml_metadata")
+        samples.append(
+            {
+                "sample_id": sample_id,
+                "split": split,
+                "metadata_path": str(meta_path.resolve()),
+                "metadata_path_relative": str(rel),
+                "frame_table_version": payload.get("frame_table_version"),
+                "frame_feature_columns": payload.get("frame_feature_columns", []),
+                "frame_timestamps_count": len(payload.get("frame_timestamps_s", [])),
+                "tensor_shape": payload.get("frame_table", {}).get("tensor_shape"),
+                "source_config_hash": payload.get("source_config_hash"),
+                "source_pipeline_hash": payload.get("source_pipeline_hash"),
+                "esl_version": payload.get("esl_version"),
+            }
+        )
+
+    split_counts = {"train": 0, "val": 0, "test": 0}
+    for row in samples:
+        split_counts[str(row["split"])] += 1
+
+    manifest = {
+        "dataset_manifest_version": "1.0.0",
+        "root_dir": str(root.resolve()),
+        "pattern": pattern,
+        "num_samples": len(samples),
+        "split_ratios": {"train": split_ratios[0], "val": split_ratios[1], "test": split_ratios[2]},
+        "split_counts": split_counts,
+        "samples": samples,
+    }
+    out_path = Path(output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return out_path, manifest
     try:
         df = pd.DataFrame.from_records(rows)
         df.to_parquet(path, index=False)
@@ -298,6 +361,32 @@ def export_ml_features(
     meta_path = out / f"{prefix}_ml_metadata.json"
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     artifacts["ml_metadata_json"] = str(meta_path)
+    dataset_manifest_path = out / f"{prefix}_dataset_manifest.json"
+    dataset_manifest = {
+        "dataset_manifest_version": "1.0.0",
+        "sample_id": prefix,
+        "split": "unspecified",
+        "root_dir": str(out.resolve()),
+        "artifacts": {
+            "clip_npy": str(clip_npy.resolve()),
+            "frame_csv": str(frame_csv.resolve()),
+            "frame_npy": str(frame_npy.resolve()),
+            "frame_table_csv": str(frame_table_csv.resolve()),
+            "frame_tensor_npy": str(frame_tensor_npy.resolve()),
+            "ml_metadata_json": str(meta_path.resolve()),
+        },
+        "frame_table_version": FRAMETABLE_VERSION,
+        "frame_feature_columns": feature_cols,
+        "frame_count": int(frame_matrix.shape[0]),
+        "feature_count": int(frame_matrix.shape[1]) if frame_matrix.ndim == 2 else 0,
+        "tensor_layout": frame_table.metadata.get("tensor_layout"),
+        "tensor_shape": list(frame_tensor.shape),
+        "source_config_hash": result.get("config_hash"),
+        "source_pipeline_hash": result.get("pipeline_hash"),
+        "esl_version": result.get("esl_version"),
+    }
+    dataset_manifest_path.write_text(json.dumps(dataset_manifest, indent=2), encoding="utf-8")
+    artifacts["dataset_manifest_json"] = str(dataset_manifest_path)
 
     # Optional PyTorch tensors.
     try:

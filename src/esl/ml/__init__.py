@@ -9,6 +9,7 @@ from .device import (
 from .export import (
     FRAMETABLE_VERSION,
     FrameTable,
+    build_dataset_manifest_from_ml_metadata,
     build_frame_table,
     export_ml_features,
     frame_long_table,
@@ -24,6 +25,7 @@ __all__ = [
     "resolve_compute_device",
     "FRAMETABLE_VERSION",
     "FrameTable",
+    "build_dataset_manifest_from_ml_metadata",
     "build_frame_table",
     "export_ml_features",
     "frame_long_table",

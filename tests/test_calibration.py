@@ -57,3 +57,17 @@ def test_calibration_verify_fixture_passes(tmp_path) -> None:
     assert ok is True
     assert report["fixture"] == "sine_1khz_minus20dbfs"
     assert abs(float(report["expected_dbfs_rms"]) - float(report["measured_dbfs_rms"])) < 0.25
+
+
+def test_calibration_verify_precision_chain_fixture_reports_pressure_error(tmp_path) -> None:
+    report_path, report, ok = run_calibration_verify(
+        CalibrationVerifyConfig(
+            fixture="sine_1khz_minus20dbfs_precision_chain",
+            output_path=tmp_path / "verify_precision.json",
+            max_abs_error_db=0.25,
+        )
+    )
+    assert report_path.exists()
+    assert ok is True
+    assert report["fixture"] == "sine_1khz_minus20dbfs_precision_chain"
+    assert report["pressure_chain_error_db"] is not None

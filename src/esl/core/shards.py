@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from esl.core import AnalysisConfig, analyze, load_calibration
 from esl.core.similarity import (
     SimilaritySearchConfig,
@@ -42,6 +44,16 @@ from esl.viz.feature_vectors import extract_feature_vectors
 
 
 SHARD_MANIFEST_VERSION = "1.0.0"
+DEFAULT_SPATIAL_SIMILARITY_METRICS = (
+    "interchannel_coherence",
+    "iacc",
+    "ild_db",
+    "itd_s",
+    "doa_azimuth_proxy_deg",
+    "ambisonic_diffuseness",
+    "ambisonic_energy_vector_azimuth_deg",
+    "ambisonic_energy_vector_elevation_deg",
+)
 SUPPORTED_PATTERNS = (
     "*.wav",
     "*.flac",
@@ -157,6 +169,9 @@ class ShardSimilarConfig:
     seed: int = 42
     include_query_if_present: bool = False
     max_shards: int | None = None
+    spatial_mode: str = "off"  # off|append|only
+    spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
+    spatial_weight: float = 0.5
 
 
 def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]]:
@@ -261,6 +276,18 @@ def _checkpoint_dir(root: Path | None, relative_path: str) -> Path | None:
         return None
     rel = Path(relative_path)
     return (root / rel.parent / _safe_name(rel.stem)).resolve()
+
+
+def _resolve_spatial_metrics(cfg: ShardSimilarConfig) -> list[str]:
+    names = [name for name in cfg.spatial_metrics if name]
+    return list(dict.fromkeys(names or list(DEFAULT_SPATIAL_SIMILARITY_METRICS)))
+
+
+def _shared_finite_vectors(a: np.ndarray, b: np.ndarray) -> tuple[np.ndarray, np.ndarray] | None:
+    mask = np.isfinite(a) & np.isfinite(b)
+    if not np.any(mask):
+        return None
+    return a[mask], b[mask]
 
 
 def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
@@ -448,6 +475,10 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
 
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     calibration = load_calibration(cfg.calibration_path) if cfg.calibration_path else None
+    spatial_mode = str(cfg.spatial_mode).lower().strip()
+    if spatial_mode not in {"off", "append", "only"}:
+        raise ValueError("spatial_mode must be one of off|append|only")
+    spatial_metrics = _resolve_spatial_metrics(cfg)
     selected_mode = _similarity_mode(
         SimilaritySearchConfig(
             input_path=cfg.query_path,
@@ -476,6 +507,26 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
             "num_frames": int(query_fv.matrix.shape[0]),
             "num_features": int(query_fv.matrix.shape[1]),
         }
+        spatial_query_vec = None
+        registry = None
+        if spatial_mode in {"append", "only"}:
+            registry = create_registry(with_external=True)
+            qres = analyze(
+                AnalysisConfig(
+                    input_path=cfg.query_path,
+                    output_dir=cfg.output_dir,
+                    metrics=list(spatial_metrics),
+                    frame_size=cfg.frame_size,
+                    hop_size=cfg.hop_size,
+                    sample_rate=cfg.sample_rate,
+                    calibration=calibration,
+                    verbosity=0,
+                    debug=0,
+                    seed=cfg.seed,
+                ),
+                registry=registry,
+            )
+            spatial_query_vec = _metric_vector(qres, spatial_metrics)
 
         for item in items:
             shard_path = Path(str(item["path"]))
@@ -490,7 +541,44 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                     sample_rate=cfg.sample_rate,
                 )
                 shard_vec = _aggregate_feature_vector(fv.matrix)
-                dist, sim = _distance(query_vec, shard_vec, cfg.distance)
+                feature_dist, feature_sim = _distance(query_vec, shard_vec, cfg.distance)
+                dist = feature_dist
+                sim = feature_sim
+                distance_components: dict[str, float] | None = None
+                if spatial_mode in {"append", "only"} and spatial_query_vec is not None:
+                    assert registry is not None
+                    cres = analyze(
+                        AnalysisConfig(
+                            input_path=shard_path,
+                            output_dir=cfg.output_dir,
+                            metrics=list(spatial_metrics),
+                            frame_size=cfg.frame_size,
+                            hop_size=cfg.hop_size,
+                            sample_rate=cfg.sample_rate,
+                            calibration=calibration,
+                            verbosity=0,
+                            debug=0,
+                            seed=cfg.seed,
+                        ),
+                        registry=registry,
+                    )
+                    spatial_vec = _metric_vector(cres, spatial_metrics)
+                    shared = _shared_finite_vectors(spatial_query_vec, spatial_vec)
+                    if shared is not None:
+                        spatial_dist, spatial_sim = _distance(shared[0], shared[1], cfg.distance)
+                        weight = float(np.clip(float(cfg.spatial_weight), 0.0, 1.0))
+                        if spatial_mode == "only":
+                            dist = spatial_dist
+                            sim = spatial_sim
+                        else:
+                            dist = ((1.0 - weight) * feature_dist) + (weight * spatial_dist)
+                            sim = ((1.0 - weight) * feature_sim) + (weight * spatial_sim)
+                        distance_components = {
+                            "feature_distance": float(feature_dist),
+                            "spatial_distance": float(spatial_dist),
+                            "feature_similarity": float(feature_sim),
+                            "spatial_similarity": float(spatial_sim),
+                        }
                 rows.append(
                     {
                         "path": str(shard_path.resolve()),
@@ -507,6 +595,7 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                         "feature_backend": fv.backend,
                         "num_frames": int(fv.matrix.shape[0]),
                         "num_features": int(fv.matrix.shape[1]),
+                        "distance_components": distance_components,
                     }
                 )
             except Exception as exc:
@@ -528,6 +617,10 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
         metric_names = list(cfg.metrics or [])
         if not metric_names:
             metric_names = [cfg.metric]
+        if spatial_mode == "only":
+            metric_names = list(spatial_metrics)
+        elif spatial_mode == "append":
+            metric_names = list(dict.fromkeys([*metric_names, *spatial_metrics]))
         if selected_mode == "metric":
             metric_names = [metric_names[0]]
 
@@ -548,7 +641,7 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
             registry=registry,
         )
         query_vec = _metric_vector(query_result, metric_names)
-        if not all(float(v) == float(v) and abs(float(v)) != float("inf") for v in query_vec.tolist()):
+        if not np.isfinite(query_vec).any():
             raise RuntimeError(f"Query file has non-finite metric means for: {metric_names}")
 
         cand_rows: list[dict[str, Any]] = []
@@ -574,7 +667,7 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                     registry=registry,
                 )
                 cand_vec = _metric_vector(result, metric_names)
-                if not all(float(v) == float(v) and abs(float(v)) != float("inf") for v in cand_vec.tolist()):
+                if not np.isfinite(cand_vec).any():
                     skipped.append({"path": str(shard_path.resolve()), "reason": "non-finite metric mean(s)"})
                     continue
                 cand_rows.append(
@@ -595,7 +688,6 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                 skipped.append({"path": str(shard_path.resolve()), "reason": str(exc)})
 
         if cand_rows:
-            import numpy as np
             cand_mat = np.vstack(cand_vecs)
             q_work = query_vec.copy()
             c_work = cand_mat.copy()
@@ -609,11 +701,19 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
 
             rows = []
             for row, raw_vec, work_vec in zip(cand_rows, cand_mat, c_work):
+                shared_raw = _shared_finite_vectors(query_vec, raw_vec)
+                if shared_raw is None:
+                    skipped.append({"path": row["path"], "reason": "no shared finite metric dimensions"})
+                    continue
                 if selected_mode == "metrics":
-                    dist, sim = _distance(q_work, work_vec, cfg.distance)
+                    shared_work = _shared_finite_vectors(q_work, work_vec)
+                    if shared_work is None:
+                        skipped.append({"path": row["path"], "reason": "no shared finite normalized metric dimensions"})
+                        continue
+                    dist, sim = _distance(shared_work[0], shared_work[1], cfg.distance)
                     dist_kind = cfg.distance
                 else:
-                    dist = float(abs(raw_vec[0] - query_vec[0]))
+                    dist = float(abs(shared_raw[1][0] - shared_raw[0][0]))
                     sim = float(1.0 / (1.0 + dist))
                     dist_kind = "abs_diff"
                 rows.append(
@@ -665,6 +765,9 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
             "sample_rate": cfg.sample_rate,
             "normalize": bool(cfg.normalize),
             "seed": int(cfg.seed),
+            "spatial_mode": spatial_mode,
+            "spatial_metrics": spatial_metrics,
+            "spatial_weight": float(cfg.spatial_weight),
         },
         **body,
     }

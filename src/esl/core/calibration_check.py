@@ -50,6 +50,38 @@ REFERENCE_FIXTURES: dict[str, dict[str, float | str]] = {
         "dbfs_rms": -26.0,
         "weighting": "Z",
     },
+    "sine_250hz_minus20dbfs": {
+        "frequency_hz": 250.0,
+        "duration_s": 1.0,
+        "sample_rate": 48000.0,
+        "dbfs_rms": -20.0,
+        "weighting": "Z",
+    },
+    "sine_4khz_minus20dbfs": {
+        "frequency_hz": 4000.0,
+        "duration_s": 1.0,
+        "sample_rate": 48000.0,
+        "dbfs_rms": -20.0,
+        "weighting": "Z",
+    },
+    "sine_1khz_minus12dbfs": {
+        "frequency_hz": 1000.0,
+        "duration_s": 1.0,
+        "sample_rate": 48000.0,
+        "dbfs_rms": -12.0,
+        "weighting": "Z",
+    },
+    "sine_1khz_minus20dbfs_precision_chain": {
+        "frequency_hz": 1000.0,
+        "duration_s": 1.0,
+        "sample_rate": 48000.0,
+        "dbfs_rms": -20.0,
+        "weighting": "A",
+        "mic_sensitivity_mv_pa": 12.5,
+        "preamp_gain_db": 34.0,
+        "adc_full_scale_vrms": 1.0,
+        "spl_reference_db": 74.0,
+    },
 }
 
 
@@ -207,8 +239,15 @@ def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str
 
     profile = cfg.calibration_profile or CalibrationProfile(
         dbfs_reference=dbfs_rms,
-        spl_reference_db=94.0,
+        spl_reference_db=float(fixture.get("spl_reference_db", 94.0)),
         weighting=str(fixture.get("weighting", "Z")).upper(),
+        mic_sensitivity_mv_pa=(
+            float(fixture["mic_sensitivity_mv_pa"]) if fixture.get("mic_sensitivity_mv_pa") is not None else None
+        ),
+        preamp_gain_db=(float(fixture["preamp_gain_db"]) if fixture.get("preamp_gain_db") is not None else None),
+        adc_full_scale_vrms=(
+            float(fixture["adc_full_scale_vrms"]) if fixture.get("adc_full_scale_vrms") is not None else None
+        ),
     )
     check_report_path = cfg.output_path.with_name(cfg.output_path.stem + ".check.json")
     _, check_report, within = run_calibration_check(

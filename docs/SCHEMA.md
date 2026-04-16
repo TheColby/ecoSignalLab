@@ -72,6 +72,11 @@ Snark note: “I think we used the same settings” is not a provenance strategy
 - `backend`: primary decode backend (`soundfile`, `ffmpeg`, or `h5py`)
 - `compute_device`: requested/resolved compute backend metadata (`cpu|cuda|mps`)
 - `spatial_metadata`: structured layout metadata including channel labels and Ambisonics hints when detected
+  - Ambisonics metadata now includes stronger convention hints such as:
+    - `component_order`
+    - `normalization`
+    - `format_hint`
+    - `convention_confidence`
 - `analysis_strategy`: whether the run was out-of-core, whether frame series were omitted from JSON, the summary method, checkpoint directory, and frame-table sidecars
 
 For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
