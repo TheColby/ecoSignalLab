@@ -1428,6 +1428,165 @@ def _run_moments_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_insights_scene(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_scene_changes
+
+    result = run_scene_changes(
+        Path(args.input),
+        Path(args.out),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+        threshold_z=float(args.threshold_z),
+        max_changes=args.max_changes,
+        feature_set=str(args.feature_set),
+    )
+    print(f"scene_changes_json: {result.primary}")
+    print(f"scene_changes_csv: {result.report.get('csv_path')}")
+    return 0
+
+
+def _run_insights_calmness(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_calmness
+
+    result = run_calmness(
+        Path(args.input),
+        Path(args.out),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+    )
+    print(f"calmness_json: {result.primary}")
+    print(
+        "summary:",
+        {
+            "calmness": result.report.get("calmness_score"),
+            "chaos": result.report.get("chaos_score"),
+            "diversity": result.report.get("diversity_score"),
+        },
+    )
+    return 0
+
+
+def _run_insights_spatial(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_spatial_timeline
+
+    result = run_spatial_timeline(
+        Path(args.input),
+        Path(args.out),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+    )
+    print(f"spatial_timeline_json: {result.primary}")
+    print(f"spatial_timeline_csv: {result.report.get('csv_path')}")
+    return 0
+
+
+def _run_insights_occupancy(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_bio_occupancy
+
+    result = run_bio_occupancy(
+        Path(args.input),
+        Path(args.out),
+        bands=str(args.bands),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+        threshold_ratio=float(args.threshold_ratio),
+    )
+    print(f"bio_occupancy_json: {result.primary}")
+    print(f"bio_occupancy_csv: {result.report.get('csv_path')}")
+    return 0
+
+
+def _run_insights_drift(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_archive_drift
+
+    result = run_archive_drift(Path(args.baseline_report), Path(args.candidate_report), Path(args.out))
+    print(f"archive_drift_json: {result.primary}")
+    print("summary:", {"drift_score": result.report.get("drift_score")})
+    return 0
+
+
+def _run_insights_retrieve(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_event_retrieval
+
+    result = run_event_retrieval(
+        Path(args.query),
+        Path(args.corpus_dir),
+        Path(args.out),
+        top_k=int(args.top_k),
+        mode=str(args.mode),
+        metric=str(args.metric),
+        metrics=_metric_list(args.metrics),
+        distance=str(args.distance),
+        feature_set=str(args.feature_set),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+        max_files=args.max_files,
+    )
+    print(f"event_retrieval_json: {result.primary}")
+    print(f"event_retrieval_csv: {result.report.get('csv_path')}")
+    return 0
+
+
+def _run_insights_embeddings(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_embeddings
+
+    result = run_embeddings(
+        Path(args.input_dir),
+        Path(args.out),
+        feature_set=str(args.feature_set),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+        max_files=args.max_files,
+        device=str(args.device),
+    )
+    print(f"embeddings_manifest: {result.primary}")
+    print(f"embeddings_npz: {result.report.get('npz_path')}")
+    print(f"embeddings_csv: {result.report.get('csv_path')}")
+    return 0
+
+
+def _run_insights_report(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_soundscape_report
+
+    result = run_soundscape_report(Path(args.analysis_json), Path(args.out))
+    print(f"soundscape_report_json: {result.primary}")
+    print(f"soundscape_report_html: {result.report.get('html_path')}")
+    return 0
+
+
+def _run_insights_simulation_compare(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_simulation_compare
+
+    result = run_simulation_compare(Path(args.simulated_json), Path(args.measured_json), Path(args.out))
+    print(f"simulation_compare_json: {result.primary}")
+    return 0
+
+
+def _run_insights_storyboard(args: argparse.Namespace) -> int:
+    from esl.core.insights import run_storyboard
+
+    result = run_storyboard(
+        Path(args.input),
+        Path(args.out),
+        clips=int(args.clips),
+        window_s=float(args.window),
+        frame_size=int(args.frame_size),
+        hop_size=int(args.hop_size),
+        sample_rate=args.sample_rate,
+        feature_set=str(args.feature_set),
+        write_clips=not bool(args.no_clips),
+    )
+    print(f"storyboard_json: {result.primary}")
+    print(f"storyboard_csv: {result.report.get('csv_path')}")
+    return 0
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     from esl.ingest import ingest
 
@@ -2403,6 +2562,103 @@ def _build_parser() -> argparse.ArgumentParser:
     pmom_ex.add_argument("--clips-dir", default=None, help="Output clips directory (default: <out>/clips)")
     pmom_ex.add_argument("--report", default=None, help="Output moments report JSON path")
     pmom_ex.set_defaults(func=_run_moments_extract)
+
+    # insights
+    pins = sub.add_parser("insights", help="Higher-level soundscape insight workflows")
+    pins_sub = pins.add_subparsers(dest="insights_cmd", required=True)
+
+    pins_scene = pins_sub.add_parser("scene", help="Detect acoustic scene-change candidates")
+    pins_scene.add_argument("input", help="Input audio file path")
+    pins_scene.add_argument("--out", required=True, help="Output directory for scene_changes.json/csv")
+    pins_scene.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_scene.add_argument("--frame-size", type=int, default=2048)
+    pins_scene.add_argument("--hop-size", type=int, default=512)
+    pins_scene.add_argument("--sample-rate", type=int, default=None)
+    pins_scene.add_argument("--threshold-z", type=float, default=1.5, help="Peak threshold in z-score units")
+    pins_scene.add_argument("--max-changes", type=int, default=None, help="Optional maximum number of changes")
+    pins_scene.set_defaults(func=_run_insights_scene)
+
+    pins_calm = pins_sub.add_parser("calmness", help="Estimate calmness, chaos, and acoustic diversity")
+    pins_calm.add_argument("input", help="Input audio file path")
+    pins_calm.add_argument("--out", required=True, help="Output calmness JSON path")
+    pins_calm.add_argument("--frame-size", type=int, default=2048)
+    pins_calm.add_argument("--hop-size", type=int, default=512)
+    pins_calm.add_argument("--sample-rate", type=int, default=None)
+    pins_calm.set_defaults(func=_run_insights_calmness)
+
+    pins_sp = pins_sub.add_parser("spatial", help="Write a frame-wise multichannel spatial activity timeline")
+    pins_sp.add_argument("input", help="Input audio file path")
+    pins_sp.add_argument("--out", required=True, help="Output directory for spatial_timeline.json/csv")
+    pins_sp.add_argument("--frame-size", type=int, default=2048)
+    pins_sp.add_argument("--hop-size", type=int, default=512)
+    pins_sp.add_argument("--sample-rate", type=int, default=None)
+    pins_sp.set_defaults(func=_run_insights_spatial)
+
+    pins_occ = pins_sub.add_parser("occupancy", help="Estimate acoustic occupancy by named frequency band")
+    pins_occ.add_argument("input", help="Input audio file path")
+    pins_occ.add_argument("--out", required=True, help="Output directory for bio_occupancy.json/csv")
+    pins_occ.add_argument("--bands", default="anthro:20-1000,bio:2000-8000", help="Comma bands like anthro:20-1000,bio:2000-8000")
+    pins_occ.add_argument("--threshold-ratio", type=float, default=0.2, help="Band/total energy ratio counted as occupied")
+    pins_occ.add_argument("--frame-size", type=int, default=4096)
+    pins_occ.add_argument("--hop-size", type=int, default=2048)
+    pins_occ.add_argument("--sample-rate", type=int, default=None)
+    pins_occ.set_defaults(func=_run_insights_occupancy)
+
+    pins_drift = pins_sub.add_parser("drift", help="Compare two analysis/shard reports for archive drift")
+    pins_drift.add_argument("baseline_report", help="Baseline analysis JSON or shard_analysis_report.json")
+    pins_drift.add_argument("candidate_report", help="Candidate analysis JSON or shard_analysis_report.json")
+    pins_drift.add_argument("--out", required=True, help="Output drift JSON path")
+    pins_drift.set_defaults(func=_run_insights_drift)
+
+    pins_ret = pins_sub.add_parser("retrieve", help="Query-by-example event/file retrieval from a corpus folder")
+    pins_ret.add_argument("query", help="Query audio file")
+    pins_ret.add_argument("corpus_dir", help="Folder of candidate audio files")
+    pins_ret.add_argument("--out", required=True, help="Output directory for event_retrieval.json/csv")
+    pins_ret.add_argument("--top-k", type=int, default=5)
+    pins_ret.add_argument("--mode", default="auto", choices=["auto", "feature", "metric", "metrics"])
+    pins_ret.add_argument("--metric", default="novelty_curve", help="Single metric for --mode metric")
+    pins_ret.add_argument("--metrics", default=None, help="Comma-separated metrics for --mode metrics")
+    pins_ret.add_argument("--distance", default="cosine", choices=["cosine", "euclidean", "manhattan"])
+    pins_ret.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_ret.add_argument("--frame-size", type=int, default=1024)
+    pins_ret.add_argument("--hop-size", type=int, default=256)
+    pins_ret.add_argument("--sample-rate", type=int, default=None)
+    pins_ret.add_argument("--max-files", type=int, default=None)
+    pins_ret.set_defaults(func=_run_insights_retrieve)
+
+    pins_emb = pins_sub.add_parser("embeddings", help="Build deterministic clip-level feature embeddings")
+    pins_emb.add_argument("input_dir", help="Input directory of audio files")
+    pins_emb.add_argument("--out", required=True, help="Output directory for embeddings.npz/csv/manifest")
+    pins_emb.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_emb.add_argument("--frame-size", type=int, default=1024)
+    pins_emb.add_argument("--hop-size", type=int, default=256)
+    pins_emb.add_argument("--sample-rate", type=int, default=None)
+    pins_emb.add_argument("--max-files", type=int, default=None)
+    pins_emb.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda", "mps"])
+    pins_emb.set_defaults(func=_run_insights_embeddings)
+
+    pins_rep = pins_sub.add_parser("report", help="Generate a compact HTML soundscape report from analysis JSON")
+    pins_rep.add_argument("analysis_json", help="Input esl analysis JSON")
+    pins_rep.add_argument("--out", required=True, help="Output directory for soundscape_report.html/json")
+    pins_rep.set_defaults(func=_run_insights_report)
+
+    pins_cmp = pins_sub.add_parser("simulation-compare", help="Compare simulated and measured analysis JSON files")
+    pins_cmp.add_argument("simulated_json", help="Simulation analysis JSON")
+    pins_cmp.add_argument("measured_json", help="Measured/field analysis JSON")
+    pins_cmp.add_argument("--out", required=True, help="Output comparison JSON path")
+    pins_cmp.set_defaults(func=_run_insights_simulation_compare)
+
+    pins_story = pins_sub.add_parser("storyboard", help="Create timestamped storyboard clips from high-change moments")
+    pins_story.add_argument("input", help="Input audio file path")
+    pins_story.add_argument("--out", required=True, help="Output directory for storyboard.json/csv/clips")
+    pins_story.add_argument("--clips", type=int, default=12, help="Number of storyboard moments")
+    pins_story.add_argument("--window", type=float, default=5.0, help="Seconds around each selected moment")
+    pins_story.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_story.add_argument("--frame-size", type=int, default=2048)
+    pins_story.add_argument("--hop-size", type=int, default=512)
+    pins_story.add_argument("--sample-rate", type=int, default=None)
+    pins_story.add_argument("--no-clips", action="store_true", help="Write CSV/JSON only; do not export WAV clips")
+    pins_story.set_defaults(func=_run_insights_storyboard)
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")

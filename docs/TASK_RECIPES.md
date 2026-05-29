@@ -28,6 +28,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 13B: Plot archive-scale shard timelines](#recipe-13b-plot-archive-scale-shard-timelines)
 - [Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file](#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
 - [Recipe 15: Verify calibration math with a built-in reference fixture](#recipe-15-verify-calibration-math-with-a-built-in-reference-fixture)
+- [Recipe 16: Generate soundscape insights and a listening storyboard](#recipe-16-generate-soundscape-insights-and-a-listening-storyboard)
 
 ## Recipe Index by Device Type
 
@@ -522,6 +523,31 @@ Other fixtures:
 - `sine_1khz_minus12dbfs`
 - `sine_1khz_minus20dbfs_precision_chain`
 
+## Recipe 16: Generate soundscape insights and a listening storyboard
+
+```bash
+esl insights scene input.wav --out out/insights/scene
+esl insights calmness input.wav --out out/insights/calmness.json
+esl insights occupancy input.wav --out out/insights/occupancy
+esl insights storyboard input.wav --out out/insights/storyboard --clips 8 --window 6
+```
+
+What this does:
+- finds likely acoustic scene changes
+- estimates calmness, chaos, and spectral diversity
+- summarizes acoustic occupancy by frequency band
+- exports short storyboard clips so you can listen to the interesting parts first
+
+Expected outputs:
+- `out/insights/scene/scene_changes.json`
+- `out/insights/scene/scene_changes.csv`
+- `out/insights/calmness.json`
+- `out/insights/occupancy/bio_occupancy.json`
+- `out/insights/storyboard/storyboard.csv`
+- `out/insights/storyboard/clips/story_*.wav`
+
+For the full command catalog, see [`INSIGHTS.md`](INSIGHTS.md).
+
 ## Which command should I use?
 
 ```mermaid
@@ -533,6 +559,8 @@ flowchart TD
     E --> F["esl features extract"]
     A --> G["Need large-scale processing"]
     G --> H["esl batch"]
+    A --> I["Need human-level summaries"]
+    I --> J["esl insights"]
 ```
 
 ## Related Docs
@@ -542,3 +570,4 @@ flowchart TD
 - [`GLOSSARY.md`](GLOSSARY.md)
 - [`MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - [`SIMILARITY_SEARCH.md`](SIMILARITY_SEARCH.md)
+- [`INSIGHTS.md`](INSIGHTS.md)

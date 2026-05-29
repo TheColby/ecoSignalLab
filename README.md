@@ -118,6 +118,8 @@ esl quickstart
   - [`docs/SIMILARITY_SEARCH.md`](docs/SIMILARITY_SEARCH.md)
 - I want to search a long shard archive for the shards most similar to a query:
   - [`docs/SHARD_WORKFLOWS.md#archive-level-similarity-search`](docs/SHARD_WORKFLOWS.md#archive-level-similarity-search)
+- I want higher-level soundscape insights like calmness, drift, occupancy, retrieval, and storyboards:
+  - [`docs/INSIGHTS.md`](docs/INSIGHTS.md)
 
 ## First 5 Minutes (Copy/Paste)
 
@@ -211,6 +213,7 @@ Friendly mental model:
 - Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
 - Find archive-level top-ranked events with `esl shard moments`.
 - Find the archive shards most similar to a query recording with `esl shard similar`.
+- Run higher-level insight workflows with `esl insights`: scene changes, calmness/chaos/diversity, occupancy, drift, retrieval, embeddings, reports, simulation comparison, and storyboards.
 - Generate static and interactive plots, including similarity and novelty matrix views.
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.
 - Build deterministic ML dataset manifests from exported feature metadata with `esl features manifest`.

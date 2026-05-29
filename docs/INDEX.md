@@ -1,11 +1,12 @@
 # Documentation Index
 
-Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
+Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Soundscape Insights](INSIGHTS.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
 
 ## Start Here
 
 - [Getting Started](GETTING_STARTED.md)
 - [Task Recipes (Beginner)](TASK_RECIPES.md)
+- [Soundscape Insights](INSIGHTS.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Roadmap](../ROADMAP.md)
 - [Announcement FAQ](ANNOUNCEMENT_FAQ.md)
@@ -49,6 +50,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
   - [Moments Extraction](MOMENTS_EXTRACTION.md)
   - [Similarity Search](SIMILARITY_SEARCH.md)
   - [Shard Workflows](SHARD_WORKFLOWS.md)
+  - [Soundscape Insights](INSIGHTS.md)
 - Metrics and schema:
   - [Metrics Reference](METRICS_REFERENCE.md)
   - [Schema Contract](SCHEMA.md)
