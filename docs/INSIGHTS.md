@@ -350,4 +350,15 @@ esl shard moments manifest.json --out out/moments --top-k 33 --window-before 20 
 
 Then use `esl insights drift`, `esl insights retrieve`, or `esl insights report` on the resulting reports.
 
+For archive-native summaries that never decode the whole archive again:
+
+```bash
+esl shard insights summary manifest.json --out out/archive_summary
+esl shard insights scene out/shards/shard_analysis_report.json --out out/archive_scene
+esl shard insights calmness out/shards/shard_analysis_report.json --out out/archive_calmness.json
+esl shard insights report out/shards/shard_analysis_report.json --out out/archive_report
+```
+
+Plain English: `esl insights` is for a file; `esl shard insights` is for the whole archive book, using the table of contents and per-chapter notes.
+
 Do not load a decade into memory just because a command exists. That is not courage. That is a cry for help from your RAM.

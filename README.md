@@ -193,6 +193,7 @@ In `esl`:
 - `esl shard analyze` analyzes the archive shard by shard
 - `esl shard moments` finds archive-level interesting events
 - `esl shard similar` finds which shards most resemble a query recording
+- `esl shard insights` summarizes the archive without loading decade-sized audio into memory
 
 Friendly mental model:
 - shard = one chapter
@@ -213,6 +214,7 @@ Friendly mental model:
 - Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
 - Find archive-level top-ranked events with `esl shard moments`.
 - Find the archive shards most similar to a query recording with `esl shard similar`.
+- Summarize long-archive manifests and reports with `esl shard insights`.
 - Run higher-level insight workflows with `esl insights`: scene changes, calmness/chaos/diversity, occupancy, drift, retrieval, embeddings, reports, simulation comparison, and storyboards.
 - Generate static and interactive plots, including similarity and novelty matrix views.
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.

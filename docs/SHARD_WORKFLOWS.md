@@ -254,6 +254,74 @@ What gets ranked:
 
 Plain English: this tells you which shard is most like your query, and also where that shard sits in the full archive timeline.
 
+## Archive-Level Insights
+
+Use `shard insights` when you want summaries from a manifest or `shard_analysis_report.json` without decoding the archive audio again.
+
+Quick manifest summary:
+
+```bash
+esl shard insights summary out/ten_year_manifest.json \
+  --out out/shard_insights/summary
+```
+
+Outputs:
+- `out/shard_insights/summary/shard_insights_summary.json`
+- `out/shard_insights/summary/shard_timeline.csv`
+
+Shard-to-shard scene changes from existing analysis:
+
+```bash
+esl shard insights scene out/ten_year_analysis/shard_analysis_report.json \
+  --out out/shard_insights/scene \
+  --metrics rms_dbfs,novelty_curve,ndsi \
+  --threshold-z 1.5
+```
+
+Archive calmness / chaos / diversity from shard metric means:
+
+```bash
+esl shard insights calmness out/ten_year_analysis/shard_analysis_report.json \
+  --out out/shard_insights/calmness.json
+```
+
+HTML report:
+
+```bash
+esl shard insights report out/ten_year_analysis/shard_analysis_report.json \
+  --out out/shard_insights/report
+```
+
+Drift between two deployments or time periods:
+
+```bash
+esl shard insights drift baseline/shard_analysis_report.json \
+  candidate/shard_analysis_report.json \
+  --out out/shard_insights/drift.json
+```
+
+```mermaid
+flowchart LR
+    A["Shard manifest"] --> B["esl shard insights summary"]
+    C["shard_analysis_report.json"] --> D["esl shard insights scene"]
+    C --> E["esl shard insights calmness"]
+    C --> F["esl shard insights report"]
+    C --> G["esl shard insights drift"]
+```
+
+Math for shard scene changes:
+
+$$
+n_i = \lVert z(\mathbf{m}_i) - z(\mathbf{m}_{i-1}) \rVert_2
+$$
+
+where:
+- \(n_i\) is the change score at shard boundary \(i\)
+- \(\mathbf{m}_i\) is the selected vector of shard-level metric means
+- \(z(\cdot)\) means feature-wise z-scoring across shards
+
+Plain English: `esl` compares each shard's summary metrics to the previous shard. Large jumps become candidate archive scene changes.
+
 ### Feature mode
 
 ```bash

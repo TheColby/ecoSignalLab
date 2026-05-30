@@ -29,6 +29,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file](#recipe-14-find-the-top-33-most-novel-moments-in-a-ten-year-8-channel-file)
 - [Recipe 15: Verify calibration math with a built-in reference fixture](#recipe-15-verify-calibration-math-with-a-built-in-reference-fixture)
 - [Recipe 16: Generate soundscape insights and a listening storyboard](#recipe-16-generate-soundscape-insights-and-a-listening-storyboard)
+- [Recipe 17: Summarize a long shard archive without rereading audio](#recipe-17-summarize-a-long-shard-archive-without-rereading-audio)
 
 ## Recipe Index by Device Type
 
@@ -548,6 +549,33 @@ Expected outputs:
 
 For the full command catalog, see [`INSIGHTS.md`](INSIGHTS.md).
 
+## Recipe 17: Summarize a long shard archive without rereading audio
+
+```bash
+esl shard insights summary out/ten_year_manifest.json \
+  --out out/shard_insights/summary
+
+esl shard insights scene out/ten_year_analysis/shard_analysis_report.json \
+  --out out/shard_insights/scene \
+  --metrics rms_dbfs,novelty_curve,ndsi
+
+esl shard insights report out/ten_year_analysis/shard_analysis_report.json \
+  --out out/shard_insights/report
+```
+
+What this does:
+- summarizes archive timeline, duration, channels, formats, and timeline integrity from the manifest
+- detects shard-to-shard changes from existing metric summaries
+- generates an HTML archive report with Mermaid rendering
+- avoids decoding the archive audio again
+
+Expected outputs:
+- `out/shard_insights/summary/shard_insights_summary.json`
+- `out/shard_insights/summary/shard_timeline.csv`
+- `out/shard_insights/scene/shard_scene_changes.json`
+- `out/shard_insights/scene/shard_scene_changes.csv`
+- `out/shard_insights/report/shard_soundscape_report.html`
+
 ## Which command should I use?
 
 ```mermaid
@@ -561,6 +589,8 @@ flowchart TD
     G --> H["esl batch"]
     A --> I["Need human-level summaries"]
     I --> J["esl insights"]
+    G --> K["Need archive-level summaries without rereading audio"]
+    K --> L["esl shard insights"]
 ```
 
 ## Related Docs

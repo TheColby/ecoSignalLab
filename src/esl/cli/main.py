@@ -1099,6 +1099,69 @@ def _run_shard_plot(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_shard_insights_summary(args: argparse.Namespace) -> int:
+    from esl.core.shard_insights import run_shard_manifest_summary
+
+    result = run_shard_manifest_summary(Path(args.manifest), Path(args.out))
+    print(f"shard_insights_summary_json: {result.primary}")
+    print(f"shard_timeline_csv: {result.report.get('artifacts', {}).get('timeline_csv')}")
+    return 0
+
+
+def _run_shard_insights_scene(args: argparse.Namespace) -> int:
+    from esl.core.shard_insights import run_shard_report_scene_changes
+
+    result = run_shard_report_scene_changes(
+        Path(args.report),
+        Path(args.out),
+        metrics=_metric_list(args.metrics),
+        threshold_z=float(args.threshold_z),
+        max_changes=args.max_changes,
+    )
+    print(f"shard_scene_changes_json: {result.primary}")
+    print(f"shard_scene_changes_csv: {result.report.get('artifacts', {}).get('csv')}")
+    return 0
+
+
+def _run_shard_insights_calmness(args: argparse.Namespace) -> int:
+    from esl.core.shard_insights import run_shard_report_calmness
+
+    result = run_shard_report_calmness(
+        Path(args.report),
+        Path(args.out),
+        level_metric=str(args.level_metric),
+        activity_metrics=_metric_list(args.activity_metrics),
+    )
+    print(f"shard_calmness_json: {result.primary}")
+    print(
+        "summary:",
+        {
+            "calmness": result.report.get("calmness_score"),
+            "chaos": result.report.get("chaos_score"),
+            "diversity": result.report.get("diversity_score"),
+        },
+    )
+    return 0
+
+
+def _run_shard_insights_drift(args: argparse.Namespace) -> int:
+    from esl.core.shard_insights import run_shard_report_drift
+
+    result = run_shard_report_drift(Path(args.baseline_report), Path(args.candidate_report), Path(args.out))
+    print(f"shard_drift_json: {result.primary}")
+    print("summary:", {"drift_score": result.report.get("drift_score")})
+    return 0
+
+
+def _run_shard_insights_report(args: argparse.Namespace) -> int:
+    from esl.core.shard_insights import run_shard_soundscape_report
+
+    result = run_shard_soundscape_report(Path(args.report), Path(args.out))
+    print(f"shard_soundscape_report_json: {result.primary}")
+    print(f"shard_soundscape_report_html: {result.report.get('html_path')}")
+    return 0
+
+
 def _run_spatial_analyze(args: argparse.Namespace) -> int:
     from esl.core.spatial import (
         SPATIAL_DEFAULT_METRICS,
@@ -2837,6 +2900,67 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_plot.add_argument("report", help="Path to shard_analysis_report.json")
     psh_plot.add_argument("--out", required=True, help="Output directory for archive PNG plots")
     psh_plot.set_defaults(func=_run_shard_plot)
+
+    psh_ins = psh_sub.add_parser("insights", help="Manifest/report-level insights for shard archives")
+    psh_ins_sub = psh_ins.add_subparsers(dest="shard_insights_cmd", required=True)
+
+    psh_ins_sum = psh_ins_sub.add_parser(
+        "summary",
+        help="Summarize a shard manifest without decoding audio",
+    )
+    psh_ins_sum.add_argument("manifest", help="Path to shard manifest JSON")
+    psh_ins_sum.add_argument("--out", required=True, help="Output directory for summary JSON/CSV")
+    psh_ins_sum.set_defaults(func=_run_shard_insights_summary)
+
+    psh_ins_scene = psh_ins_sub.add_parser(
+        "scene",
+        help="Detect shard-to-shard scene changes from shard_analysis_report.json",
+    )
+    psh_ins_scene.add_argument("report", help="Path to shard_analysis_report.json")
+    psh_ins_scene.add_argument("--out", required=True, help="Output directory for scene JSON/CSV")
+    psh_ins_scene.add_argument(
+        "--metrics",
+        default=None,
+        help="Comma-separated metric IDs; defaults to all numeric *_mean columns",
+    )
+    psh_ins_scene.add_argument("--threshold-z", type=float, default=1.5)
+    psh_ins_scene.add_argument("--max-changes", type=int, default=None)
+    psh_ins_scene.set_defaults(func=_run_shard_insights_scene)
+
+    psh_ins_calm = psh_ins_sub.add_parser(
+        "calmness",
+        help="Estimate archive calmness/chaos/diversity from shard metric means",
+    )
+    psh_ins_calm.add_argument("report", help="Path to shard_analysis_report.json")
+    psh_ins_calm.add_argument("--out", required=True, help="Output calmness JSON path")
+    psh_ins_calm.add_argument(
+        "--level-metric",
+        default="rms_dbfs",
+        help="Level metric ID used for stability component; defaults to rms_dbfs",
+    )
+    psh_ins_calm.add_argument(
+        "--activity-metrics",
+        default=None,
+        help="Comma-separated activity metric IDs; defaults to novelty/spectral/NDSI if present",
+    )
+    psh_ins_calm.set_defaults(func=_run_shard_insights_calmness)
+
+    psh_ins_drift = psh_ins_sub.add_parser(
+        "drift",
+        help="Compare two shard_analysis_report.json files",
+    )
+    psh_ins_drift.add_argument("baseline_report", help="Baseline shard analysis report")
+    psh_ins_drift.add_argument("candidate_report", help="Candidate shard analysis report")
+    psh_ins_drift.add_argument("--out", required=True, help="Output drift JSON path")
+    psh_ins_drift.set_defaults(func=_run_shard_insights_drift)
+
+    psh_ins_report = psh_ins_sub.add_parser(
+        "report",
+        help="Generate an HTML archive soundscape report from shard_analysis_report.json",
+    )
+    psh_ins_report.add_argument("report", help="Path to shard_analysis_report.json")
+    psh_ins_report.add_argument("--out", required=True, help="Output directory for HTML/JSON report")
+    psh_ins_report.set_defaults(func=_run_shard_insights_report)
 
     # project
     pproj = sub.add_parser("project", help="Project mode reports and comparisons")

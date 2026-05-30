@@ -12,6 +12,7 @@ What already exists now:
 - `esl shard analyze`
 - `esl shard moments`
 - `esl shard similar`
+- `esl shard insights`
 - appendable `FrameTable` sidecars:
   - CSV
   - Parquet dataset directory
@@ -24,7 +25,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 ## Near Term
 
 1. Stabilize the `v0.2.x` line.
-2. Expand long-archive workflows.
+2. Expand long-archive insight workflows.
 3. Make multichannel and spatial metadata first-class.
 4. Tighten calibration verification and reference fixtures.
 5. Improve ML-ready FrameTable exports.
@@ -52,6 +53,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 - `esl shard analyze`
 - `esl shard moments`
 - `esl shard similar`
+- `esl shard insights summary/scene/calmness/drift/report`
 - resumable stream passes
 - archive-level top-k novelty/event extraction
 - archive-level query-to-shard retrieval
@@ -89,7 +91,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 
 ### 30 Days
 
-- stabilize shard moments and shard similarity
+- stabilize shard moments, shard similarity, and shard insights
 - finish appendable FrameTable export ergonomics
 - improve docs and examples for huge archives
 - increase regression coverage around ranking semantics
@@ -118,7 +120,7 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. spatial-aware shard retrieval, not just whole-shard similarity
+1. query-to-event retrieval inside shard archives, not only whole-shard retrieval
 2. stronger Ambisonics channel-order / normalization metadata contracts
 3. more calibration verification fixtures and reference reports
 4. archive-scale plots for month/year campaigns

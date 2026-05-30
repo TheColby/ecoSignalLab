@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import importlib.util
+import json
 from pathlib import Path
 
 import numpy as np
@@ -314,3 +314,97 @@ def test_cli_shard_similar_spatial_append_and_plot(tmp_path: Path) -> None:
         == 0
     )
     assert any(plot_out.glob("archive_metric_*.png"))
+
+
+def test_cli_shard_insights_summary_scene_calmness_and_report(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    _write_wav(archive / "a.wav", seconds=0.5, freq=220.0)
+    _write_wav(archive / "b.wav", seconds=0.5, freq=880.0)
+    _write_wav(archive / "c.wav", seconds=0.5, freq=220.0)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    summary_dir = tmp_path / "summary"
+    assert (
+        main(["shard", "insights", "summary", str(manifest_path), "--out", str(summary_dir)])
+        == 0
+    )
+    summary = json.loads((summary_dir / "shard_insights_summary.json").read_text(encoding="utf-8"))
+    assert summary["insight_kind"] == "shard_manifest_summary"
+    assert summary["num_shards"] == 3
+    assert (summary_dir / "shard_timeline.csv").exists()
+
+    analysis_out = tmp_path / "analysis"
+    assert (
+        main(
+            [
+                "shard",
+                "analyze",
+                str(manifest_path),
+                "--out",
+                str(analysis_out),
+                "--metrics",
+                "rms_dbfs,novelty_curve,ndsi",
+                "--report-metrics",
+                "rms_dbfs,novelty_curve,ndsi",
+                "--summary-only",
+                "--streamable-only",
+            ]
+        )
+        == 0
+    )
+    report_path = analysis_out / "shard_analysis_report.json"
+
+    scene_dir = tmp_path / "scene"
+    assert (
+        main(
+            [
+                "shard",
+                "insights",
+                "scene",
+                str(report_path),
+                "--out",
+                str(scene_dir),
+                "--metrics",
+                "rms_dbfs,novelty_curve",
+                "--threshold-z",
+                "0",
+            ]
+        )
+        == 0
+    )
+    scene = json.loads((scene_dir / "shard_scene_changes.json").read_text(encoding="utf-8"))
+    assert scene["insight_kind"] == "shard_scene_changes"
+    assert scene["changes"]
+    assert (scene_dir / "shard_scene_changes.csv").exists()
+
+    calm_path = tmp_path / "calmness.json"
+    assert main(["shard", "insights", "calmness", str(report_path), "--out", str(calm_path)]) == 0
+    calm = json.loads(calm_path.read_text(encoding="utf-8"))
+    assert calm["insight_kind"] == "shard_calmness_chaos_diversity"
+    assert 0.0 <= float(calm["calmness_score"]) <= 1.0
+
+    html_dir = tmp_path / "html"
+    assert main(["shard", "insights", "report", str(report_path), "--out", str(html_dir)]) == 0
+    assert (html_dir / "shard_soundscape_report.html").exists()
+    assert "mermaid" in (html_dir / "shard_soundscape_report.html").read_text(encoding="utf-8")
+
+    drift_path = tmp_path / "drift.json"
+    assert (
+        main(
+            [
+                "shard",
+                "insights",
+                "drift",
+                str(report_path),
+                str(report_path),
+                "--out",
+                str(drift_path),
+            ]
+        )
+        == 0
+    )
+    drift = json.loads(drift_path.read_text(encoding="utf-8"))
+    assert drift["insight_kind"] == "archive_drift"
