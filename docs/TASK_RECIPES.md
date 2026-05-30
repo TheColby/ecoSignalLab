@@ -20,6 +20,7 @@ Need one-command helpers instead of typing long flags?
 - [Recipe 7: Generate DSP signal/window reference graphs](#recipe-7-generate-dsp-signalwindow-reference-graphs)
 - [Recipe 8: Find the most similar files in a folder](#recipe-8-find-the-most-similar-files-in-a-folder)
 - [Recipe 8B: Find the most similar shard in a long archive](#recipe-8b-find-the-most-similar-shard-in-a-long-archive)
+- [Recipe 8C: Find the most similar moments inside a long archive](#recipe-8c-find-the-most-similar-moments-inside-a-long-archive)
 - [Recipe 9: Use minute/hour/day window flags](#recipe-9-use-minutehourday-window-flags)
 - [Recipe 10: Check your setup and file before analysis](#recipe-10-check-your-setup-and-file-before-analysis)
 - [Recipe 11: Print a quick human-readable summary](#recipe-11-print-a-quick-human-readable-summary)
@@ -299,6 +300,50 @@ Useful options:
 Expected outputs:
 - `out/shard_similarity/query_shard_similarity.json`
 - `out/shard_similarity/query_shard_similarity.csv`
+
+## Recipe 8C: Find the most similar moments inside a long archive
+
+```bash
+esl shard retrieve out/archive_manifest.json query_event.wav \
+  --out out/shard_retrieval \
+  --top-k 10 \
+  --window-seconds 8 \
+  --window-hop-seconds 2 \
+  --json out/shard_retrieval/event_retrieval.json \
+  --csv out/shard_retrieval/event_retrieval.csv
+```
+
+What this does:
+- scans each shard with a sliding window
+- compares every window to the query event
+- ranks the best matching archive moments
+- writes timestamped CSV/JSON plus WAV clips
+
+How to specify the moment size:
+- `--window-seconds 8` means each candidate and exported clip is about 8 seconds long
+- `--window-hop-seconds 2` means candidates start every 2 seconds
+- smaller hops improve recall but increase runtime
+
+How to specify what “similar” means:
+- default `--feature-set core` uses deterministic spectral/log-mel features
+- richer features:
+  - `--feature-set all`
+- choose distance:
+  - `--distance cosine|euclidean|manhattan`
+
+Useful options:
+- `--top-k 33`
+- `--no-clips`
+- `--max-shards 100`
+- `--sample-rate 24000`
+- `--frame-seconds`, `--hop-seconds`
+
+Expected outputs:
+- `out/shard_retrieval/event_retrieval.json`
+- `out/shard_retrieval/event_retrieval.csv`
+- `out/shard_retrieval/retrieved_clips/retrieved_0001.wav`
+
+Plain English: this is the command for “find me the 10 moments that sound most like this example.” Little acoustic detective. Trench coat sold separately.
 
 ## Recipe 9: Use minute/hour/day window flags
 

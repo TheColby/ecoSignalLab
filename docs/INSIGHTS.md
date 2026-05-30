@@ -346,9 +346,11 @@ For multi-hour, multi-day, multi-year, or politely unhinged ten-year files, use 
 esl shard index archive_dir --out manifest.json
 esl shard analyze manifest.json --out out/shards --summary-only --streamable-only
 esl shard moments manifest.json --out out/moments --top-k 33 --window-before 20 --window-after 40
+esl shard retrieve manifest.json query_event.wav --out out/retrieve --top-k 10 --window-seconds 8
 ```
 
 Then use `esl insights drift`, `esl insights retrieve`, or `esl insights report` on the resulting reports.
+Use `esl shard retrieve` when you have an example event and want the most similar timestamped windows across the whole archive.
 
 For archive-native summaries that never decode the whole archive again:
 

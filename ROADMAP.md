@@ -12,6 +12,7 @@ What already exists now:
 - `esl shard analyze`
 - `esl shard moments`
 - `esl shard similar`
+- `esl shard retrieve`
 - `esl shard insights`
 - appendable `FrameTable` sidecars:
   - CSV
@@ -57,6 +58,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 - resumable stream passes
 - archive-level top-k novelty/event extraction
 - archive-level query-to-shard retrieval
+- archive-level query-to-event retrieval
 - appendable FrameTable exports
 
 ### 2. Multichannel / Spatial
@@ -103,7 +105,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 - expand calibration verification fixtures
 - improve Parquet/HDF5 downstream ergonomics
 - add more archive-scale overview plots
-- add query-to-event retrieval beyond whole-shard retrieval
+- harden query-to-event retrieval beyond whole-shard retrieval
 
 ### 90 Days
 
@@ -120,7 +122,7 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. query-to-event retrieval inside shard archives, not only whole-shard retrieval
+1. spatial-aware query-to-event retrieval inside shard archives
 2. stronger Ambisonics channel-order / normalization metadata contracts
 3. more calibration verification fixtures and reference reports
 4. archive-scale plots for month/year campaigns

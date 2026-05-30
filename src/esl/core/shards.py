@@ -33,6 +33,7 @@ from esl.core.moments import (
     _ffmpeg_available,
     _iter_stream_chunks,
     _load_stream_report,
+    _read_segment,
     _rerank_windows,
     _sec_to_hms,
     _select_windows,
@@ -40,7 +41,7 @@ from esl.core.moments import (
 from esl.core.streaming import StreamRunConfig, run_stream_analysis
 from esl.io import save_json
 from esl.metrics.registry import create_registry
-from esl.viz.feature_vectors import extract_feature_vectors
+from esl.viz.feature_vectors import extract_feature_vectors, extract_feature_vectors_from_array
 
 
 SHARD_MANIFEST_VERSION = "1.0.0"
@@ -172,6 +173,23 @@ class ShardSimilarConfig:
     spatial_mode: str = "off"  # off|append|only
     spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
     spatial_weight: float = 0.5
+
+
+@dataclass(slots=True)
+class ShardRetrieveConfig:
+    manifest_path: Path
+    query_path: Path
+    output_dir: Path
+    top_k: int = 10
+    window_s: float = 10.0
+    hop_s: float = 5.0
+    feature_set: str = "core"
+    distance: str = "cosine"
+    frame_size: int = 1024
+    hop_size: int = 256
+    sample_rate: int | None = None
+    max_shards: int | None = None
+    write_clips: bool = True
 
 
 def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]]:
@@ -772,6 +790,258 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
         **body,
     }
     report_path = (cfg.output_dir / f"{cfg.query_path.stem}_shard_similarity.json").resolve()
+    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report_path, report
+
+
+def _retrieval_windows(
+    duration_s: float,
+    window_s: float,
+    hop_s: float,
+) -> list[tuple[float, float]]:
+    duration = max(0.0, float(duration_s))
+    if duration <= 0.0:
+        return []
+    window = min(duration, max(1e-6, float(window_s)))
+    hop = max(1e-6, float(hop_s))
+    starts: list[float] = []
+    start = 0.0
+    while start + window < duration - 1e-9:
+        starts.append(start)
+        start += hop
+    final = max(0.0, duration - window)
+    if not starts or abs(starts[-1] - final) > 1e-6:
+        starts.append(final)
+    return [(float(s), float(min(duration, s + window))) for s in starts]
+
+
+def _write_retrieval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "rank",
+        "clip_id",
+        "shard_index",
+        "relative_path",
+        "source_path",
+        "local_start_s",
+        "local_end_s",
+        "archive_start_s",
+        "archive_end_s",
+        "archive_start_hms",
+        "archive_end_hms",
+        "duration_s",
+        "distance",
+        "similarity",
+        "distance_kind",
+        "feature_backend",
+        "num_frames",
+        "num_features",
+        "wav_path",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({name: row.get(name) for name in fieldnames})
+
+
+def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str, Any]]:
+    """Find query-like time windows inside an ordered shard archive."""
+    manifest = load_shard_manifest(cfg.manifest_path)
+    items = [item for item in manifest.get("items", []) if isinstance(item, dict)]
+    if not items:
+        raise RuntimeError(f"No shard items found in manifest: {cfg.manifest_path}")
+    if not cfg.query_path.exists():
+        raise FileNotFoundError(f"Query file not found: {cfg.query_path}")
+    if int(cfg.top_k) < 1:
+        raise ValueError("top_k must be >= 1")
+    if float(cfg.window_s) <= 0.0:
+        raise ValueError("window_s must be > 0")
+    if float(cfg.hop_s) <= 0.0:
+        raise ValueError("hop_s must be > 0")
+
+    if cfg.max_shards is not None and int(cfg.max_shards) >= 0:
+        items = items[: int(cfg.max_shards)]
+
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    query_fv = extract_feature_vectors(
+        cfg.query_path,
+        feature_set=cfg.feature_set,
+        frame_size=cfg.frame_size,
+        hop_size=cfg.hop_size,
+        sample_rate=cfg.sample_rate,
+    )
+    query_vec = _aggregate_feature_vector(query_fv.matrix)
+    if not np.isfinite(query_vec).any():
+        raise RuntimeError("Query feature vector has no finite dimensions.")
+
+    candidates: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    windows_scanned = 0
+
+    for item in items:
+        shard_path = Path(str(item["path"]))
+        relative_path = str(item.get("relative_path") or shard_path.name)
+        duration_s = float(item.get("duration_s") or 0.0)
+        archive_offset_s = float(item.get("start_s") or 0.0)
+        for local_start_s, local_end_s in _retrieval_windows(duration_s, cfg.window_s, cfg.hop_s):
+            windows_scanned += 1
+            try:
+                segment, sr = _read_segment(shard_path, local_start_s, local_end_s, cfg.sample_rate)
+                if segment.size == 0:
+                    skipped.append(
+                        {
+                            "path": str(shard_path.resolve()),
+                            "local_start_s": local_start_s,
+                            "local_end_s": local_end_s,
+                            "reason": "empty segment",
+                        }
+                    )
+                    continue
+                fv = extract_feature_vectors_from_array(
+                    segment,
+                    sample_rate=sr,
+                    feature_set=cfg.feature_set,
+                    frame_size=cfg.frame_size,
+                    hop_size=cfg.hop_size,
+                )
+                cand_vec = _aggregate_feature_vector(fv.matrix)
+                shared = _shared_finite_vectors(query_vec, cand_vec)
+                if shared is None:
+                    skipped.append(
+                        {
+                            "path": str(shard_path.resolve()),
+                            "local_start_s": local_start_s,
+                            "local_end_s": local_end_s,
+                            "reason": "no shared finite feature dimensions",
+                        }
+                    )
+                    continue
+                dist, sim = _distance(shared[0], shared[1], cfg.distance)
+                archive_start_s = archive_offset_s + local_start_s
+                archive_end_s = archive_offset_s + local_end_s
+                candidates.append(
+                    {
+                        "shard_index": int(item.get("shard_index", -1)),
+                        "relative_path": relative_path,
+                        "source_path": str(shard_path.resolve()),
+                        "local_start_s": float(local_start_s),
+                        "local_end_s": float(local_end_s),
+                        "archive_start_s": float(archive_start_s),
+                        "archive_end_s": float(archive_end_s),
+                        "archive_start_hms": _sec_to_hms(archive_start_s),
+                        "archive_end_hms": _sec_to_hms(archive_end_s),
+                        "duration_s": float(max(0.0, local_end_s - local_start_s)),
+                        "distance": float(dist),
+                        "similarity": float(sim),
+                        "distance_kind": str(cfg.distance),
+                        "feature_backend": fv.backend,
+                        "num_frames": int(fv.matrix.shape[0]),
+                        "num_features": int(fv.matrix.shape[1]),
+                        "wav_path": "",
+                    }
+                )
+            except Exception as exc:
+                skipped.append(
+                    {
+                        "path": str(shard_path.resolve()),
+                        "local_start_s": local_start_s,
+                        "local_end_s": local_end_s,
+                        "reason": str(exc),
+                    }
+                )
+
+    candidates.sort(
+        key=lambda r: (
+            float(r["distance"]),
+            str(r["source_path"]),
+            float(r["local_start_s"]),
+        )
+    )
+    results = candidates[: max(1, int(cfg.top_k))]
+    clips_dir = cfg.output_dir / "retrieved_clips"
+    ffmpeg_ok = _ffmpeg_available()
+    if cfg.write_clips:
+        clips_dir.mkdir(parents=True, exist_ok=True)
+
+    for idx, row in enumerate(results, start=1):
+        row["rank"] = idx
+        row["clip_id"] = f"retrieved_{idx:04d}"
+        if not cfg.write_clips:
+            continue
+        source_path = Path(str(row["source_path"]))
+        clip_path = clips_dir / f"retrieved_{idx:04d}.wav"
+        info = probe_audio_metadata(source_path)
+        codec = _codec_from_subtype(
+            str(info.get("subtype")) if info.get("subtype") is not None else None
+        )
+        wrote = False
+        if ffmpeg_ok:
+            wrote = _clip_with_ffmpeg(
+                input_path=source_path,
+                output_path=clip_path,
+                start_s=float(row["local_start_s"]),
+                end_s=float(row["local_end_s"]),
+                codec=codec,
+                sample_rate=(
+                    int(cfg.sample_rate)
+                    if cfg.sample_rate is not None
+                    else int(info.get("sample_rate") or 0) or None
+                ),
+                channels=int(info.get("channels") or 1),
+            )
+        if not wrote:
+            _clip_with_soundfile(
+                source_path,
+                clip_path,
+                float(row["local_start_s"]),
+                float(row["local_end_s"]),
+                cfg.sample_rate,
+            )
+        row["wav_path"] = str(clip_path.resolve())
+
+    csv_path = (cfg.output_dir / "event_retrieval.csv").resolve()
+    _write_retrieval_csv(csv_path, results)
+    report = {
+        "schema_version": SHARD_MANIFEST_VERSION,
+        "retrieval_version": "1.0.0",
+        "created_utc": _now_utc(),
+        "manifest_path": str(Path(cfg.manifest_path).resolve()),
+        "query_path": str(cfg.query_path.resolve()),
+        "output_dir": str(cfg.output_dir.resolve()),
+        "archive_duration_s": float(manifest.get("total_duration_s") or 0.0),
+        "archive_size_gb": float(manifest.get("total_size_gb") or 0.0),
+        "top_k": int(cfg.top_k),
+        "candidates_scanned": int(len(items)),
+        "windows_scanned": int(windows_scanned),
+        "candidate_windows": int(len(candidates)),
+        "selected_windows": int(len(results)),
+        "max_shards": cfg.max_shards,
+        "config": {
+            "window_s": float(cfg.window_s),
+            "hop_s": float(cfg.hop_s),
+            "feature_set": str(cfg.feature_set),
+            "distance": str(cfg.distance),
+            "frame_size": int(cfg.frame_size),
+            "hop_size": int(cfg.hop_size),
+            "sample_rate": cfg.sample_rate,
+            "write_clips": bool(cfg.write_clips),
+        },
+        "query": {
+            "path": str(cfg.query_path.resolve()),
+            "feature_backend": query_fv.backend,
+            "num_frames": int(query_fv.matrix.shape[0]),
+            "num_features": int(query_fv.matrix.shape[1]),
+        },
+        "results": results,
+        "skipped": skipped,
+        "artifacts": {
+            "event_retrieval_csv": str(csv_path),
+            "clips_dir": str(clips_dir.resolve()) if cfg.write_clips else None,
+        },
+    }
+    report_path = (cfg.output_dir / "event_retrieval.json").resolve()
+    report["artifacts"]["event_retrieval_json"] = str(report_path)
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report_path, report
 

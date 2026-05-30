@@ -183,6 +183,66 @@ def test_cli_shard_similar_feature_mode_ranks_closest_shard(tmp_path: Path) -> N
     assert payload["results"][0]["relative_path"] == "0001_close.wav"
 
 
+def test_cli_shard_retrieve_ranks_matching_event_and_writes_clip(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    sr = 8000
+    short_t = np.arange(int(sr * 0.25), dtype=np.float64) / sr
+    long_t = np.arange(sr, dtype=np.float64) / sr
+
+    query = (0.2 * np.sin(2.0 * np.pi * 880.0 * short_t)).astype(np.float32)
+    background = (0.1 * np.sin(2.0 * np.pi * 220.0 * long_t)).astype(np.float32)
+    event = background.copy()
+    event_start = int(0.5 * sr)
+    event[event_start : event_start + query.size] = query
+
+    query_path = tmp_path / "query.wav"
+    sf.write(query_path, query, sr)
+    sf.write(archive / "a_background.wav", background, sr)
+    sf.write(archive / "b_event.wav", event, sr)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    out_dir = tmp_path / "retrieve_out"
+    out_json = out_dir / "retrieval.json"
+    out_csv = out_dir / "retrieval.csv"
+    code = main(
+        [
+            "shard",
+            "retrieve",
+            str(manifest_path),
+            str(query_path),
+            "--out",
+            str(out_dir),
+            "--top-k",
+            "1",
+            "--window-seconds",
+            "0.25",
+            "--window-hop-seconds",
+            "0.25",
+            "--feature-set",
+            "core",
+            "--json",
+            str(out_json),
+            "--csv",
+            str(out_csv),
+            "--verbosity",
+            "0",
+        ]
+    )
+    assert code == 0
+    assert out_json.exists()
+    assert out_csv.exists()
+
+    payload = json.loads(out_json.read_text(encoding="utf-8"))
+    assert payload["results"]
+    best = payload["results"][0]
+    assert best["relative_path"] == "b_event.wav"
+    assert abs(float(best["local_start_s"]) - 0.5) <= 0.25
+    assert Path(best["wav_path"]).exists()
+
+
 def test_cli_shard_similar_metric_mode_single_metric(tmp_path: Path) -> None:
     archive = tmp_path / "archive"
     archive.mkdir(parents=True, exist_ok=True)

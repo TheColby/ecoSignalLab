@@ -197,10 +197,23 @@ def _librosa_rich_features(
     d1 = librosa.feature.delta(mfcc, order=1)
     d2 = librosa.feature.delta(mfcc, order=2)
     chroma = librosa.feature.chroma_stft(S=p, sr=sample_rate, n_fft=frame_size, hop_length=hop_size)
-    contrast = librosa.feature.spectral_contrast(S=s, sr=sample_rate, n_fft=frame_size, hop_length=hop_size)
-    harmonic = librosa.effects.harmonic(y)
-    tonnetz = librosa.feature.tonnetz(y=harmonic, sr=sample_rate)
-    rms = librosa.feature.rms(S=s)
+    contrast_bands = max(
+        1,
+        min(6, int(np.floor(np.log2(max((0.5 * sample_rate - 1e-6) / 200.0, 2.0))))),
+    )
+    contrast = librosa.feature.spectral_contrast(
+        S=s,
+        sr=sample_rate,
+        n_fft=frame_size,
+        hop_length=hop_size,
+        n_bands=contrast_bands,
+    )
+    try:
+        harmonic = librosa.effects.harmonic(y)
+        tonnetz = librosa.feature.tonnetz(y=harmonic, sr=sample_rate)
+    except Exception:
+        tonnetz = np.zeros((6, chroma.shape[1]), dtype=np.float64)
+    rms = librosa.feature.rms(S=s, frame_length=frame_size)
     zcr = librosa.feature.zero_crossing_rate(y, frame_length=frame_size, hop_length=hop_size, center=False)
     centroid = librosa.feature.spectral_centroid(S=s, sr=sample_rate)
     bandwidth = librosa.feature.spectral_bandwidth(S=s, sr=sample_rate)
@@ -288,11 +301,46 @@ def extract_feature_vectors(
         raise ValueError(f"Unsupported feature_set: {feature_set}")
 
     buf = read_audio(audio_path, target_sr=sample_rate)
-    mono = np.mean(buf.samples, axis=1).astype(np.float64)
+    return extract_feature_vectors_from_array(
+        buf.samples,
+        sample_rate=buf.sample_rate,
+        feature_set=fset,
+        frame_size=frame_size,
+        hop_size=hop_size,
+        n_mels=n_mels,
+    )
+
+
+def extract_feature_vectors_from_array(
+    samples: np.ndarray,
+    *,
+    sample_rate: int,
+    feature_set: str = "auto",
+    frame_size: int = 1024,
+    hop_size: int = 256,
+    n_mels: int = 64,
+) -> FeatureVectors:
+    """Extract frame-level features from an in-memory mono or multi-channel buffer.
+
+    Multi-channel inputs are intentionally downmixed by arithmetic mean for this
+    feature-vector contract; spatial ranking lives in separate metrics so the
+    default retrieval path remains deterministic and inexpensive.
+    """
+    fset = str(feature_set).strip().lower()
+    if fset not in {"auto", "core", "librosa", "all"}:
+        raise ValueError(f"Unsupported feature_set: {feature_set}")
+
+    arr = np.asarray(samples, dtype=np.float64)
+    if arr.ndim == 1:
+        mono = arr
+    elif arr.ndim == 2:
+        mono = np.mean(arr, axis=1)
+    else:
+        raise ValueError("samples must be 1-D [samples] or 2-D [samples, channels].")
 
     core = _scipy_core_features(
         mono=mono,
-        sample_rate=buf.sample_rate,
+        sample_rate=int(sample_rate),
         frame_size=frame_size,
         hop_size=hop_size,
         n_mels=n_mels,
@@ -303,7 +351,7 @@ def extract_feature_vectors(
     if fset in {"auto", "librosa", "all"} and _has_librosa():
         rich = _librosa_rich_features(
             mono=mono,
-            sample_rate=buf.sample_rate,
+            sample_rate=int(sample_rate),
             frame_size=frame_size,
             hop_size=hop_size,
             n_mels=n_mels,

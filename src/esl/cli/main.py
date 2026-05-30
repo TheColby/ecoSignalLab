@@ -1087,6 +1087,83 @@ def _run_shard_similar(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_shard_retrieve(args: argparse.Namespace) -> int:
+    from esl.core.shards import ShardRetrieveConfig, load_shard_manifest, run_shard_event_retrieval
+
+    manifest_path = Path(args.manifest)
+    query_path = Path(args.query)
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Shard manifest not found: {manifest_path}")
+    if not query_path.exists():
+        raise FileNotFoundError(f"Query file not found: {query_path}")
+
+    manifest = load_shard_manifest(manifest_path)
+    duration_flags_used = any(
+        getattr(args, name, None) is not None for name in ("frame_seconds", "hop_seconds")
+    )
+    if args.sample_rate is None and duration_flags_used:
+        rates = {
+            int(item["sample_rate"])
+            for item in manifest.get("items", [])
+            if isinstance(item, dict) and isinstance(item.get("sample_rate"), int)
+        }
+        if len(rates) == 1:
+            args.sample_rate = rates.pop()
+        elif len(rates) > 1:
+            raise ValueError(
+                "Duration-based frame flags on a shard manifest with mixed sample rates "
+                "require --sample-rate explicitly."
+            )
+
+    frame_size, hop_size, _, resolved_sr = _resolve_window_samples(
+        args,
+        input_path=query_path,
+        default_frame_size=1024,
+        default_hop_size=256,
+        default_chunk_size=None,
+    )
+    report_path, report = run_shard_event_retrieval(
+        ShardRetrieveConfig(
+            manifest_path=manifest_path,
+            query_path=query_path,
+            output_dir=Path(args.out),
+            top_k=int(args.top_k),
+            window_s=float(args.window_seconds),
+            hop_s=float(args.window_hop_seconds),
+            feature_set=str(args.feature_set),
+            distance=str(args.distance),
+            frame_size=int(frame_size or 1024),
+            hop_size=int(hop_size or 256),
+            sample_rate=resolved_sr,
+            max_shards=args.max_shards,
+            write_clips=not bool(args.no_clips),
+        )
+    )
+
+    json_path = Path(args.json) if args.json else report_path
+    if json_path != report_path:
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    if args.csv:
+        csv_path = Path(args.csv)
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        source_csv = Path(report["artifacts"]["event_retrieval_csv"])
+        csv_path.write_text(source_csv.read_text(encoding="utf-8"), encoding="utf-8")
+    if int(args.verbosity) >= 1:
+        print(f"shard_retrieval_json: {json_path}")
+        print(f"shard_retrieval_csv: {args.csv or report['artifacts']['event_retrieval_csv']}")
+        if not args.no_clips:
+            print(f"retrieved_clips_dir: {report['artifacts']['clips_dir']}")
+        for row in report.get("results", []):
+            print(
+                f"#{row.get('rank')} shard={row.get('relative_path')} "
+                f"archive={row.get('archive_start_hms')}..{row.get('archive_end_hms')} "
+                f"dist={float(row.get('distance', 0.0)):.6f} "
+                f"sim={float(row.get('similarity', 0.0)):.6f}"
+            )
+    return 0
+
+
 def _run_shard_plot(args: argparse.Namespace) -> int:
     from esl.viz import plot_shard_report
 
@@ -2895,6 +2972,68 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Debug level: 0=none, 1=processing details, 2=internal traces",
     )
     psh_sim.set_defaults(func=_run_shard_similar)
+
+    psh_ret = psh_sub.add_parser(
+        "retrieve",
+        help="Find query-like time windows inside an ordered shard archive and optionally export clips",
+    )
+    psh_ret.add_argument("manifest", help="Path to shard manifest JSON")
+    psh_ret.add_argument("query", help="Query input audio file or event example")
+    psh_ret.add_argument("--out", required=True, help="Output directory for retrieval JSON/CSV/clips")
+    psh_ret.add_argument("--top-k", type=int, default=10, help="Number of matching archive windows to report")
+    psh_ret.add_argument("--window-seconds", type=float, default=10.0, help="Candidate window duration in seconds")
+    psh_ret.add_argument(
+        "--window-hop-seconds",
+        type=float,
+        default=5.0,
+        help="Step size between candidate windows in seconds",
+    )
+    psh_ret.add_argument(
+        "--distance",
+        default="cosine",
+        choices=["cosine", "euclidean", "manhattan"],
+        help="Distance function for query-to-window feature vectors",
+    )
+    psh_ret.add_argument(
+        "--feature-set",
+        default="core",
+        choices=["auto", "core", "librosa", "all"],
+        help="Feature extraction set for retrieval: core(default), auto, librosa, or all",
+    )
+    psh_ret.add_argument("--frame-size", type=int, default=1024, help="Feature frame size in samples")
+    psh_ret.add_argument("--hop-size", type=int, default=256, help="Feature hop size in samples")
+    psh_ret.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Feature frame size in seconds (overrides --frame-size)",
+    )
+    psh_ret.add_argument(
+        "--hop-seconds",
+        type=float,
+        default=None,
+        help="Feature hop size in seconds (overrides --hop-size)",
+    )
+    psh_ret.add_argument("--sample-rate", type=int, default=None, help="Optional analysis/resampling rate in Hz")
+    psh_ret.add_argument("--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates")
+    psh_ret.add_argument("--no-clips", action="store_true", help="Only write JSON/CSV results; do not export WAV clips")
+    psh_ret.add_argument("--json", default=None, help="Output JSON path (default: <out>/event_retrieval.json)")
+    psh_ret.add_argument("--csv", default=None, help="Optional CSV output path")
+    psh_ret.add_argument(
+        "--verbosity",
+        type=int,
+        default=1,
+        choices=[0, 1, 2, 3],
+        help="Verbosity level: 0=silent, 1=summary, 2=detailed, 3=full diagnostic",
+    )
+    psh_ret.add_argument(
+        "--debug",
+        type=int,
+        default=0,
+        choices=[0, 1, 2],
+        help="Debug level: 0=none, 1=processing details, 2=internal traces",
+    )
+    psh_ret.set_defaults(func=_run_shard_retrieve)
 
     psh_plot = psh_sub.add_parser("plot", help="Render archive-scale plots from shard_analysis_report.json")
     psh_plot.add_argument("report", help="Path to shard_analysis_report.json")

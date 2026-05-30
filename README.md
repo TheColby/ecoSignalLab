@@ -118,6 +118,8 @@ esl quickstart
   - [`docs/SIMILARITY_SEARCH.md`](docs/SIMILARITY_SEARCH.md)
 - I want to search a long shard archive for the shards most similar to a query:
   - [`docs/SHARD_WORKFLOWS.md#archive-level-similarity-search`](docs/SHARD_WORKFLOWS.md#archive-level-similarity-search)
+- I want to search a long shard archive for the exact moments most similar to a query:
+  - [`docs/SHARD_WORKFLOWS.md#archive-level-event-retrieval`](docs/SHARD_WORKFLOWS.md#archive-level-event-retrieval)
 - I want higher-level soundscape insights like calmness, drift, occupancy, retrieval, and storyboards:
   - [`docs/INSIGHTS.md`](docs/INSIGHTS.md)
 
@@ -193,6 +195,7 @@ In `esl`:
 - `esl shard analyze` analyzes the archive shard by shard
 - `esl shard moments` finds archive-level interesting events
 - `esl shard similar` finds which shards most resemble a query recording
+- `esl shard retrieve` finds which time windows inside the shards most resemble a query recording
 - `esl shard insights` summarizes the archive without loading decade-sized audio into memory
 
 Friendly mental model:
@@ -214,6 +217,7 @@ Friendly mental model:
 - Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
 - Find archive-level top-ranked events with `esl shard moments`.
 - Find the archive shards most similar to a query recording with `esl shard similar`.
+- Find the exact archive windows most similar to a query recording with `esl shard retrieve`.
 - Summarize long-archive manifests and reports with `esl shard insights`.
 - Run higher-level insight workflows with `esl insights`: scene changes, calmness/chaos/diversity, occupancy, drift, retrieval, embeddings, reports, simulation comparison, and storyboards.
 - Generate static and interactive plots, including similarity and novelty matrix views.
@@ -234,6 +238,7 @@ esl project compare --project restaurant_design --root out_dir --baseline A
 esl validate input_dir --out validation_out --rules rules.json
 esl similar query.wav corpus_dir --top-k 5 --json out/similarity.json
 esl shard similar archive_manifest.json query.wav --out out/shard_similarity --top-k 5
+esl shard retrieve archive_manifest.json query.wav --out out/shard_retrieval --top-k 10 --window-seconds 8
 ```
 
 Core goals:

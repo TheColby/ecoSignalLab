@@ -399,6 +399,78 @@ d = (1-w)d_f + wd_s
 
 Plain English: with `append`, `esl` blends ordinary timbral similarity with spatial-scene similarity.
 
+## Archive-Level Event Retrieval
+
+Use `shard retrieve` when the question is more precise than `shard similar`:
+
+- not “which shard sounds like this?”
+- but “where inside this archive does this event happen?”
+
+Quick start:
+
+```bash
+esl shard retrieve out/ten_year_manifest.json query_event.wav \
+  --out out/shard_retrieval \
+  --top-k 10 \
+  --window-seconds 8 \
+  --window-hop-seconds 2 \
+  --json out/shard_retrieval/event_retrieval.json \
+  --csv out/shard_retrieval/event_retrieval.csv
+```
+
+This writes:
+
+- `out/shard_retrieval/event_retrieval.json`
+- `out/shard_retrieval/event_retrieval.csv`
+- `out/shard_retrieval/retrieved_clips/retrieved_*.wav`
+
+Plain English: `shard retrieve` slides a fixed-duration window through every manifest shard, compares each window to the query clip, and exports the best matching windows as timestamped rows and optional WAV clips.
+
+Where:
+
+- \(x_q\) is the aggregate feature vector for the query clip
+- \(x_{i,j}\) is the aggregate feature vector for window \(j\) in shard \(i\)
+- \(d(x_q, x_{i,j})\) is the chosen distance
+- lower \(d\) means a stronger match
+
+\[
+\operatorname{rank}(i,j) = \operatorname{argsort}_{i,j}\ d(x_q, x_{i,j})
+\]
+
+Useful options:
+
+- `--top-k N` selects how many moments to report
+- `--window-seconds S` controls clip duration and candidate-window length
+- `--window-hop-seconds S` controls how densely the archive is searched
+- `--feature-set core|auto|librosa|all` controls feature richness
+- `--distance cosine|euclidean|manhattan` controls similarity math
+- `--no-clips` writes only JSON/CSV
+- `--max-shards N` limits the search for smoke tests
+
+Good defaults:
+
+```bash
+esl shard retrieve manifest.json query.wav \
+  --out out/retrieve \
+  --top-k 33 \
+  --window-seconds 10 \
+  --window-hop-seconds 5 \
+  --feature-set core
+```
+
+Why `core` by default? It is deterministic, light, and friendly to giant archives. Use `--feature-set all` when you want richer librosa-backed descriptors and have the compute budget for it.
+
+```mermaid
+flowchart LR
+    A["query event WAV"] --> B["feature vector"]
+    C["shard manifest"] --> D["sliding archive windows"]
+    D --> E["window feature vectors"]
+    B --> F["distance ranking"]
+    E --> F
+    F --> G["event_retrieval.csv"]
+    F --> H["retrieved WAV clips"]
+```
+
 ## Archive Plots
 
 After `esl shard analyze`, you can render archive-scale overview PNGs:
