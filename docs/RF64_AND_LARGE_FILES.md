@@ -111,7 +111,7 @@ where $\rho$ is compression ratio versus equivalent PCM WAV (content-dependent; 
 
 ### 24 h FLAC matrix (estimated range; sorted by source data rate)
 
-| Container/Codec | Source equivalent | Compression ratio ($\rho$) | Nominal data-rate range | 24 h size range (approx) | Notes |
+| Container/Codec | Source equivalent | Compression ratio rho | Nominal data-rate range | 24 h size range (approx) | Notes |
 |---|---|---:|---:|---:|---|
 | FLAC | 48 kHz, 2 ch, 16-bit PCM | 0.35 to 0.75 | 0.538 to 1.152 Mb/s | 5.41 to 11.59 GB | Lossless, smaller than WAV, still often >4 GB. |
 | FLAC | 48 kHz, 2 ch, 24-bit PCM | 0.35 to 0.75 | 0.806 to 1.728 Mb/s | 8.11 to 17.38 GB | Good archive format for long recordings. |

@@ -59,3 +59,16 @@ def test_core_docs_use_github_friendly_math_delimiters() -> None:
             if RAW_SLASH_MATH_RE.search(line):
                 offenders.append(f"{doc}:{line_no}: use $...$ or $$...$$ instead of slash math")
     assert not offenders, "Math rendering hazards found:\n" + "\n".join(offenders)
+
+
+def test_core_docs_do_not_put_tex_math_in_markdown_tables() -> None:
+    offenders: list[str] = []
+    for doc in DOC_FILES:
+        in_code = False
+        for line_no, line in enumerate(doc.read_text(encoding="utf-8").splitlines(), start=1):
+            if line.strip().startswith("```"):
+                in_code = not in_code
+                continue
+            if not in_code and line.startswith("|") and "$" in line:
+                offenders.append(f"{doc}:{line_no}: table row contains TeX delimiter")
+    assert not offenders, "TeX math in Markdown tables may not render reliably:\n" + "\n".join(offenders)
