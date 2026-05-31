@@ -77,7 +77,43 @@ Snark note: “I think we used the same settings” is not a provenance strategy
     - `normalization`
     - `format_hint`
     - `convention_confidence`
+    - `standards_profile`
+    - `normalization_scale`
+    - `channel_map`
+    - `warnings`
 - `analysis_strategy`: whether the run was out-of-core, whether frame series were omitted from JSON, the summary method, checkpoint directory, and frame-table sidecars
+
+Ambisonics metadata contract:
+
+```json
+{
+  "layout_family": "ambisonic",
+  "layout_hint": "ambisonic_higher_order",
+  "channel_labels": ["Y_0_0", "Y_1_-1", "Y_1_0"],
+  "ambisonics": {
+    "order": 2,
+    "component_order": "ACN",
+    "normalization": "N3D",
+    "standards_profile": "ambix_acn_n3d",
+    "normalization_scale": "orthonormal",
+    "channels_expected": 9,
+    "complete_set": true,
+    "channel_map": [
+      {"index": 0, "label": "Y_0_0", "degree_l": 0, "order_m": 0, "acn": 0}
+    ],
+    "warnings": []
+  }
+}
+```
+
+Where:
+- `component_order` identifies the channel ordering convention, such as `ACN` or `FuMa`.
+- `normalization` identifies spherical-harmonic normalization, such as `SN3D`, `N3D`, or `maxN`.
+- `standards_profile` is the combined convention profile, for example `ambix_acn_sn3d`.
+- `channel_map` gives per-channel spherical-harmonic indices when `ACN` is detected.
+- `warnings` reports incomplete or ambiguous Ambisonics assumptions.
+
+Plain English: `esl` does not silently pretend every four-channel file is the same creature. If the filename or decoder hints indicate Ambisonics, the JSON records what convention it inferred and how confident that inference is.
 
 For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 

@@ -43,3 +43,36 @@ def test_infer_spatial_metadata_recognizes_ambix_foa() -> None:
     assert ambi["component_order"] == "ACN"
     assert ambi["normalization"] == "SN3D"
     assert ambi["order"] == 1
+
+
+def test_infer_spatial_metadata_exposes_hoa_channel_map_and_contract() -> None:
+    meta = infer_spatial_metadata(9, "room_hoa_order2_acn_n3d.wav").to_dict()
+    assert meta["layout_hint"] == "ambisonic_higher_order"
+    ambi = meta["ambisonics"]
+    assert ambi["order"] == 2
+    assert ambi["component_order"] == "ACN"
+    assert ambi["normalization"] == "N3D"
+    assert ambi["standards_profile"] == "ambix_acn_n3d"
+    assert ambi["normalization_scale"] == "orthonormal"
+    assert ambi["channels_expected"] == 9
+    assert ambi["complete_set"] is True
+    assert ambi["warnings"] == []
+    assert len(ambi["channel_map"]) == 9
+    assert ambi["channel_map"][0] == {
+        "index": 0,
+        "label": "Y_0_0",
+        "degree_l": 0,
+        "order_m": 0,
+        "acn": 0,
+    }
+    assert ambi["channel_map"][1]["label"] == "Y_1_-1"
+    assert ambi["channel_map"][8]["label"] == "Y_2_2"
+
+
+def test_infer_spatial_metadata_flags_incomplete_ambisonic_set() -> None:
+    meta = infer_spatial_metadata(5, "partial_ambix_sn3d.wav").to_dict()
+    assert meta["layout_family"] == "ambisonic"
+    ambi = meta["ambisonics"]
+    assert ambi["complete_set"] is False
+    assert ambi["channels_expected"] == 9
+    assert any("not a complete" in warning for warning in ambi["warnings"])

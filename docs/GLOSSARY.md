@@ -31,6 +31,11 @@ Beginner-friendly definitions used across `esl` docs.
 
 - `ambisonics`: spatial audio representation using spherical harmonics.
 - `FOA`: first-order ambisonics (typically 4 channels).
+- `HOA`: higher-order ambisonics; channel count is usually \((N+1)^2\) for order \(N\).
+- `ACN`: Ambisonic Channel Number ordering; channel index is \(l^2 + l + m\).
+- `SN3D`: semi-normalized Ambisonics normalization, commonly used by AmbiX.
+- `N3D`: orthonormal Ambisonics normalization.
+- `FuMa`: older Furse-Malham B-format convention, usually WXYZ with maxN normalization.
 - `binaural`: two-channel rendering that simulates human ears.
 - `Atmos-aware/capable`: layout/channel/object-aware workflow compatibility for immersive mixes and exports.
 - `multichannel-native analysis`: metric extraction and reporting that preserves channel identity and aggregates using explicit channel rules.

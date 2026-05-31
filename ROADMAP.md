@@ -64,7 +64,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 ### 2. Multichannel / Spatial
 
 - structured spatial metadata in all analysis outputs
-- Ambisonics-aware metadata and channel labels
+- Ambisonics-aware metadata, channel labels, channel maps, and normalization profiles
 - explicit downmix vs per-channel ranking semantics
 - array-geometry-aware spatial analysis metadata
 
@@ -122,8 +122,8 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. stronger Ambisonics channel-order / normalization metadata contracts
-2. more calibration verification fixtures and reference reports
-3. archive-scale plots for month/year campaigns
-4. dataset manifests that connect FrameTable outputs to ML training splits
-5. spatial retrieval performance profiling on long multichannel archives
+1. more calibration verification fixtures and reference reports
+2. archive-scale plots for month/year campaigns
+3. dataset manifests that connect FrameTable outputs to ML training splits
+4. spatial retrieval performance profiling on long multichannel archives
+5. Ambisonics metadata import overrides from sidecar JSON/YAML

@@ -268,6 +268,10 @@ Tradeoff:
 - Channel count is preserved in exported clips.
 - Clip sample rate defaults to input sample rate unless `--sample-rate` is set.
 - For PCM WAV input, exported codec is selected from input subtype where possible (`PCM_24` -> `pcm_s24le`).
+- Analysis JSON includes `metadata.spatial_metadata` with Ambisonics convention hints when detected.
+- Ambisonic hints include `component_order`, `normalization`, `standards_profile`, `channel_map`, and `warnings`.
+
+Plain English: if your recorder names files with tokens like `ambix`, `acn`, `sn3d`, `n3d`, `fuma`, or `bformat`, `esl` records the inferred convention instead of leaving future-you to play “which WXYZ did I mean?” at 2 a.m.
 
 ## Suggested Defaults for 24h @ 96k
 

@@ -224,7 +224,7 @@ Friendly mental model:
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.
 - Build deterministic ML dataset manifests from exported feature metadata with `esl features manifest`.
 - Verify calibration math with deterministic reference fixtures using `esl calibrate verify`.
-- Emit structured spatial metadata, including Ambisonics-aware layout objects, in analysis outputs.
+- Emit structured spatial metadata, including Ambisonics order, channel-map, and normalization profiles, in analysis outputs.
 - Compare architectural design variants (`--project` / `--variant`) with delta reports.
 - Ingest online datasets (Freesound/HuggingFace), auto-analyze, and summarize.
 - Run regression validation across datasets to catch metric drifts.
