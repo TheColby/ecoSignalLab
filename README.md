@@ -613,7 +613,7 @@ python scripts/build_docs.py --out docs/build --formats html,pdf
 Docs rendering guarantees:
 - Mermaid diagrams are rendered in HTML/PDF.
 - If a page has no Mermaid block, an auto-generated visual outline is inserted.
-- TeX math is rendered via MathJax in generated HTML/PDF (`$...$`, `$$...$$`, `\\(...\\)`, `\\[...\\]`).
+- TeX math is written with GitHub-friendly `$...$` and `$$...$$` delimiters and rendered via MathJax in generated HTML/PDF.
 
 ### Print JSON schema
 
@@ -664,11 +664,11 @@ B = T \cdot f_s \cdot C \cdot b
 $$
 
 where:
-- \(B\) is bytes
-- \(T\) is duration in seconds
-- \(f_s\) is sample rate in samples/second
-- \(C\) is channel count
-- \(b\) is bytes/sample
+- $B$ is bytes
+- $T$ is duration in seconds
+- $f_s$ is sample rate in samples/second
+- $C$ is channel count
+- $b$ is bytes/sample
 
 For a 2-year recording:
 
@@ -676,7 +676,7 @@ $$
 T = 2 \cdot 365 \cdot 24 \cdot 3600 = 63{,}072{,}000 \text{ s}
 $$
 
-At `96 kHz` and `32-bit float`, \(b = 4\).
+At `96 kHz` and `32-bit float`, $b = 4$.
 
 Mono:
 
@@ -748,10 +748,10 @@ B = T \cdot f_s \cdot C \cdot b
 $$
 
 where:
-- \(T = 315{,}360{,}000\) s
-- \(f_s = 96{,}000\) Hz
-- \(C = 8\)
-- \(b = 4\) bytes/sample
+- $T = 315{,}360{,}000$ s
+- $f_s = 96{,}000$ Hz
+- $C = 8$
+- $b = 4$ bytes/sample
 
 $$
 B = 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 = 968{,}785{,}920{,}000{,}000

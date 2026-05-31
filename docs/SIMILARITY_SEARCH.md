@@ -66,7 +66,7 @@ esl similar query.wav corpus_dir \
 - `--distance euclidean`
 - `--distance manhattan`
 
-For vectors \(x\) and \(y\):
+For vectors $x$ and $y$:
 
 $$
 d_{\text{cos}} = 1 - \frac{x \cdot y}{\|x\|_2 \|y\|_2}
@@ -81,8 +81,8 @@ d_{\text{man}} = \|x-y\|_1
 $$
 
 where:
-- \(d\) is distance (smaller is more similar)
-- \(x, y\) are either feature-derived vectors or metric-mean vectors
+- $d$ is distance (smaller is more similar)
+- $x, y$ are either feature-derived vectors or metric-mean vectors
 
 For `--mode metric`, distance is absolute metric difference:
 
@@ -90,7 +90,7 @@ $$
 d = |m_{\text{candidate}} - m_{\text{query}}|
 $$
 
-where \(m\) is the selected metric mean.
+where $m$ is the selected metric mean.
 
 ## Useful options
 

@@ -39,10 +39,10 @@ Snark note: if you tune the threshold until everything is an event, you did not 
 ### Rendered Math (with interpretation)
 
 $$
-N(t)=\sum_f \max\!\left(M(f,t)-M(f,t-1),0\right)
+N(t)=\sum_f \max\left(M(f,t)-M(f,t-1),0\right)
 $$
 
-where \(M(f,t)\) is magnitude spectrogram energy at frequency bin \(f\) and frame \(t\).
+where $M(f,t)$ is magnitude spectrogram energy at frequency bin $f$ and frame $t$.
 
 Plain English: this novelty curve increases when new spectral components appear.
 
@@ -50,7 +50,7 @@ $$
 Z(t)=\frac{N(t)-\mu_N}{\sigma_N+\varepsilon}
 $$
 
-where \(\mu_N\) is novelty mean, \(\sigma_N\) is novelty standard deviation, and \(\varepsilon\) is numerical stabilizer.
+where $\mu_N$ is novelty mean, $\sigma_N$ is novelty standard deviation, and $\varepsilon$ is numerical stabilizer.
 
 Plain English: z-scoring puts novelty on a normalized scale so thresholding is more stable.
 
@@ -58,7 +58,7 @@ $$
 \mathcal{N}(i)=\sum_{u=-L}^{L}\sum_{v=-L}^{L} S(i+u,i+v)\,K(u,v)
 $$
 
-where \(S\) is self-similarity matrix, \(K\) is checkerboard kernel, \(L\) is half-kernel width, and \(i\) is diagonal frame index.
+where $S$ is self-similarity matrix, $K$ is checkerboard kernel, $L$ is half-kernel width, and $i$ is diagonal frame index.
 
 Plain English: Foote novelty is a checkerboard-kernel contrast around the self-similarity matrix diagonal.
 
@@ -66,9 +66,9 @@ $$
 \hat{\mathcal{N}}(i)=\frac{\max(\mathcal{N}(i),0)}{\max_j \max(\mathcal{N}(j),0)+\varepsilon}
 $$
 
-where \(\hat{\mathcal{N}}(i)\) is normalized novelty and \(j\) indexes all frames.
+where $\hat{\mathcal{N}}(i)$ is normalized novelty and $j$ indexes all frames.
 
-Plain English: half-wave rectification and normalization produce a bounded \([0,1]\) novelty profile.
+Plain English: half-wave rectification and normalization produce a bounded $[0,1]$ novelty profile.
 
 ## Similarity Matrix Plot
 
@@ -88,7 +88,7 @@ $$
 S_{ij}=\frac{x_i^\top x_j}{\|x_i\|_2\|x_j\|_2+\varepsilon}
 $$
 
-where \(x_i\) and \(x_j\) are feature vectors for frames \(i\) and \(j\), and \(S_{ij}\) is cosine similarity.
+where $x_i$ and $x_j$ are feature vectors for frames $i$ and $j$, and $S_{ij}$ is cosine similarity.
 
 Plain English: entries near 1 mean frames look alike in feature space; entries near 0 mean they do not.
 
@@ -116,7 +116,7 @@ $$
 \mathcal{P}=\left\{i \mid \hat{\mathcal{N}}(i)\ \text{is a local maximum and passes prominence/distance constraints}\right\}
 $$
 
-where \(\mathcal{P}\) is selected event index set from peak picking constraints.
+where $\mathcal{P}$ is selected event index set from peak picking constraints.
 
 Plain English: not every bump is an event; peaks must be both separated and prominent enough.
 

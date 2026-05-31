@@ -24,9 +24,9 @@ So:
 
 Where:
 
-- \(s_i\) is shard \(i\)
-- \(t_i^{start}\) is that shard's archive-relative start time
-- \(t_i^{end}\) is that shard's archive-relative end time
+- $s_i$ is shard $i$
+- $t_i^{start}$ is that shard's archive-relative start time
+- $t_i^{end}$ is that shard's archive-relative end time
 
 Plain English: the manifest is what lets a folder of small files behave like one long recording without forcing you to store or process one absurdly large file.
 
@@ -172,8 +172,8 @@ $$
 $$
 
 where:
-- \(\mu_i\) is a shard-level metric mean
-- \(T_i\) is shard duration
+- $\mu_i$ is a shard-level metric mean
+- $T_i$ is shard duration
 
 Plain English: longer shards contribute proportionally more to the archive-level average.
 
@@ -316,9 +316,9 @@ n_i = \lVert z(\mathbf{m}_i) - z(\mathbf{m}_{i-1}) \rVert_2
 $$
 
 where:
-- \(n_i\) is the change score at shard boundary \(i\)
-- \(\mathbf{m}_i\) is the selected vector of shard-level metric means
-- \(z(\cdot)\) means feature-wise z-scoring across shards
+- $n_i$ is the change score at shard boundary $i$
+- $\mathbf{m}_i$ is the selected vector of shard-level metric means
+- $z(\cdot)$ means feature-wise z-scoring across shards
 
 Plain English: `esl` compares each shard's summary metrics to the previous shard. Large jumps become candidate archive scene changes.
 
@@ -369,9 +369,9 @@ Useful options:
 
 Where:
 
-- \(x_q\) is the query vector
-- \(x_i\) is shard \(i\)'s vector
-- \(d(x_q, x_i)\) is the chosen distance
+- $x_q$ is the query vector
+- $x_i$ is shard $i$'s vector
+- $d(x_q, x_i)$ is the chosen distance
 
 Plain English: smaller distance means “more like the query.”
 
@@ -389,13 +389,13 @@ esl shard similar out/ten_year_manifest.json query.wav \
 
 Where:
 
-- \(d_f\) is the base feature distance
-- \(d_s\) is the spatial-metric distance
-- \(w\) is `--spatial-weight`
+- $d_f$ is the base feature distance
+- $d_s$ is the spatial-metric distance
+- $w$ is `--spatial-weight`
 
-\[
+$$
 d = (1-w)d_f + wd_s
-\]
+$$
 
 Plain English: with `append`, `esl` blends ordinary timbral similarity with spatial-scene similarity.
 
@@ -428,14 +428,14 @@ Plain English: `shard retrieve` slides a fixed-duration window through every man
 
 Where:
 
-- \(x_q\) is the aggregate feature vector for the query clip
-- \(x_{i,j}\) is the aggregate feature vector for window \(j\) in shard \(i\)
-- \(d(x_q, x_{i,j})\) is the chosen distance
-- lower \(d\) means a stronger match
+- $x_q$ is the aggregate feature vector for the query clip
+- $x_{i,j}$ is the aggregate feature vector for window $j$ in shard $i$
+- $d(x_q, x_{i,j})$ is the chosen distance
+- lower $d$ means a stronger match
 
-\[
+$$
 \operatorname{rank}(i,j) = \operatorname{argsort}_{i,j}\ d(x_q, x_{i,j})
-\]
+$$
 
 Useful options:
 
@@ -489,13 +489,13 @@ esl shard retrieve manifest.json query_spatial_event.wav \
 
 Where:
 
-- \(d_f\) is the ordinary feature distance
-- \(d_s\) is the spatial-metric distance
-- \(w\) is `--spatial-weight`
+- $d_f$ is the ordinary feature distance
+- $d_s$ is the spatial-metric distance
+- $w$ is `--spatial-weight`
 
-\[
+$$
 d = (1-w)d_f + wd_s
-\]
+$$
 
 Plain English: use `only` when location/channel geometry is the point. Use `append` when the event should match both what it sounds like and where/how it appears across channels.
 

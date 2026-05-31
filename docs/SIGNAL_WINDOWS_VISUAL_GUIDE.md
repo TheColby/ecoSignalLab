@@ -25,15 +25,15 @@ $$
 n_k = kH
 $$
 
-where \(n_k\) is start index of frame \(k\), and \(H\) is hop size.
+where $n_k$ is start index of frame $k$, and $H$ is hop size.
 
-Plain English: each new frame starts \(H\) samples after the previous one.
+Plain English: each new frame starts $H$ samples after the previous one.
 
 $$
 x_k[n] = x[n_k+n]\cdot w[n], \quad 0\le n < N
 $$
 
-where \(x_k[n]\) is windowed frame sample, \(x[\cdot]\) is original signal, \(w[n]\) is window, and \(N\) is frame size.
+where $x_k[n]$ is windowed frame sample, $x[\cdot]$ is original signal, $w[n]$ is window, and $N$ is frame size.
 
 Plain English: each frame is a chunk of signal multiplied by a taper window.
 
@@ -41,7 +41,7 @@ $$
 \hat{x}[n] = \sum_k x_k[n-kH]
 $$
 
-where \(\hat{x}[n]\) is overlap-added reconstruction from shifted frames.
+where $\hat{x}[n]$ is overlap-added reconstruction from shifted frames.
 
 Plain English: shifted windowed frames are added together to reconstruct the signal path.
 
@@ -49,7 +49,7 @@ $$
 \mathcal{F}(k) = \sum_f \max\left(|X(f,k)| - |X(f,k-1)|, 0\right)
 $$
 
-where \(\mathcal{F}(k)\) is positive spectral flux at frame \(k\).
+where $\mathcal{F}(k)$ is positive spectral flux at frame $k$.
 
 Plain English: novelty rises when new spectral energy appears.
 

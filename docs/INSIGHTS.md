@@ -55,10 +55,10 @@ What it does:
 
 Math:
 
-```math
+$$
 \tilde{\mathbf{x}}_t =
 \frac{\mathbf{x}_t - \boldsymbol{\mu}}{\boldsymbol{\sigma} + \epsilon}
-```
+$$
 
 where:
 
@@ -67,9 +67,9 @@ where:
 - `\boldsymbol{\sigma}` is the feature-wise standard deviation
 - `\epsilon` prevents division by zero
 
-```math
+$$
 n_t = \lVert \tilde{\mathbf{x}}_t - \tilde{\mathbf{x}}_{t-1} \rVert_2
-```
+$$
 
 where:
 
@@ -95,9 +95,9 @@ Plain English:
 
 Math:
 
-```math
+$$
 C = \frac{1}{1 + \alpha \sigma(L_{\mathrm{dBFS}}) + \beta \overline{|F_t|}}
-```
+$$
 
 where:
 
@@ -106,9 +106,9 @@ where:
 - `F_t` is normalized spectral flux
 - `\alpha` and `\beta` are fixed normalizing constants in the baseline implementation
 
-```math
+$$
 H = -\frac{\sum_i p_i \log_2(p_i + \epsilon)}{\log_2(N)}
-```
+$$
 
 where:
 
@@ -143,11 +143,11 @@ flowchart TD
 
 Math:
 
-```math
+$$
 \rho_{12} =
 \frac{\mathbf{x}_1^\top \mathbf{x}_2}
 {\lVert \mathbf{x}_1 \rVert_2 \lVert \mathbf{x}_2 \rVert_2 + \epsilon}
-```
+$$
 
 where:
 
@@ -167,14 +167,14 @@ esl insights occupancy input.wav \
 
 Plain English: for each time frame, `esl` asks “how much of the energy lives in this band?” If the ratio crosses the threshold, that band is counted as occupied.
 
-```math
+$$
 O_{b,t} =
 \mathbb{1}\left[
 \frac{\sum_{f \in b} P(f,t)}
 {\sum_f P(f,t) + \epsilon}
 \ge \tau
 \right]
-```
+$$
 
 where:
 
@@ -192,11 +192,11 @@ esl insights drift baseline/shard_analysis_report.json \
 
 This compares common metric means between two reports.
 
-```math
+$$
 d_m =
 \frac{x_{m,\mathrm{candidate}} - x_{m,\mathrm{baseline}}}
 {\max(|x_{m,\mathrm{candidate}}|, |x_{m,\mathrm{baseline}}|, 1)}
-```
+$$
 
 where:
 
@@ -225,12 +225,12 @@ Modes:
 
 Distance:
 
-```math
+$$
 D_{\cos}(\mathbf{a}, \mathbf{b}) =
 1 -
 \frac{\mathbf{a}^\top \mathbf{b}}
 {\lVert \mathbf{a} \rVert_2 \lVert \mathbf{b} \rVert_2 + \epsilon}
-```
+$$
 
 where:
 
@@ -254,10 +254,10 @@ Outputs:
 
 The baseline embedding is:
 
-```math
+$$
 \mathbf{z} =
 [\operatorname{mean}_t(\mathbf{x}_t),\operatorname{std}_t(\mathbf{x}_t)]
-```
+$$
 
 where:
 
@@ -299,9 +299,9 @@ This compares common metric means, prioritizing:
 
 Math:
 
-```math
+$$
 \Delta_m = x_{m,\mathrm{measured}} - x_{m,\mathrm{simulated}}
-```
+$$
 
 where:
 

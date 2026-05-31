@@ -26,10 +26,10 @@ Classic RIFF/WAV stores major chunk sizes as unsigned 32-bit values.
 The largest representable byte count is:
 
 $$
-B_{\max} = 2^{32} - 1
+B_{\mathrm{max}} = 2^{32} - 1
 $$
 
-where \(B_{\max}\) is the maximum storable byte length in the classic 32-bit fields.
+where $B_{\mathrm{max}}$ is the maximum storable byte length in the classic 32-bit fields.
 
 For uncompressed PCM-like data, data rate is:
 
@@ -38,18 +38,18 @@ R = f_s \cdot C \cdot \frac{b}{8}
 $$
 
 where:
-- \(f_s\) is sample rate in Hz
-- \(C\) is number of channels
-- \(b\) is bits per sample
-- \(R\) is bytes per second
+- $f_s$ is sample rate in Hz
+- $C$ is number of channels
+- $b$ is bits per sample
+- $R$ is bytes per second
 
 Approximate maximum duration for classic WAV:
 
 $$
-T_{\max} \approx \frac{2^{32}-1}{f_s \cdot C \cdot b/8}
+T_{\mathrm{max}} \approx \frac{2^{32}-1}{f_s \cdot C \cdot b/8}
 $$
 
-where \(T_{\max}\) is seconds before hitting the RIFF size ceiling.
+where $T_{\mathrm{max}}$ is seconds before hitting the RIFF size ceiling.
 
 ## Practical duration examples for classic WAV
 
@@ -71,9 +71,9 @@ B \approx T \cdot f_s \cdot C \cdot \frac{b}{8}
 $$
 
 where:
-- \(B\) is bytes
-- \(T\) is duration in seconds
-- \(f_s\), \(C\), \(b\) as above
+- $B$ is bytes
+- $T$ is duration in seconds
+- $f_s$, $C$, $b$ as above
 
 Examples for 24 hours:
 
@@ -91,7 +91,7 @@ $$
 B_{\text{flac}} \approx \rho \cdot B_{\text{wav}}
 $$
 
-where \(\rho\) is compression ratio versus equivalent PCM WAV (content-dependent; rough field range often \(0.35\) to \(0.75\)).
+where $\rho$ is compression ratio versus equivalent PCM WAV (content-dependent; rough field range often $0.35$ to $0.75$).
 
 ### 24 h WAV/RF64 matrix (sorted by nominal data rate, then sample rate)
 
@@ -111,7 +111,7 @@ where \(\rho\) is compression ratio versus equivalent PCM WAV (content-dependent
 
 ### 24 h FLAC matrix (estimated range; sorted by source data rate)
 
-| Container/Codec | Source equivalent | Compression ratio (\(\rho\)) | Nominal data-rate range | 24 h size range (approx) | Notes |
+| Container/Codec | Source equivalent | Compression ratio ($\rho$) | Nominal data-rate range | 24 h size range (approx) | Notes |
 |---|---|---:|---:|---:|---|
 | FLAC | 48 kHz, 2 ch, 16-bit PCM | 0.35 to 0.75 | 0.538 to 1.152 Mb/s | 5.41 to 11.59 GB | Lossless, smaller than WAV, still often >4 GB. |
 | FLAC | 48 kHz, 2 ch, 24-bit PCM | 0.35 to 0.75 | 0.806 to 1.728 Mb/s | 8.11 to 17.38 GB | Good archive format for long recordings. |
@@ -155,10 +155,10 @@ B = T \cdot f_s \cdot C \cdot \frac{32}{8}
 $$
 
 where:
-- \(B\) is bytes
-- \(T\) is duration in seconds
-- \(f_s\) is sample rate
-- \(C\) is channels
+- $B$ is bytes
+- $T$ is duration in seconds
+- $f_s$ is sample rate
+- $C$ is channels
 
 Mono is:
 
@@ -351,10 +351,10 @@ B = T \cdot f_s \cdot C \cdot b
 $$
 
 where:
-- \(T = 315{,}360{,}000\) s
-- \(f_s = 96{,}000\) Hz
-- \(C = 8\)
-- \(b = 4\) bytes/sample for `float32`
+- $T = 315{,}360{,}000$ s
+- $f_s = 96{,}000$ Hz
+- $C = 8$
+- $b = 4$ bytes/sample for `float32`
 
 $$
 B = 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 = 968{,}785{,}920{,}000{,}000
@@ -421,8 +421,8 @@ T_{\text{chunk}} = \frac{N_{\text{chunk}}}{f_s}
 $$
 
 where:
-- \(N_{\text{chunk}}\) is `--chunk-size` in samples
-- \(f_s\) is sample rate
+- $N_{\text{chunk}}$ is `--chunk-size` in samples
+- $f_s$ is sample rate
 
 Chunk memory (raw sample matrix only):
 
@@ -431,12 +431,12 @@ M_{\text{chunk}} \approx N_{\text{chunk}} \cdot C \cdot s
 $$
 
 where:
-- \(C\) is channels
-- \(s\) is bytes/sample (4 for float32)
+- $C$ is channels
+- $s$ is bytes/sample (4 for float32)
 
 Example at 96 kHz, 4 channels, float32:
 - `--chunk-size 960000` is 10 s chunks
-- Raw sample matrix is about \(960000 \cdot 4 \cdot 4 = 15{,}360{,}000\) bytes (~14.65 MiB/chunk)
+- Raw sample matrix is about $960000 \cdot 4 \cdot 4 = 15{,}360{,}000$ bytes (~14.65 MiB/chunk)
 
 Alternative (human-readable chunk flags):
 - `--chunk-seconds 10`

@@ -21,7 +21,7 @@ $$
 \mathbf{X}\in\mathbb{R}^{F\times K}
 $$
 
-where \(F\) is number of frames and \(K\) is number of feature columns in `values`.
+where $F$ is number of frames and $K$ is number of feature columns in `values`.
 
 Plain English: FrameTable stores one feature row per time frame.
 
@@ -56,7 +56,7 @@ $$
 \mathbf{T}\in\mathbb{R}^{C\times F\times K}
 $$
 
-where \(C\) is channels, \(F\) is frames, and \(K\) is features.
+where $C$ is channels, $F$ is frames, and $K$ is features.
 
 Plain English: deep models get a channel-major tensor while tabular pipelines keep the frame table.
 
@@ -106,7 +106,7 @@ esl features manifest ml_exports_root \
 
 Where:
 
-- \(N\) is the number of discovered samples
+- $N$ is the number of discovered samples
 - samples are sorted deterministically by path
 - split assignment is applied over that sorted order
 

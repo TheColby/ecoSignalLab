@@ -85,7 +85,7 @@ python -m playwright install chromium
   - [`docs/MOMENTS_EXTRACTION.md`](MOMENTS_EXTRACTION.md)
 - Generated docs render:
   - Mermaid diagrams (explicit blocks and auto-generated visual outlines for pages without Mermaid)
-  - TeX math via MathJax (`$...$`, `$$...$$`, `\\(...\\)`, `\\[...\\]`)
+  - TeX math via MathJax using GitHub-friendly `$...$` and `$$...$$` delimiters
 - Equation writing style:
   - every displayed equation should include a `where ...` statement immediately after it
   - every equation should include a plain-English interpretation line
