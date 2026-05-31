@@ -217,7 +217,7 @@ Friendly mental model:
 - Treat hourly/daily shard folders as one ordered archive with `esl shard index` and `esl shard analyze`.
 - Find archive-level top-ranked events with `esl shard moments`.
 - Find the archive shards most similar to a query recording with `esl shard similar`.
-- Find the exact archive windows most similar to a query recording with `esl shard retrieve`.
+- Find the exact archive windows most similar to a query recording with `esl shard retrieve`, including spatial-aware matching.
 - Summarize long-archive manifests and reports with `esl shard insights`.
 - Run higher-level insight workflows with `esl insights`: scene changes, calmness/chaos/diversity, occupancy, drift, retrieval, embeddings, reports, simulation comparison, and storyboards.
 - Generate static and interactive plots, including similarity and novelty matrix views.
@@ -239,6 +239,7 @@ esl validate input_dir --out validation_out --rules rules.json
 esl similar query.wav corpus_dir --top-k 5 --json out/similarity.json
 esl shard similar archive_manifest.json query.wav --out out/shard_similarity --top-k 5
 esl shard retrieve archive_manifest.json query.wav --out out/shard_retrieval --top-k 10 --window-seconds 8
+esl shard retrieve archive_manifest.json query.wav --out out/spatial_retrieval --top-k 10 --window-seconds 8 --spatial-mode append --spatial-weight 0.7
 ```
 
 Core goals:

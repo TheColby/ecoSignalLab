@@ -243,6 +243,62 @@ def test_cli_shard_retrieve_ranks_matching_event_and_writes_clip(tmp_path: Path)
     assert Path(best["wav_path"]).exists()
 
 
+def test_cli_shard_retrieve_spatial_only_ranks_matching_stereo_event(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir(parents=True, exist_ok=True)
+    sr = 8000
+    short_t = np.arange(int(sr * 0.25), dtype=np.float64) / sr
+    long_t = np.arange(sr, dtype=np.float64) / sr
+
+    tone_short = 0.2 * np.sin(2.0 * np.pi * 440.0 * short_t)
+    tone_long = 0.2 * np.sin(2.0 * np.pi * 440.0 * long_t)
+    query = np.stack([tone_short, tone_short], axis=1).astype(np.float32)
+    anti = np.stack([tone_long, -tone_long], axis=1).astype(np.float32)
+    event = anti.copy()
+    event_start = int(0.5 * sr)
+    event[event_start : event_start + query.shape[0], :] = query
+
+    query_path = tmp_path / "query.wav"
+    sf.write(query_path, query, sr)
+    sf.write(archive / "a_anti.wav", anti, sr)
+    sf.write(archive / "b_spatial_match.wav", event, sr)
+
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    out_dir = tmp_path / "retrieve_spatial_out"
+    code = main(
+        [
+            "shard",
+            "retrieve",
+            str(manifest_path),
+            str(query_path),
+            "--out",
+            str(out_dir),
+            "--top-k",
+            "1",
+            "--window-seconds",
+            "0.25",
+            "--window-hop-seconds",
+            "0.25",
+            "--spatial-mode",
+            "only",
+            "--spatial-metrics",
+            "interchannel_coherence",
+            "--verbosity",
+            "0",
+        ]
+    )
+    assert code == 0
+
+    payload = json.loads((out_dir / "event_retrieval.json").read_text(encoding="utf-8"))
+    assert payload["config"]["spatial_mode"] == "only"
+    assert payload["results"]
+    best = payload["results"][0]
+    assert best["relative_path"] == "b_spatial_match.wav"
+    assert "spatial_distance" in best["distance_components"]
+
+
 def test_cli_shard_similar_metric_mode_single_metric(tmp_path: Path) -> None:
     archive = tmp_path / "archive"
     archive.mkdir(parents=True, exist_ok=True)

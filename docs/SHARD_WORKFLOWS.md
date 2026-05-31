@@ -444,6 +444,9 @@ Useful options:
 - `--window-hop-seconds S` controls how densely the archive is searched
 - `--feature-set core|auto|librosa|all` controls feature richness
 - `--distance cosine|euclidean|manhattan` controls similarity math
+- `--spatial-mode off|append|only` adds or replaces timbral matching with spatial matching
+- `--spatial-metrics ...` selects the spatial cues
+- `--spatial-weight 0.5` blends feature and spatial distance in `append` mode
 - `--no-clips` writes only JSON/CSV
 - `--max-shards N` limits the search for smoke tests
 
@@ -460,13 +463,53 @@ esl shard retrieve manifest.json query.wav \
 
 Why `core` by default? It is deterministic, light, and friendly to giant archives. Use `--feature-set all` when you want richer librosa-backed descriptors and have the compute budget for it.
 
+Spatial-only event retrieval:
+
+```bash
+esl shard retrieve manifest.json query_spatial_event.wav \
+  --out out/retrieve_spatial \
+  --top-k 10 \
+  --window-seconds 8 \
+  --window-hop-seconds 2 \
+  --spatial-mode only \
+  --spatial-metrics interchannel_coherence,iacc,ild_db,itd_s
+```
+
+Spatial-blended event retrieval:
+
+```bash
+esl shard retrieve manifest.json query_spatial_event.wav \
+  --out out/retrieve_spatial_blend \
+  --top-k 10 \
+  --window-seconds 8 \
+  --window-hop-seconds 2 \
+  --spatial-mode append \
+  --spatial-weight 0.7
+```
+
+Where:
+
+- \(d_f\) is the ordinary feature distance
+- \(d_s\) is the spatial-metric distance
+- \(w\) is `--spatial-weight`
+
+\[
+d = (1-w)d_f + wd_s
+\]
+
+Plain English: use `only` when location/channel geometry is the point. Use `append` when the event should match both what it sounds like and where/how it appears across channels.
+
 ```mermaid
 flowchart LR
     A["query event WAV"] --> B["feature vector"]
+    A --> I["spatial metric vector"]
     C["shard manifest"] --> D["sliding archive windows"]
     D --> E["window feature vectors"]
+    D --> J["window spatial vectors"]
     B --> F["distance ranking"]
     E --> F
+    I --> F
+    J --> F
     F --> G["event_retrieval.csv"]
     F --> H["retrieved WAV clips"]
 ```

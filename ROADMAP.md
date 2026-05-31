@@ -122,8 +122,8 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. spatial-aware query-to-event retrieval inside shard archives
-2. stronger Ambisonics channel-order / normalization metadata contracts
-3. more calibration verification fixtures and reference reports
-4. archive-scale plots for month/year campaigns
-5. dataset manifests that connect FrameTable outputs to ML training splits
+1. stronger Ambisonics channel-order / normalization metadata contracts
+2. more calibration verification fixtures and reference reports
+3. archive-scale plots for month/year campaigns
+4. dataset manifests that connect FrameTable outputs to ML training splits
+5. spatial retrieval performance profiling on long multichannel archives

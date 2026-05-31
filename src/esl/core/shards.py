@@ -24,7 +24,8 @@ from esl.core.similarity import (
     _metric_vector,
     _mode as _similarity_mode,
 )
-from esl.core.audio import iter_supported_files, probe_audio_metadata
+from esl.core.audio import AudioBuffer, iter_supported_files, probe_audio_metadata, read_audio
+from esl.core.context import AnalysisContext
 from esl.core.moments import (
     _clip_with_ffmpeg,
     _clip_with_soundfile,
@@ -190,6 +191,9 @@ class ShardRetrieveConfig:
     sample_rate: int | None = None
     max_shards: int | None = None
     write_clips: bool = True
+    spatial_mode: str = "off"  # off|append|only
+    spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
+    spatial_weight: float = 0.5
 
 
 def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]]:
@@ -845,6 +849,56 @@ def _write_retrieval_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow({name: row.get(name) for name in fieldnames})
 
 
+def _metric_results_vector(results: dict[str, Any], metric_names: list[str]) -> np.ndarray:
+    values: list[float] = []
+    for name in metric_names:
+        value = np.nan
+        result = results.get(name)
+        summary = getattr(result, "summary", None)
+        if isinstance(summary, dict) and isinstance(summary.get("mean"), (int, float)):
+            value = float(summary["mean"])
+        values.append(value)
+    return np.asarray(values, dtype=np.float64)
+
+
+def _spatial_vector_from_array(
+    samples: np.ndarray,
+    *,
+    sample_rate: int,
+    source_path: Path,
+    metric_names: list[str],
+    frame_size: int,
+    hop_size: int,
+    registry: Any,
+) -> np.ndarray:
+    arr = np.asarray(samples, dtype=np.float32)
+    if arr.ndim == 1:
+        arr = arr[:, None]
+    audio = AudioBuffer(
+        samples=arr,
+        sample_rate=int(sample_rate),
+        source_path=str(source_path),
+        format_name="array-segment",
+        subtype=None,
+        source_backend="array",
+    )
+    ctx = AnalysisContext(
+        audio=audio,
+        config=AnalysisConfig(
+            input_path=source_path,
+            output_dir=source_path.parent,
+            frame_size=frame_size,
+            hop_size=hop_size,
+            sample_rate=sample_rate,
+            metrics=list(metric_names),
+            verbosity=0,
+            debug=0,
+        ),
+        calibration=None,
+    )
+    return _metric_results_vector(registry.compute(ctx, metric_names), metric_names)
+
+
 def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str, Any]]:
     """Find query-like time windows inside an ordered shard archive."""
     manifest = load_shard_manifest(cfg.manifest_path)
@@ -864,6 +918,24 @@ def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str,
         items = items[: int(cfg.max_shards)]
 
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    spatial_mode = str(cfg.spatial_mode).lower().strip()
+    if spatial_mode not in {"off", "append", "only"}:
+        raise ValueError("spatial_mode must be one of off|append|only")
+    spatial_metrics = _resolve_spatial_metrics(cfg)
+    spatial_registry = create_registry(with_external=True) if spatial_mode in {"append", "only"} else None
+    spatial_query_vec = None
+    if spatial_registry is not None:
+        query_audio = read_audio(cfg.query_path, target_sr=cfg.sample_rate)
+        spatial_query_vec = _spatial_vector_from_array(
+            query_audio.samples,
+            sample_rate=query_audio.sample_rate,
+            source_path=cfg.query_path,
+            metric_names=spatial_metrics,
+            frame_size=cfg.frame_size,
+            hop_size=cfg.hop_size,
+            registry=spatial_registry,
+        )
+
     query_fv = extract_feature_vectors(
         cfg.query_path,
         feature_set=cfg.feature_set,
@@ -917,7 +989,49 @@ def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str,
                         }
                     )
                     continue
-                dist, sim = _distance(shared[0], shared[1], cfg.distance)
+                feature_dist, feature_sim = _distance(shared[0], shared[1], cfg.distance)
+                dist = feature_dist
+                sim = feature_sim
+                distance_components: dict[str, float] | None = None
+                if spatial_registry is not None and spatial_query_vec is not None:
+                    spatial_vec = _spatial_vector_from_array(
+                        segment,
+                        sample_rate=sr,
+                        source_path=shard_path,
+                        metric_names=spatial_metrics,
+                        frame_size=cfg.frame_size,
+                        hop_size=cfg.hop_size,
+                        registry=spatial_registry,
+                    )
+                    spatial_shared = _shared_finite_vectors(spatial_query_vec, spatial_vec)
+                    if spatial_shared is None:
+                        skipped.append(
+                            {
+                                "path": str(shard_path.resolve()),
+                                "local_start_s": local_start_s,
+                                "local_end_s": local_end_s,
+                                "reason": "no shared finite spatial metric dimensions",
+                            }
+                        )
+                        continue
+                    spatial_dist, spatial_sim = _distance(
+                        spatial_shared[0],
+                        spatial_shared[1],
+                        cfg.distance,
+                    )
+                    weight = float(np.clip(float(cfg.spatial_weight), 0.0, 1.0))
+                    if spatial_mode == "only":
+                        dist = spatial_dist
+                        sim = spatial_sim
+                    else:
+                        dist = ((1.0 - weight) * feature_dist) + (weight * spatial_dist)
+                        sim = ((1.0 - weight) * feature_sim) + (weight * spatial_sim)
+                    distance_components = {
+                        "feature_distance": float(feature_dist),
+                        "spatial_distance": float(spatial_dist),
+                        "feature_similarity": float(feature_sim),
+                        "spatial_similarity": float(spatial_sim),
+                    }
                 archive_start_s = archive_offset_s + local_start_s
                 archive_end_s = archive_offset_s + local_end_s
                 candidates.append(
@@ -938,6 +1052,7 @@ def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str,
                         "feature_backend": fv.backend,
                         "num_frames": int(fv.matrix.shape[0]),
                         "num_features": int(fv.matrix.shape[1]),
+                        "distance_components": distance_components,
                         "wav_path": "",
                     }
                 )
@@ -1026,6 +1141,9 @@ def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str,
             "hop_size": int(cfg.hop_size),
             "sample_rate": cfg.sample_rate,
             "write_clips": bool(cfg.write_clips),
+            "spatial_mode": spatial_mode,
+            "spatial_metrics": spatial_metrics,
+            "spatial_weight": float(cfg.spatial_weight),
         },
         "query": {
             "path": str(cfg.query_path.resolve()),

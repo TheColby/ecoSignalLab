@@ -337,6 +337,9 @@ Useful options:
 - `--max-shards 100`
 - `--sample-rate 24000`
 - `--frame-seconds`, `--hop-seconds`
+- `--spatial-mode off|append|only`
+- `--spatial-metrics interchannel_coherence,iacc,ild_db,itd_s`
+- `--spatial-weight 0.7`
 
 Expected outputs:
 - `out/shard_retrieval/event_retrieval.json`
@@ -344,6 +347,20 @@ Expected outputs:
 - `out/shard_retrieval/retrieved_clips/retrieved_0001.wav`
 
 Plain English: this is the command for “find me the 10 moments that sound most like this example.” Little acoustic detective. Trench coat sold separately.
+
+Spatial version:
+
+```bash
+esl shard retrieve out/archive_manifest.json query_event.wav \
+  --out out/shard_retrieval_spatial \
+  --top-k 10 \
+  --window-seconds 8 \
+  --window-hop-seconds 2 \
+  --spatial-mode append \
+  --spatial-weight 0.7
+```
+
+Use `--spatial-mode only` when the channel/spatial signature matters more than timbre.
 
 ## Recipe 9: Use minute/hour/day window flags
 

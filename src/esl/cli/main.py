@@ -1137,6 +1137,9 @@ def _run_shard_retrieve(args: argparse.Namespace) -> int:
             sample_rate=resolved_sr,
             max_shards=args.max_shards,
             write_clips=not bool(args.no_clips),
+            spatial_mode=str(getattr(args, "spatial_mode", "off")),
+            spatial_metrics=_metric_list(getattr(args, "spatial_metrics", None)),
+            spatial_weight=float(getattr(args, "spatial_weight", 0.5)),
         )
     )
 
@@ -3017,6 +3020,23 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_ret.add_argument("--sample-rate", type=int, default=None, help="Optional analysis/resampling rate in Hz")
     psh_ret.add_argument("--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates")
     psh_ret.add_argument("--no-clips", action="store_true", help="Only write JSON/CSV results; do not export WAV clips")
+    psh_ret.add_argument(
+        "--spatial-mode",
+        default="off",
+        choices=["off", "append", "only"],
+        help="Use spatial metrics for event retrieval: off, append to base similarity, or spatial-only",
+    )
+    psh_ret.add_argument(
+        "--spatial-metrics",
+        default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
+        help="Comma-separated spatial metrics used when --spatial-mode is append or only",
+    )
+    psh_ret.add_argument(
+        "--spatial-weight",
+        type=float,
+        default=0.5,
+        help="Blend weight for spatial distance when --spatial-mode append",
+    )
     psh_ret.add_argument("--json", default=None, help="Output JSON path (default: <out>/event_retrieval.json)")
     psh_ret.add_argument("--csv", default=None, help="Optional CSV output path")
     psh_ret.add_argument(
