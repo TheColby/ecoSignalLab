@@ -535,6 +535,12 @@ esl calibrate check \
   --out calib/check_report.json
 ```
 
+Run all deterministic calibration reference fixtures:
+
+```bash
+esl calibrate verify --fixture all --out calib/verify_suite.json
+```
+
 ### Interesting moments extraction (clips + timestamp CSV)
 
 ```bash

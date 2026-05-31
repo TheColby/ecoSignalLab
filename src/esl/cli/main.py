@@ -2604,6 +2604,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--fixture",
         default="sine_1khz_minus20dbfs",
         choices=[
+            "all",
             "sine_1khz_minus20dbfs",
             "sine_1khz_minus26dbfs",
             "sine_250hz_minus20dbfs",

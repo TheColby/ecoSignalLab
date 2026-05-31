@@ -567,7 +567,19 @@ esl calibrate verify \
 What this does:
 - synthesizes a deterministic software reference tone
 - checks measured RMS against the known expected dBFS value
-- writes a compact verification report
+- writes a compact verification report with fixture definition and audit equations
+
+Run every built-in reference fixture:
+
+```bash
+esl calibrate verify \
+  --fixture all \
+  --out out/calibration_verify_suite.json
+```
+
+This writes:
+- `out/calibration_verify_suite.json`
+- `out/calibration_verify_suite_reports/*.json`
 
 Optional:
 
@@ -583,8 +595,11 @@ Other fixtures:
 
 - `sine_250hz_minus20dbfs`
 - `sine_4khz_minus20dbfs`
+- `sine_1khz_minus26dbfs`
 - `sine_1khz_minus12dbfs`
 - `sine_1khz_minus20dbfs_precision_chain`
+
+Plain English: use `--fixture all` in CI or onboarding. It is the “does this calibration math still basically know which way is up?” command. Tiny lab coat, no clipboard required.
 
 ## Recipe 16: Generate soundscape insights and a listening storyboard
 

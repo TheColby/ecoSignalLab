@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 
 from esl.core.calibration import dbfs_to_pa, dbfs_to_spl, pa_to_dbfs, precision_chain_available, spl_to_dbfs
@@ -71,3 +74,30 @@ def test_calibration_verify_precision_chain_fixture_reports_pressure_error(tmp_p
     assert ok is True
     assert report["fixture"] == "sine_1khz_minus20dbfs_precision_chain"
     assert report["pressure_chain_error_db"] is not None
+
+
+def test_calibration_verify_all_fixture_suite_writes_reference_reports(tmp_path) -> None:
+    report_path, report, ok = run_calibration_verify(
+        CalibrationVerifyConfig(
+            fixture="all",
+            output_path=tmp_path / "verify_suite.json",
+            max_abs_error_db=0.25,
+        )
+    )
+    assert report_path.exists()
+    assert ok is True
+    assert report["verification_kind"] == "calibration_fixture_suite"
+    assert report["fixture_count"] >= 6
+    assert report["passed_count"] == report["fixture_count"]
+    assert report["failed_count"] == 0
+    assert report["artifacts"]["reports_dir"]
+    assert Path(report["artifacts"]["reports_dir"]).exists()
+    assert len(report["fixture_results"]) == report["fixture_count"]
+    first = report["fixture_results"][0]
+    assert first["fixture"]
+    assert first["within_tolerance"] is True
+    assert Path(first["report_path"]).exists()
+    child = json.loads(Path(first["report_path"]).read_text(encoding="utf-8"))
+    assert child["verification_kind"] == "calibration_reference_fixture"
+    assert isinstance(child["fixture_definition"], dict)
+    assert isinstance(child["audit_equations"], list)

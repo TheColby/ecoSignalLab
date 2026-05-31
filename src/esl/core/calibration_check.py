@@ -102,6 +102,41 @@ def _fixture_signal(dbfs_rms: float, frequency_hz: float, duration_s: float, sam
     return (peak * np.sin(2.0 * np.pi * float(frequency_hz) * t)).astype(np.float32)
 
 
+def _fixture_public_definition(fixture: dict[str, float | str]) -> dict[str, Any]:
+    return {
+        "frequency_hz": float(fixture["frequency_hz"]),
+        "duration_s": float(fixture["duration_s"]),
+        "sample_rate": int(fixture["sample_rate"]),
+        "dbfs_rms": float(fixture["dbfs_rms"]),
+        "weighting": str(fixture.get("weighting", "Z")).upper(),
+        "spl_reference_db": float(fixture.get("spl_reference_db", 94.0)),
+        "mic_sensitivity_mv_pa": (
+            None
+            if fixture.get("mic_sensitivity_mv_pa") is None
+            else float(fixture["mic_sensitivity_mv_pa"])
+        ),
+        "preamp_gain_db": (
+            None if fixture.get("preamp_gain_db") is None else float(fixture["preamp_gain_db"])
+        ),
+        "adc_full_scale_vrms": (
+            None
+            if fixture.get("adc_full_scale_vrms") is None
+            else float(fixture["adc_full_scale_vrms"])
+        ),
+    }
+
+
+def _calibration_audit_equations() -> list[str]:
+    return [
+        "rms_linear = sqrt(mean(x^2))",
+        "measured_dbfs = 20 * log10(max(rms_linear, eps))",
+        "drift_db = measured_dbfs - dbfs_reference",
+        "spl_estimate_db = measured_dbfs + (spl_reference_db - dbfs_reference)",
+        "within_tolerance = abs(drift_db) <= max_abs_error_db",
+        "precision Pa<->dBFS requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms",
+    ]
+
+
 def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, Any], bool]:
     """Compute calibration drift against expected dBFS reference."""
     tone = read_audio(cfg.tone_path, target_sr=cfg.sample_rate)
@@ -215,6 +250,58 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
 
 def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str, Any], bool]:
     """Verify the calibration/check path against a deterministic synthetic reference fixture."""
+    if cfg.fixture == "all":
+        reports_dir = cfg.output_path.with_name(f"{cfg.output_path.stem}_reports")
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        fixture_results: list[dict[str, Any]] = []
+        all_ok = True
+        for fixture_name in sorted(REFERENCE_FIXTURES):
+            child_path = reports_dir / f"{fixture_name}.json"
+            _, child_report, child_ok = run_calibration_verify(
+                CalibrationVerifyConfig(
+                    fixture=fixture_name,
+                    output_path=child_path,
+                    calibration_profile=cfg.calibration_profile,
+                    max_abs_error_db=cfg.max_abs_error_db,
+                    write_tone_path=None,
+                )
+            )
+            all_ok = all_ok and child_ok
+            fixture_results.append(
+                {
+                    "fixture": fixture_name,
+                    "report_path": str(child_path.resolve()),
+                    "within_tolerance": bool(child_ok),
+                    "expected_dbfs_rms": child_report.get("expected_dbfs_rms"),
+                    "measured_dbfs_rms": child_report.get("measured_dbfs_rms"),
+                    "abs_error_db": child_report.get("abs_error_db"),
+                    "pressure_chain_error_db": child_report.get("pressure_chain_error_db"),
+                }
+            )
+        passed_count = sum(1 for row in fixture_results if row["within_tolerance"])
+        suite_report = {
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "verification_kind": "calibration_fixture_suite",
+            "fixture": "all",
+            "fixture_count": int(len(fixture_results)),
+            "passed_count": int(passed_count),
+            "failed_count": int(len(fixture_results) - passed_count),
+            "max_abs_error_db": float(cfg.max_abs_error_db),
+            "within_tolerance": bool(all_ok),
+            "fixture_results": fixture_results,
+            "artifacts": {
+                "reports_dir": str(reports_dir.resolve()),
+            },
+            "audit_equations": _calibration_audit_equations(),
+            "assumptions": [
+                "Suite mode runs every built-in deterministic calibration verification fixture.",
+                "Per-fixture reports are written beside the suite report for CI and onboarding review.",
+            ],
+        }
+        cfg.output_path.parent.mkdir(parents=True, exist_ok=True)
+        cfg.output_path.write_text(json.dumps(suite_report, indent=2), encoding="utf-8")
+        return cfg.output_path, suite_report, bool(all_ok)
+
     fixture = REFERENCE_FIXTURES.get(cfg.fixture)
     if fixture is None:
         raise ValueError(f"Unknown calibration reference fixture: {cfg.fixture}")
@@ -276,7 +363,9 @@ def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str
 
     verify_report = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "verification_kind": "calibration_reference_fixture",
         "fixture": cfg.fixture,
+        "fixture_definition": _fixture_public_definition(fixture),
         "tone_path": str(tone_path.resolve()),
         "expected_dbfs_rms": dbfs_rms,
         "measured_dbfs_rms": measured_dbfs,
@@ -293,6 +382,12 @@ def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str
             "adc_full_scale_vrms": profile.adc_full_scale_vrms,
         },
         "check_report_path": str(check_report_path.resolve()),
+        "audit_equations": _calibration_audit_equations(),
+        "assumptions": [
+            "Reference tone is synthesized deterministically as a floating-point sine wave.",
+            "Verification compares measured RMS dBFS against the fixture's expected RMS dBFS.",
+            "This is a software-path verification, not a replacement for traceable hardware calibration.",
+        ],
     }
     cfg.output_path.write_text(json.dumps(verify_report, indent=2), encoding="utf-8")
     if cleanup_path is not None and cfg.write_tone_path is None:

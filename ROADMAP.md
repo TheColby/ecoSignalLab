@@ -71,7 +71,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 ### 3. Calibration
 
 - drift checks for real calibration tones
-- deterministic software verification fixtures
+- deterministic software verification fixtures and suite reports
 - clearer Pa <-> dBFS <-> SPL audit paths
 - reference reports suitable for CI and onboarding
 
@@ -122,8 +122,8 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. more calibration verification fixtures and reference reports
-2. archive-scale plots for month/year campaigns
-3. dataset manifests that connect FrameTable outputs to ML training splits
-4. spatial retrieval performance profiling on long multichannel archives
-5. Ambisonics metadata import overrides from sidecar JSON/YAML
+1. archive-scale plots for month/year campaigns
+2. dataset manifests that connect FrameTable outputs to ML training splits
+3. spatial retrieval performance profiling on long multichannel archives
+4. Ambisonics metadata import overrides from sidecar JSON/YAML
+5. calibration sidecar export for device onboarding packets
