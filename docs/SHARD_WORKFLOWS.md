@@ -523,13 +523,56 @@ esl shard plot out/shard_analysis/shard_analysis_report.json \
   --out out/archive_plots
 ```
 
+For month/year campaigns, add rollups:
+
+```bash
+esl shard plot out/shard_analysis/shard_analysis_report.json \
+  --out out/archive_plots \
+  --rollup all
+```
+
 This writes plots such as:
 
 - `archive_duration_timeline.png`
 - `archive_metric_rms_dbfs.png`
 - `archive_metric_ndsi.png`
+- `archive_rollup_day.png`
+- `archive_rollup_month.png`
+- `archive_rollup_year.png`
+- `archive_rollup_day.csv`
+- `archive_rollup_month.csv`
+- `archive_rollup_year.csv`
 
 Plain English: this gives you a bird's-eye view of how the archive changes over time.
+
+Rollup math:
+
+$$
+b_i = \left\lfloor \frac{t_i}{T_b} \right\rfloor
+$$
+
+where:
+
+- $b_i$ is the archive-relative bucket index for shard $i$
+- $t_i$ is the shard start time in seconds from the beginning of the archive
+- $T_b$ is the bucket duration in seconds
+- day uses $T_b = 86{,}400$
+- month uses $T_b = 30 \times 86{,}400$
+- year uses $T_b = 365 \times 86{,}400$
+
+Metric rollups use duration-weighted means:
+
+$$
+\bar{x}_b = \frac{\sum_{i \in b} x_i d_i}{\sum_{i \in b} d_i}
+$$
+
+where:
+
+- $\bar{x}_b$ is the metric mean for bucket $b$
+- $x_i$ is the shard-level metric mean
+- $d_i$ is the shard duration in seconds
+
+Plain English: until an archive manifest carries a calendar start date, `day`, `month`, and `year` are relative to the start of the archive. Month means 30 days. Year means 365 days. No astrology, no fiscal quarters, no suspicious spreadsheet magic.
 
 ## Related docs
 

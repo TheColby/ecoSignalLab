@@ -491,17 +491,33 @@ See the full guide:
 
 ```bash
 esl shard plot out/shard_analysis/shard_analysis_report.json \
-  --out out/archive_plots
+  --out out/archive_plots \
+  --rollup all
 ```
 
 What this does:
 - reads the archive-level shard report
 - plots shard durations over archive time
 - plots each selected report metric over archive time
+- optionally rolls the archive into day/month/year campaign summaries
 
 Expected outputs:
 - `out/archive_plots/archive_duration_timeline.png`
 - `out/archive_plots/archive_metric_*.png`
+- `out/archive_plots/archive_rollup_day.png`
+- `out/archive_plots/archive_rollup_month.png`
+- `out/archive_plots/archive_rollup_year.png`
+- `out/archive_plots/archive_rollup_day.csv`
+- `out/archive_plots/archive_rollup_month.csv`
+- `out/archive_plots/archive_rollup_year.csv`
+
+Rollup windows are archive-relative:
+
+$$
+b_i = \left\lfloor \frac{t_i}{T_b} \right\rfloor
+$$
+
+where $t_i$ is the shard start time in seconds and $T_b$ is 1 day, 30 days, or 365 days.
 
 ## Recipe 14: Find the top 33 most novel moments in a ten-year, 8-channel file
 

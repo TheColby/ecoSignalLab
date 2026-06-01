@@ -432,6 +432,57 @@ def test_cli_shard_similar_spatial_append_and_plot(tmp_path: Path) -> None:
     assert any(plot_out.glob("archive_metric_*.png"))
 
 
+def test_cli_shard_plot_writes_campaign_rollups(tmp_path: Path) -> None:
+    day_s = 24.0 * 3600.0
+    report_path = tmp_path / "shard_analysis_report.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.2.0",
+                "report_metrics": ["rms_dbfs"],
+                "rows": [
+                    {
+                        "relative_path": "day_000.wav",
+                        "status": "ok",
+                        "timeline_start_s": 0.0,
+                        "timeline_end_s": day_s,
+                        "duration_s": day_s,
+                        "rms_dbfs_mean": -30.0,
+                    },
+                    {
+                        "relative_path": "day_035.wav",
+                        "status": "ok",
+                        "timeline_start_s": 35.0 * day_s,
+                        "timeline_end_s": 36.0 * day_s,
+                        "duration_s": day_s,
+                        "rms_dbfs_mean": -20.0,
+                    },
+                    {
+                        "relative_path": "day_370.wav",
+                        "status": "ok",
+                        "timeline_start_s": 370.0 * day_s,
+                        "timeline_end_s": 371.0 * day_s,
+                        "duration_s": day_s,
+                        "rms_dbfs_mean": -10.0,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    plot_out = tmp_path / "archive_plots"
+    assert main(["shard", "plot", str(report_path), "--out", str(plot_out), "--rollup", "all"]) == 0
+
+    assert (plot_out / "archive_rollup_day.png").exists()
+    assert (plot_out / "archive_rollup_month.png").exists()
+    assert (plot_out / "archive_rollup_year.png").exists()
+    rollup_csv = plot_out / "archive_rollup_month.csv"
+    assert rollup_csv.exists()
+    text = rollup_csv.read_text(encoding="utf-8")
+    assert "period_index,period_start_s,period_end_s,shard_count,total_duration_s,rms_dbfs_mean" in text
+
+
 def test_cli_shard_insights_summary_scene_calmness_and_report(tmp_path: Path) -> None:
     archive = tmp_path / "archive"
     archive.mkdir(parents=True, exist_ok=True)

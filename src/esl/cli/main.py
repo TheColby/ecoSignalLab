@@ -1173,7 +1173,7 @@ def _run_shard_plot(args: argparse.Namespace) -> int:
     report_path = Path(args.report)
     if not report_path.exists():
         raise FileNotFoundError(f"Shard analysis report not found: {report_path}")
-    paths = plot_shard_report(report_path, Path(args.out))
+    paths = plot_shard_report(report_path, Path(args.out), rollup=str(args.rollup))
     print(f"archive_plot_dir: {Path(args.out).resolve()}")
     print("plots:", [str(path) for path in paths])
     return 0
@@ -3059,6 +3059,15 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_plot = psh_sub.add_parser("plot", help="Render archive-scale plots from shard_analysis_report.json")
     psh_plot.add_argument("report", help="Path to shard_analysis_report.json")
     psh_plot.add_argument("--out", required=True, help="Output directory for archive PNG plots")
+    psh_plot.add_argument(
+        "--rollup",
+        default="none",
+        choices=["none", "day", "month", "year", "all"],
+        help=(
+            "Also write archive-relative campaign rollup PNG/CSV summaries: "
+            "none(default), day, month(30 days), year(365 days), or all"
+        ),
+    )
     psh_plot.set_defaults(func=_run_shard_plot)
 
     psh_ins = psh_sub.add_parser("insights", help="Manifest/report-level insights for shard archives")

@@ -104,7 +104,7 @@ Plain English: we are no longer at the “can this open a big file?” stage. We
 - add spatial-aware archive ranking modes
 - expand calibration verification fixtures
 - improve Parquet/HDF5 downstream ergonomics
-- add more archive-scale overview plots
+- expand archive-scale overview plots beyond day/month/year rollups
 - harden query-to-event retrieval beyond whole-shard retrieval
 
 ### 90 Days
@@ -122,8 +122,8 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. archive-scale plots for month/year campaigns
-2. dataset manifests that connect FrameTable outputs to ML training splits
-3. spatial retrieval performance profiling on long multichannel archives
-4. Ambisonics metadata import overrides from sidecar JSON/YAML
-5. calibration sidecar export for device onboarding packets
+1. dataset manifests that connect FrameTable outputs to ML training splits
+2. spatial retrieval performance profiling on long multichannel archives
+3. Ambisonics metadata import overrides from sidecar JSON/YAML
+4. calibration sidecar export for device onboarding packets
+5. calendar-aware shard manifests for absolute day/month/year reporting
