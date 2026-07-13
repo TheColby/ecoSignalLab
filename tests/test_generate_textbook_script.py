@@ -67,6 +67,7 @@ def test_textbook_front_matter_figures_and_assignments_are_generated() -> None:
     assert markdown.count("### Why This Matters") == 33
     assert markdown.count("### Assignment Introduction") == 33
     assert markdown.count("### Deliverables at a Glance") == 33
+    assert markdown.count('class="assignment-title-rule"') == 33
     assert "- **Required artifact:** A 250-word provenance note plus the JSON output." in markdown
     assert markdown.count("### Before You Begin") == 33
     assert markdown.count("### Controlled Comparison") == 33

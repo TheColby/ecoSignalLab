@@ -10974,6 +10974,8 @@ A strong laboratory record separates three things: what the software measured, w
 
 ## Assignment 1: Inspect before measuring
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 1, **Inspect before measuring**, is a focused evidence exercise. You will run `esl doctor` and `esl analyze` on one WAV or FLAC file. Identify the decoder, sample rate, channel count, and duration. The purpose is to connect a real analysis artifact to its method: Provenance is the minimum context needed to interpret a number later. This lab makes the file and decoder part of the measurement, not an afterthought.
@@ -11099,6 +11101,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 2: Peak, RMS, and crest
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -11226,6 +11230,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 3: Window trade-off
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 3, **Window trade-off**, is a focused evidence exercise. You will analyze the same clip with a short and a long frame/window. Compare the time and frequency detail in the plots. The purpose is to connect a real analysis artifact to its method: A frame length is a scientific choice: shorter frames localize change, while longer frames resolve frequency more clearly. There is no universal correct value.
@@ -11351,6 +11357,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 4: Hop-size sensitivity
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -11478,6 +11486,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 5: Calibration boundary
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 5, **Calibration boundary**, is a focused evidence exercise. You will run an uncalibrated analysis, then configure a documented 0 dBFS mapping or calibration profile if one is available. Do not invent a calibration value. The purpose is to connect a real analysis artifact to its method: Calibration converts a digital representation into a stated physical-level assumption. It is useful only when the supporting calibration information is real and retained.
@@ -11603,6 +11613,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 6: Clipping audit
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -11730,6 +11742,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 7: DC-offset audit
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 7, **DC-offset audit**, is a focused evidence exercise. You will construct a signal with a known DC offset, run the quality-control metrics, and explain why offset matters to some level estimates. The purpose is to connect a real analysis artifact to its method: DC offset wastes headroom and can bias level or low-frequency interpretation. This is a quality-control question before it is a signal-processing trick.
@@ -11855,6 +11869,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 8: Impulse-response decay
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -11982,6 +11998,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 9: Clarity comparison
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 9, **Clarity comparison**, is a focused evidence exercise. You will compare C50, C80, and D50 for two impulse responses or two simulated variants. State which source/receiver assumptions differ. The purpose is to connect a real analysis artifact to its method: C50, C80, and D50 partition early and late energy differently. They become architectural evidence only with explicit source, receiver, and simulation assumptions.
@@ -12107,6 +12125,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 10: Novelty candidate
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -12234,6 +12254,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 11: Top-k review
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 11, **Top-k review**, is a focused evidence exercise. You will extract ten novel moments with non-overlap and a stated pre/post context. Label each as useful, duplicate, artifact, or uncertain. The purpose is to connect a real analysis artifact to its method: A ranked event list becomes useful when it is reviewable and nonredundant. Context windows and non-overlap rules define what a reviewer actually hears.
@@ -12359,6 +12381,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 12: Similarity matrix
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -12486,6 +12510,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 13: Novelty matrix
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 13, **Novelty matrix**, is a focused evidence exercise. You will render the Foote-style novelty matrix and vary the kernel size. Explain one expected and one surprising change. The purpose is to connect a real analysis artifact to its method: Foote-style novelty derives local change from a similarity structure and a checkerboard kernel. Kernel scale defines what counts as a boundary.
@@ -12611,6 +12637,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 14: Distance functions
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -12738,6 +12766,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 15: Musical analysis: form, timbre, and harmonic color
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 15, **Musical analysis: form, timbre, and harmonic color**, is a focused evidence exercise. You will choose a legal-to-share music excerpt. Extract `librosa` features, render similarity and novelty matrices, and use listening to identify one repeated passage, one boundary, and one timbral or harmonic-color contrast. Do not claim chord, key, beat, or transcription labels. The purpose is to connect a real analysis artifact to its method: Musical analysis in `esl` is feature-level and listening-led. Chroma and Tonnetz describe harmonic-color evidence, MFCCs and spectral contrast describe timbre, and similarity/novelty matrices describe recurrence and change; none is a substitute for a symbolic transcription claim.
@@ -12863,6 +12893,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 16: Stereo semantics
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -12990,6 +13022,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 17: Ambisonics sidecar
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 17, **Ambisonics sidecar**, is a focused evidence exercise. You will prepare a spatial metadata sidecar for a documented B-format file or provided fixture. Validate that order, convention, and labels are recorded. The purpose is to connect a real analysis artifact to its method: Spatial and Ambisonics metadata cannot be guessed safely from wishful thinking. A sidecar makes the convention, ordering, and confidence inspectable.
@@ -13115,6 +13149,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 18: Archive manifest
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -13242,6 +13278,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 19: Calendar rollup
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 19, **Calendar rollup**, is a focused evidence exercise. You will produce daily or hourly archive summaries. Explain the difference between archive-relative time and civil time. The purpose is to connect a real analysis artifact to its method: Civil time, UTC, and archive-relative time answer different questions. A chart can be precise but still wrong for a local-day interpretation if its time policy is unstated.
@@ -13367,6 +13405,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 20: Large-file estimate
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -13494,6 +13534,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 21: RF64 decision
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 21, **RF64 decision**, is a focused evidence exercise. You will explain whether a proposed long WAV should use classic WAV, RF64, FLAC, or sharded files. Include one interoperability constraint. The purpose is to connect a real analysis artifact to its method: RF64 extends WAV when classic RIFF size fields are inadequate, but compatibility remains a deployment constraint. Format selection is a workflow decision.
@@ -13619,6 +13661,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 22: FrameTable inspection
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -13746,6 +13790,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 23: Tensor layout
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 23, **Tensor layout**, is a focused evidence exercise. You will export a tensor where available and verify the declared `[channels, frames, features]` layout against the tabular export. The purpose is to connect a real analysis artifact to its method: Tensor layout errors silently invalidate ML experiments. The declared axes must agree with the tabular representation and model input expectation.
@@ -13871,6 +13917,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 24: Leakage-resistant split
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -13998,6 +14046,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 25: Anomaly baseline
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 25, **Anomaly baseline**, is a focused evidence exercise. You will run a novelty or anomaly workflow on a recording with an intentionally documented reference period. Separate unusual from merely loud. The purpose is to connect a real analysis artifact to its method: Novelty and anomaly scores depend on a baseline. An unusual loud event is not necessarily an anomalous acoustic pattern, and vice versa.
@@ -14123,6 +14173,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 26: Ecoacoustic bands
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -14250,6 +14302,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 27: Index skepticism
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 27, **Index skepticism**, is a focused evidence exercise. You will choose one ecoacoustic index and read two cited papers that report limitations. Propose a validation observation independent of the index. The purpose is to connect a real analysis artifact to its method: Ecoacoustic indices are summaries that require independent validation. A useful critique separates mathematical definition, ecological claim, and evidence quality.
@@ -14375,6 +14429,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 28: Long-term drift
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -14502,6 +14558,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 29: Architectural variants
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 29, **Architectural variants**, is a focused evidence exercise. You will analyze two room-simulation outputs as variants. Compare decay and clarity without claiming compliance unless the measurement assumptions support it. The purpose is to connect a real analysis artifact to its method: Simulation variants are comparable only when their modeling assumptions travel with the acoustic results. The report should distinguish prediction from measurement.
@@ -14627,6 +14685,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 30: Decoder provenance
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 
@@ -14754,6 +14814,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 31: Regression fixture
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 31, **Regression fixture**, is a focused evidence exercise. You will create a small synthetic fixture for one metric and write a tolerance-based test or pseudo-test plan. The purpose is to connect a real analysis artifact to its method: A golden fixture turns an analytical expectation into an executable contract. Tolerance selection should reflect numerical reality, not a wish for exact floating-point equality.
@@ -14880,6 +14942,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 32: Reproducible handoff
 
+<hr class="assignment-title-rule" />
+
 ### Assignment Introduction
 
 Assignment 32, **Reproducible handoff**, is a focused evidence exercise. You will package one analysis with input identifiers, config, pipeline hash, outputs, plots, and a README for another analyst. The purpose is to connect a real analysis artifact to its method: A reproducible handoff lets another analyst inspect, rerun, and challenge a result. The deliverable is an analysis package, not a screenshot.
@@ -15005,6 +15069,8 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 33: Capstone: defensible claim
+
+<hr class="assignment-title-rule" />
 
 ### Assignment Introduction
 

@@ -54,6 +54,7 @@ graph TD
     assert "body.textbook-edition" in rendered
     assert "--terminal-green: #8dffa9" in rendered
     assert "background: var(--terminal-bg)" in rendered
+    assert "hr.assignment-title-rule" in rendered
     assert (root / "build" / "html" / "assets" / "fonts" / "texgyreschola-regular.otf").exists()
     assert (root / "build" / "html" / "assets" / "fonts" / "GUST-FONT-LICENSE.txt").exists()
 

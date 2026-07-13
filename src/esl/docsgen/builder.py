@@ -401,6 +401,7 @@ def _render_page_template(
     tr:last-child td {{ border-bottom: 0; }}
     th {{ background: transparent; font-weight: 700; }}
     .assignment-start, .textbook-page-start {{ height: 0; }}
+    hr.assignment-title-rule {{ border: 0; border-top: 1px solid var(--ink); margin: 0.45rem 0 1.25rem; }}
     .mermaid {{ background: #faf8f1; border: 1px solid #c8c3b9; border-radius: 0; padding: 12px; margin: 18px 0; }}
     .textbook-title-page {{ min-height: 235mm; display: flex; flex-direction: column; justify-content: center; text-align: center; padding: 24mm 16mm; background: var(--panel); border-top: 3px double var(--ink); border-bottom: 3px double var(--ink); }}
     .textbook-title-logo {{ display: block; width: 118px; height: auto; margin: 0 auto 20px; }}
