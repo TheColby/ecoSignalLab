@@ -47,7 +47,7 @@ class Figure:
 
 PARTS: tuple[tuple[str, tuple[Chapter, ...]], ...] = (
     (
-        "Part I - Foundations and First Measurements",
+        "Part I: Foundations and First Measurements",
         (
             Chapter(
                 ROOT / "docs" / "USERGUIDE.md",
@@ -79,7 +79,7 @@ PARTS: tuple[tuple[str, tuple[Chapter, ...]], ...] = (
         ),
     ),
     (
-        "Part II - Events, Change, and Similarity",
+        "Part II: Events, Change, and Similarity",
         (
             Chapter(
                 ROOT / "docs" / "NOVELTY_ANOMALY.md",
@@ -111,7 +111,7 @@ PARTS: tuple[tuple[str, tuple[Chapter, ...]], ...] = (
         ),
     ),
     (
-        "Part III - Long Archives, Spatial Audio, and Field Operations",
+        "Part III: Long Archives, Spatial Audio, and Field Operations",
         (
             Chapter(
                 ROOT / "docs" / "RF64_AND_LARGE_FILES.md",
@@ -143,7 +143,7 @@ PARTS: tuple[tuple[str, tuple[Chapter, ...]], ...] = (
         ),
     ),
     (
-        "Part IV - ML, Schema, Validation, and Scientific Practice",
+        "Part IV: ML, Schema, Validation, and Scientific Practice",
         (
             Chapter(
                 ROOT / "docs" / "ML_FEATURES.md",
@@ -590,13 +590,43 @@ def _lab_notebook_markdown(number: int, title: str, task: str, guide: HomeworkGu
     return "\n".join(lines).rstrip()
 
 
+def _assignment_overview_markdown(
+    number: int,
+    title: str,
+    task: str,
+    deliverable: str,
+    guide: HomeworkGuide,
+) -> str:
+    """Return the student-facing orientation and deliverables for one lab."""
+    return "\n".join(
+        (
+            "### Assignment Introduction",
+            "",
+            f"Assignment {number}, **{title}**, is a focused evidence exercise. You will {task[0].lower() + task[1:]} "
+            f"The purpose is to connect a real analysis artifact to its method: {guide.purpose}",
+            "",
+            "Approach the work as a small, controlled study. Keep the input, configuration, and output "
+            "together; inspect the resulting plot, value, or clip; and distinguish what the artifact "
+            "shows from the interpretation you attach to it. The detailed sections below explain the "
+            "control, protocol, and review standard.",
+            "",
+            "### Deliverables at a Glance",
+            "",
+            f"- **Required artifact:** {deliverable}",
+            "- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.",
+            "- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.",
+            "- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.",
+        )
+    )
+
+
 def _homework_markdown() -> str:
     """Build the end-of-book 33-assignment laboratory bank."""
     if len(HOMEWORK) != len(HOMEWORK_GUIDES):
         raise RuntimeError("Every homework prompt must have expanded laboratory guidance.")
     lines = ["# Homework and Laboratory Assignments", "", "These 33 assignments use real `esl` workflows. They are deliberately framed as reproducible evidence exercises, not scavenger hunts for the largest number a command can print. Keep every command, configuration file, software version, and output artifact.", "", "Each assignment includes a purpose, a controlled comparison, a protocol, evidence requirements, interpretation questions, and an extension. The repeated structure is intentional: the habit of recording conditions is more valuable than memorizing a single command. In the PDF edition, every assignment begins on a fresh page so its evidence record remains a distinct unit of work.", "", "The assignments become progressively more demanding, but none requires heroic hardware or a giant proprietary dataset. Start with a short, legal-to-share file or a synthetic fixture. Small controlled examples reveal more about a metric than a large archive whose assumptions are unknown. When a task asks for listening, the listening note is evidence; when it asks for a plot, the plot needs a timestamped explanation rather than a decorative caption.", "", "## Submission Standard", "", "Every submission should identify the input, the command/configuration, relevant units, calibration state, channel convention, output location, and one uncertainty. If you cannot state an assumption, you have probably found the next thing to learn.", "", "For each lab, preserve a `README.md` or notebook cell that records the input identifier, the exact command or configuration, the software version, output paths, and the date. Do not include sensitive recordings in a submission when a derived artifact or private identifier is sufficient.", "", "A strong laboratory record separates three things: what the software measured, what the analyst observed in plots or listening, and what interpretation remains plausible but unproven. This separation is not academic bureaucracy. It prevents a configuration choice, a decoding artifact, or a loud transient from silently becoming a scientific conclusion.", ""]
     for number, ((title, task, deliverable), guide) in enumerate(zip(HOMEWORK, HOMEWORK_GUIDES, strict=True), start=1):
-        lines.extend(("<div class=\"assignment-start\" aria-hidden=\"true\"></div>", "", f"## Assignment {number}: {title}", "", "### Why This Matters", "", guide.purpose, "", "The central question in this assignment is deliberately narrower than its title. A useful result identifies what changed, what was held fixed, and what the selected metric or workflow can actually support. If the first result is surprising, treat surprise as a reason to inspect the data and assumptions, not as proof that the result is important.", "", "### Before You Begin", "", "Create a small working copy of the input or record an immutable identifier for it. Confirm duration, sample rate, channel count, decoder, and calibration status before changing any analysis parameter. Decide in advance which output will count as evidence: a scalar with provenance, a frame table, a plot, a timestamped clip, or a comparison table.", "", "Write one sentence predicting what you expect to see and why. The prediction may be wrong; that is useful. It makes the later comparison between expectation and result visible instead of allowing an after-the-fact story to masquerade as a plan.", "", "### Controlled Comparison", "", guide.control, "", "The comparison is the assignment's guardrail. Change the stated factor and keep the input, preprocessing, output scale, and review procedure stable. If a practical constraint forces an additional change, record it plainly and reduce the strength of the conclusion accordingly.", "", "### Method Narrative", "", f"The task is: {task}", "", f"Approach this as a short methods study, not a button-pressing exercise. The goal is to connect the resulting artifact to the mechanism described above: {guide.purpose} Keep the configuration and evidence together so a reader can distinguish a change in the signal from a change introduced by the analysis choices.", "", "### Protocol", "", "1. Create a dedicated working directory named for this assignment. Preserve the input identifier, a copy of the command/configuration, and the unedited output JSON before making interpretive notes.", f"2. {task}", "3. Repeat the workflow with the controlled comparison stated above. Change one analytical decision at a time; if you must change more than one, record why.", "4. Inspect the result numerically and by listening or plotting where appropriate. Record validity flags, confidence fields, units, channel semantics, and provenance rather than copying only the headline metric.", "5. Write a short conclusion that distinguishes an observed result from an interpretation. Include one alternative explanation that the present data cannot rule out.", "6. Archive the exact command, configuration, and evidence artifacts in one place. A reviewer should be able to find the input identifier, recreate the analysis, and understand why you made the final comparison without reading your mind.", "", _lab_notebook_markdown(number, title, task, guide), "", "### Evidence to Submit", "", "**Required artifact.** " + deliverable, "", "Also include: the exact command/configuration, a short provenance excerpt, the relevant plot or CSV row, and a sentence identifying the channel and calibration policy. Label figures and tables with the input identifier and time interval. If an output is uncertain or invalid, include it and explain the flag rather than quietly replacing it with a better-looking result.", "", "### Evidence Quality Check", "", "Before submitting, ask whether the artifact answers the stated question at the correct time scale. Check that axes, units, time zones, channel labels, and normalization choices are visible. Then ask whether a second analyst could reproduce the same artifact using only the record you provide. If not, add the missing configuration or provenance now; future-you is also a second analyst.", "", "### Interpretation Questions", "", f"- {guide.question}", "- Which result is robust to the controlled comparison, and which result depends on a chosen parameter or representation?", "- What independent observation, listening review, calibration check, or ground-truth label would make the conclusion more credible?", "", "### Interpretation Walkthrough", "", "Start with a literal description of the artifact: identify the timestamp, value, rank, trend, or plot region without attaching a cause. Next connect that observation to the metric definition and the controls you held fixed. Only then state a constrained interpretation and the alternative explanation that remains. This ordering keeps the conclusion proportional to the evidence.", "", "A high score, a clean plot, or a stable rank is not automatically a validated result. Consider decoding differences, calibration state, channel aggregation, windowing, feature normalization, and the possibility that a familiar artifact can mimic the pattern you expected. The correct response to ambiguity is usually a targeted second comparison, not a longer adjective.", "", "### Optional Extension", "", guide.extension, "", "### Reading and Method Note", "", "Read the relevant chapter and its cited references before generalizing. Use [Metrics Reference](METRICS_REFERENCE.md), [Novelty and Anomaly](NOVELTY_ANOMALY.md), [Similarity Search](SIMILARITY_SEARCH.md), [Shard Workflows](SHARD_WORKFLOWS.md), and [References](REFERENCES.md) as appropriate; no metric output is a substitute for the method record.", "", "Carry one sentence from this assignment into the next: name the measurement, its assumptions, and the strongest alternative explanation. That small habit turns a sequence of exercises into a defensible analytical practice.", ""))
+        lines.extend(("<div class=\"assignment-start\" aria-hidden=\"true\"></div>", "", f"## Assignment {number}: {title}", "", _assignment_overview_markdown(number, title, task, deliverable, guide), "", "### Why This Matters", "", guide.purpose, "", "The central question in this assignment is deliberately narrower than its title. A useful result identifies what changed, what was held fixed, and what the selected metric or workflow can actually support. If the first result is surprising, treat surprise as a reason to inspect the data and assumptions, not as proof that the result is important.", "", "### Before You Begin", "", "Create a small working copy of the input or record an immutable identifier for it. Confirm duration, sample rate, channel count, decoder, and calibration status before changing any analysis parameter. Decide in advance which output will count as evidence: a scalar with provenance, a frame table, a plot, a timestamped clip, or a comparison table.", "", "Write one sentence predicting what you expect to see and why. The prediction may be wrong; that is useful. It makes the later comparison between expectation and result visible instead of allowing an after-the-fact story to masquerade as a plan.", "", "### Controlled Comparison", "", guide.control, "", "The comparison is the assignment's guardrail. Change the stated factor and keep the input, preprocessing, output scale, and review procedure stable. If a practical constraint forces an additional change, record it plainly and reduce the strength of the conclusion accordingly.", "", "### Method Narrative", "", f"The task is: {task}", "", f"Approach this as a short methods study, not a button-pressing exercise. The goal is to connect the resulting artifact to the mechanism described above: {guide.purpose} Keep the configuration and evidence together so a reader can distinguish a change in the signal from a change introduced by the analysis choices.", "", "### Protocol", "", "1. Create a dedicated working directory named for this assignment. Preserve the input identifier, a copy of the command/configuration, and the unedited output JSON before making interpretive notes.", f"2. {task}", "3. Repeat the workflow with the controlled comparison stated above. Change one analytical decision at a time; if you must change more than one, record why.", "4. Inspect the result numerically and by listening or plotting where appropriate. Record validity flags, confidence fields, units, channel semantics, and provenance rather than copying only the headline metric.", "5. Write a short conclusion that distinguishes an observed result from an interpretation. Include one alternative explanation that the present data cannot rule out.", "6. Archive the exact command, configuration, and evidence artifacts in one place. A reviewer should be able to find the input identifier, recreate the analysis, and understand why you made the final comparison without reading your mind.", "", _lab_notebook_markdown(number, title, task, guide), "", "### Evidence to Submit", "", "**Required artifact.** " + deliverable, "", "Also include: the exact command/configuration, a short provenance excerpt, the relevant plot or CSV row, and a sentence identifying the channel and calibration policy. Label figures and tables with the input identifier and time interval. If an output is uncertain or invalid, include it and explain the flag rather than quietly replacing it with a better-looking result.", "", "### Evidence Quality Check", "", "Before submitting, ask whether the artifact answers the stated question at the correct time scale. Check that axes, units, time zones, channel labels, and normalization choices are visible. Then ask whether a second analyst could reproduce the same artifact using only the record you provide. If not, add the missing configuration or provenance now; future-you is also a second analyst.", "", "### Interpretation Questions", "", f"- {guide.question}", "- Which result is robust to the controlled comparison, and which result depends on a chosen parameter or representation?", "- What independent observation, listening review, calibration check, or ground-truth label would make the conclusion more credible?", "", "### Interpretation Walkthrough", "", "Start with a literal description of the artifact: identify the timestamp, value, rank, trend, or plot region without attaching a cause. Next connect that observation to the metric definition and the controls you held fixed. Only then state a constrained interpretation and the alternative explanation that remains. This ordering keeps the conclusion proportional to the evidence.", "", "A high score, a clean plot, or a stable rank is not automatically a validated result. Consider decoding differences, calibration state, channel aggregation, windowing, feature normalization, and the possibility that a familiar artifact can mimic the pattern you expected. The correct response to ambiguity is usually a targeted second comparison, not a longer adjective.", "", "### Optional Extension", "", guide.extension, "", "### Reading and Method Note", "", "Read the relevant chapter and its cited references before generalizing. Use [Metrics Reference](METRICS_REFERENCE.md), [Novelty and Anomaly](NOVELTY_ANOMALY.md), [Similarity Search](SIMILARITY_SEARCH.md), [Shard Workflows](SHARD_WORKFLOWS.md), and [References](REFERENCES.md) as appropriate; no metric output is a substitute for the method record.", "", "Carry one sentence from this assignment into the next: name the measurement, its assumptions, and the strongest alternative explanation. That small habit turns a sequence of exercises into a defensible analytical practice.", ""))
     return "\n".join(lines).rstrip()
 
 
@@ -645,8 +675,7 @@ def build_textbook_markdown() -> str:
     contents_rows = ["- [Introduction](#introduction)"]
     chapter_number = 1
     for part_index, (part_title, chapters) in enumerate(PARTS, start=1):
-        part_label = part_title.replace(" - ", ": ", 1)
-        contents_rows.append(f"- [{part_label}](#part-{part_index})")
+        contents_rows.append(f"- [{part_title}](#part-{part_index})")
         for chapter in chapters:
             # Four spaces produce a nested Markdown list in Python-Markdown.
             contents_rows.append(f"    - [Chapter {chapter_number}: {chapter.title}](#chapter-{chapter_number}-{_slugify(chapter.title)})")

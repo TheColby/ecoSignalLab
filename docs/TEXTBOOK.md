@@ -192,7 +192,7 @@ The first part begins with a deliberately modest promise: take one file, learn w
 
 <a id="part-1"></a>
 
-# Part I - Foundations and First Measurements
+# Part I: Foundations and First Measurements
 
 # Chapter 1: Orientation and First Workflows
 
@@ -3404,7 +3404,7 @@ Choose a small, legal-to-share recording or a documented project artifact. Apply
 
 <a id="part-2"></a>
 
-# Part II - Events, Change, and Similarity
+# Part II: Events, Change, and Similarity
 
 # Chapter 4: Novelty, Boundaries, and Anomaly Scores
 
@@ -5470,7 +5470,7 @@ Choose a small, legal-to-share recording or a documented project artifact. Apply
 
 <a id="part-3"></a>
 
-# Part III - Long Archives, Spatial Audio, and Field Operations
+# Part III: Long Archives, Spatial Audio, and Field Operations
 
 # Chapter 7: RF64 and Out-of-Core Analysis
 
@@ -8442,7 +8442,7 @@ Choose a small, legal-to-share recording or a documented project artifact. Apply
 
 <a id="part-4"></a>
 
-# Part IV - ML, Schema, Validation, and Scientific Practice
+# Part IV: ML, Schema, Validation, and Scientific Practice
 
 # Chapter 10: FrameTables, Tensors, and Dataset Manifests
 
@@ -10974,6 +10974,19 @@ A strong laboratory record separates three things: what the software measured, w
 
 ## Assignment 1: Inspect before measuring
 
+### Assignment Introduction
+
+Assignment 1, **Inspect before measuring**, is a focused evidence exercise. You will run `esl doctor` and `esl analyze` on one WAV or FLAC file. Identify the decoder, sample rate, channel count, and duration. The purpose is to connect a real analysis artifact to its method: Provenance is the minimum context needed to interpret a number later. This lab makes the file and decoder part of the measurement, not an afterthought.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A 250-word provenance note plus the JSON output.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Provenance is the minimum context needed to interpret a number later. This lab makes the file and decoder part of the measurement, not an afterthought.
@@ -11086,6 +11099,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 2: Peak, RMS, and crest
+
+### Assignment Introduction
+
+Assignment 2, **Peak, RMS, and crest**, is a focused evidence exercise. You will create or locate a short sine, transient, and quiet recording. Compare peak, RMS, and crest factor using the same analysis settings. The purpose is to connect a real analysis artifact to its method: Peak, RMS, and crest factor describe different aspects of level. A signal can be quiet on average while still producing a large instantaneous excursion.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** One table and a two-sentence explanation of each difference.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -11200,6 +11226,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 3: Window trade-off
 
+### Assignment Introduction
+
+Assignment 3, **Window trade-off**, is a focused evidence exercise. You will analyze the same clip with a short and a long frame/window. Compare the time and frequency detail in the plots. The purpose is to connect a real analysis artifact to its method: A frame length is a scientific choice: shorter frames localize change, while longer frames resolve frequency more clearly. There is no universal correct value.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Two plots with captions that state the trade-off.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 A frame length is a scientific choice: shorter frames localize change, while longer frames resolve frequency more clearly. There is no universal correct value.
@@ -11312,6 +11351,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 4: Hop-size sensitivity
+
+### Assignment Introduction
+
+Assignment 4, **Hop-size sensitivity**, is a focused evidence exercise. You will hold the window fixed and change only hop size. Determine which values change computational cost and which change the underlying frame estimate. The purpose is to connect a real analysis artifact to its method: Hop size controls how densely a workflow samples time. It can change compute and temporal sampling without changing the analysis window itself.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A command log and a concise conclusion.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -11426,6 +11478,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 5: Calibration boundary
 
+### Assignment Introduction
+
+Assignment 5, **Calibration boundary**, is a focused evidence exercise. You will run an uncalibrated analysis, then configure a documented 0 dBFS mapping or calibration profile if one is available. Do not invent a calibration value. The purpose is to connect a real analysis artifact to its method: Calibration converts a digital representation into a stated physical-level assumption. It is useful only when the supporting calibration information is real and retained.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A before/after units table and a statement of what remains unknown.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Calibration converts a digital representation into a stated physical-level assumption. It is useful only when the supporting calibration information is real and retained.
@@ -11538,6 +11603,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 6: Clipping audit
+
+### Assignment Introduction
+
+Assignment 6, **Clipping audit**, is a focused evidence exercise. You will find or synthesize a clipped waveform and verify that the validity flag changes. Compare its crest factor with an unclipped reference. The purpose is to connect a real analysis artifact to its method: Clipping is not merely ugly; it changes peaks, spectra, and some derived metrics. Validity flags should be reviewed before interpretation.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** JSON excerpts and a short risk assessment.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -11652,6 +11730,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 7: DC-offset audit
 
+### Assignment Introduction
+
+Assignment 7, **DC-offset audit**, is a focused evidence exercise. You will construct a signal with a known DC offset, run the quality-control metrics, and explain why offset matters to some level estimates. The purpose is to connect a real analysis artifact to its method: DC offset wastes headroom and can bias level or low-frequency interpretation. This is a quality-control question before it is a signal-processing trick.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A reproducible script or command sequence and result table.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 DC offset wastes headroom and can bias level or low-frequency interpretation. This is a quality-control question before it is a signal-processing trick.
@@ -11764,6 +11855,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 8: Impulse-response decay
+
+### Assignment Introduction
+
+Assignment 8, **Impulse-response decay**, is a focused evidence exercise. You will generate or obtain a safe, documented impulse response. Estimate EDT and RT60 and inspect the fit-quality fields. The purpose is to connect a real analysis artifact to its method: Decay metrics rely on a defensible decay region, not a magical regression line. Fit quality and tail noise determine whether an RT estimate deserves trust.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Decay plot, estimates, and a paragraph on fit validity.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -11878,6 +11982,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 9: Clarity comparison
 
+### Assignment Introduction
+
+Assignment 9, **Clarity comparison**, is a focused evidence exercise. You will compare C50, C80, and D50 for two impulse responses or two simulated variants. State which source/receiver assumptions differ. The purpose is to connect a real analysis artifact to its method: C50, C80, and D50 partition early and late energy differently. They become architectural evidence only with explicit source, receiver, and simulation assumptions.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A design-variant comparison table.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 C50, C80, and D50 partition early and late energy differently. They become architectural evidence only with explicit source, receiver, and simulation assumptions.
@@ -11990,6 +12107,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 10: Novelty candidate
+
+### Assignment Introduction
+
+Assignment 10, **Novelty candidate**, is a focused evidence exercise. You will use `esl moments extract --single` on a recording. Listen to the resulting clip and decide whether the top score is actually useful. The purpose is to connect a real analysis artifact to its method: Novelty is a candidate-generation score, not an automatic claim that a sound is important. Listening is part of the validation loop.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** The WAV, CSV row, and a reviewer note.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -12104,6 +12234,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 11: Top-k review
 
+### Assignment Introduction
+
+Assignment 11, **Top-k review**, is a focused evidence exercise. You will extract ten novel moments with non-overlap and a stated pre/post context. Label each as useful, duplicate, artifact, or uncertain. The purpose is to connect a real analysis artifact to its method: A ranked event list becomes useful when it is reviewable and nonredundant. Context windows and non-overlap rules define what a reviewer actually hears.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** An annotated ten-row CSV.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 A ranked event list becomes useful when it is reviewable and nonredundant. Context windows and non-overlap rules define what a reviewer actually hears.
@@ -12216,6 +12359,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 12: Similarity matrix
+
+### Assignment Introduction
+
+Assignment 12, **Similarity matrix**, is a focused evidence exercise. You will render a similarity matrix for a clip with at least two contrasting sections. Mark two high-similarity and two low-similarity regions. The purpose is to connect a real analysis artifact to its method: A self-similarity matrix shows recurrence and contrast across time. It should be checked against listening, not treated as a visual Rorschach test.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** The plot and a listening-based interpretation.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -12330,6 +12486,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 13: Novelty matrix
 
+### Assignment Introduction
+
+Assignment 13, **Novelty matrix**, is a focused evidence exercise. You will render the Foote-style novelty matrix and vary the kernel size. Explain one expected and one surprising change. The purpose is to connect a real analysis artifact to its method: Foote-style novelty derives local change from a similarity structure and a checkerboard kernel. Kernel scale defines what counts as a boundary.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Two figures and a parameter record.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Foote-style novelty derives local change from a similarity structure and a checkerboard kernel. Kernel scale defines what counts as a boundary.
@@ -12442,6 +12611,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 14: Distance functions
+
+### Assignment Introduction
+
+Assignment 14, **Distance functions**, is a focused evidence exercise. You will search a folder with cosine, Euclidean, and Manhattan distance. Keep the feature set fixed and compare the top five ranks. The purpose is to connect a real analysis artifact to its method: Distance functions encode different notions of closeness. A ranking that changes with distance is telling you the feature geometry matters.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A rank-agreement table.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -12556,6 +12738,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 15: Musical analysis: form, timbre, and harmonic color
 
+### Assignment Introduction
+
+Assignment 15, **Musical analysis: form, timbre, and harmonic color**, is a focused evidence exercise. You will choose a legal-to-share music excerpt. Extract `librosa` features, render similarity and novelty matrices, and use listening to identify one repeated passage, one boundary, and one timbral or harmonic-color contrast. Do not claim chord, key, beat, or transcription labels. The purpose is to connect a real analysis artifact to its method: Musical analysis in `esl` is feature-level and listening-led. Chroma and Tonnetz describe harmonic-color evidence, MFCCs and spectral contrast describe timbre, and similarity/novelty matrices describe recurrence and change; none is a substitute for a symbolic transcription claim.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Feature metadata, two annotated plots, a timestamped listening log, and a 500-word analysis that states feature/back-end assumptions.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Musical analysis in `esl` is feature-level and listening-led. Chroma and Tonnetz describe harmonic-color evidence, MFCCs and spectral contrast describe timbre, and similarity/novelty matrices describe recurrence and change; none is a substitute for a symbolic transcription claim.
@@ -12668,6 +12863,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 16: Stereo semantics
+
+### Assignment Introduction
+
+Assignment 16, **Stereo semantics**, is a focused evidence exercise. You will analyze a two-channel file whose channels differ. Compare per-channel output, aggregate output, and a downmix-led event ranking. The purpose is to connect a real analysis artifact to its method: Multichannel analysis must state whether a result belongs to an individual channel, an aggregate, or a downmix. These are different questions.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A channel-semantics diagram or table.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -12782,6 +12990,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 17: Ambisonics sidecar
 
+### Assignment Introduction
+
+Assignment 17, **Ambisonics sidecar**, is a focused evidence exercise. You will prepare a spatial metadata sidecar for a documented B-format file or provided fixture. Validate that order, convention, and labels are recorded. The purpose is to connect a real analysis artifact to its method: Spatial and Ambisonics metadata cannot be guessed safely from wishful thinking. A sidecar makes the convention, ordering, and confidence inspectable.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** The sidecar and provenance JSON excerpt.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Spatial and Ambisonics metadata cannot be guessed safely from wishful thinking. A sidecar makes the convention, ordering, and confidence inspectable.
@@ -12894,6 +13115,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 18: Archive manifest
+
+### Assignment Introduction
+
+Assignment 18, **Archive manifest**, is a focused evidence exercise. You will build a shard manifest from at least three chronologically ordered files. Include a calendar start only when it is truly known. The purpose is to connect a real analysis artifact to its method: A shard manifest turns files into a time-ordered archive with explicit boundaries. The clock is data, not a filename decoration.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** The manifest and a timeline screenshot.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -13008,6 +13242,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 19: Calendar rollup
 
+### Assignment Introduction
+
+Assignment 19, **Calendar rollup**, is a focused evidence exercise. You will produce daily or hourly archive summaries. Explain the difference between archive-relative time and civil time. The purpose is to connect a real analysis artifact to its method: Civil time, UTC, and archive-relative time answer different questions. A chart can be precise but still wrong for a local-day interpretation if its time policy is unstated.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** One plot and a time-zone policy note.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Civil time, UTC, and archive-relative time answer different questions. A chart can be precise but still wrong for a local-day interpretation if its time policy is unstated.
@@ -13120,6 +13367,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 20: Large-file estimate
+
+### Assignment Introduction
+
+Assignment 20, **Large-file estimate**, is a focused evidence exercise. You will estimate storage and processing implications for a 24-hour, multichannel recording at a chosen rate and format. The purpose is to connect a real analysis artifact to its method: Long-recording planning is an engineering calculation: duration, channels, sample rate, bit depth, compression, I/O, and recovery behavior all matter.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A calculation sheet using GB and an operational plan.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -13234,6 +13494,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 21: RF64 decision
 
+### Assignment Introduction
+
+Assignment 21, **RF64 decision**, is a focused evidence exercise. You will explain whether a proposed long WAV should use classic WAV, RF64, FLAC, or sharded files. Include one interoperability constraint. The purpose is to connect a real analysis artifact to its method: RF64 extends WAV when classic RIFF size fields are inadequate, but compatibility remains a deployment constraint. Format selection is a workflow decision.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A one-page format decision memo.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 RF64 extends WAV when classic RIFF size fields are inadequate, but compatibility remains a deployment constraint. Format selection is a workflow decision.
@@ -13346,6 +13619,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 22: FrameTable inspection
+
+### Assignment Introduction
+
+Assignment 22, **FrameTable inspection**, is a focused evidence exercise. You will export a FrameTable and inspect timestamps, feature names, and metadata. Check that column names are deterministic. The purpose is to connect a real analysis artifact to its method: A FrameTable is a contract between signal processing and ML. Deterministic columns and timestamps make it possible to reproduce feature preparation.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A schema excerpt and a five-row sample.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -13460,6 +13746,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 23: Tensor layout
 
+### Assignment Introduction
+
+Assignment 23, **Tensor layout**, is a focused evidence exercise. You will export a tensor where available and verify the declared `[channels, frames, features]` layout against the tabular export. The purpose is to connect a real analysis artifact to its method: Tensor layout errors silently invalidate ML experiments. The declared axes must agree with the tabular representation and model input expectation.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Shape evidence and a mapping note.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Tensor layout errors silently invalidate ML experiments. The declared axes must agree with the tabular representation and model input expectation.
@@ -13572,6 +13871,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 24: Leakage-resistant split
+
+### Assignment Introduction
+
+Assignment 24, **Leakage-resistant split**, is a focused evidence exercise. You will create a dataset manifest with a split strategy that prevents adjacent or same-deployment shards from leaking across splits. The purpose is to connect a real analysis artifact to its method: Random row-level splits are often leakage machines for recordings. A defensible split follows the unit that matters to the intended generalization claim.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Manifest plus a leakage audit.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -13686,6 +13998,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 25: Anomaly baseline
 
+### Assignment Introduction
+
+Assignment 25, **Anomaly baseline**, is a focused evidence exercise. You will run a novelty or anomaly workflow on a recording with an intentionally documented reference period. Separate unusual from merely loud. The purpose is to connect a real analysis artifact to its method: Novelty and anomaly scores depend on a baseline. An unusual loud event is not necessarily an anomalous acoustic pattern, and vice versa.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A plot and a false-positive discussion.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Novelty and anomaly scores depend on a baseline. An unusual loud event is not necessarily an anomalous acoustic pattern, and vice versa.
@@ -13798,6 +14123,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 26: Ecoacoustic bands
+
+### Assignment Introduction
+
+Assignment 26, **Ecoacoustic bands**, is a focused evidence exercise. You will construct or select material with energy in both anthropogenic and biophonic bands. Check the NDSI sign and band assumptions. The purpose is to connect a real analysis artifact to its method: NDSI is a band-energy contrast with chosen bands, not a direct biodiversity meter. Band definitions and local context determine what the sign can mean.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A band-definition table and a sanity-check result.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -13912,6 +14250,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 27: Index skepticism
 
+### Assignment Introduction
+
+Assignment 27, **Index skepticism**, is a focused evidence exercise. You will choose one ecoacoustic index and read two cited papers that report limitations. Propose a validation observation independent of the index. The purpose is to connect a real analysis artifact to its method: Ecoacoustic indices are summaries that require independent validation. A useful critique separates mathematical definition, ecological claim, and evidence quality.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A 500-word critique with citations.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Ecoacoustic indices are summaries that require independent validation. A useful critique separates mathematical definition, ecological claim, and evidence quality.
@@ -14024,6 +14375,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 28: Long-term drift
+
+### Assignment Introduction
+
+Assignment 28, **Long-term drift**, is a focused evidence exercise. You will analyze a repeated recording set or simulated drift sequence. Separate likely sensor drift from plausible environmental change. The purpose is to connect a real analysis artifact to its method: Long-term trends can arise from ecology, weather, recorder gain, placement, or processing changes. Trend interpretation requires competing hypotheses.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A trend plot and competing hypotheses.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -14138,6 +14502,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 29: Architectural variants
 
+### Assignment Introduction
+
+Assignment 29, **Architectural variants**, is a focused evidence exercise. You will analyze two room-simulation outputs as variants. Compare decay and clarity without claiming compliance unless the measurement assumptions support it. The purpose is to connect a real analysis artifact to its method: Simulation variants are comparable only when their modeling assumptions travel with the acoustic results. The report should distinguish prediction from measurement.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A technical comparison report.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 Simulation variants are comparable only when their modeling assumptions travel with the acoustic results. The report should distinguish prediction from measurement.
@@ -14250,6 +14627,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 30: Decoder provenance
+
+### Assignment Introduction
+
+Assignment 30, **Decoder provenance**, is a focused evidence exercise. You will analyze one supported compressed file and one lossless file. Record decoder provenance and describe one reason decoder context belongs in results. The purpose is to connect a real analysis artifact to its method: Decoding is part of the analysis pipeline for compressed media. Lossless and compressed inputs may share content while carrying different codec and decoder provenance.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A provenance comparison table.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 
@@ -14364,6 +14754,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 31: Regression fixture
 
+### Assignment Introduction
+
+Assignment 31, **Regression fixture**, is a focused evidence exercise. You will create a small synthetic fixture for one metric and write a tolerance-based test or pseudo-test plan. The purpose is to connect a real analysis artifact to its method: A golden fixture turns an analytical expectation into an executable contract. Tolerance selection should reflect numerical reality, not a wish for exact floating-point equality.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** Fixture description, expected values, and tolerances.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 A golden fixture turns an analytical expectation into an executable contract. Tolerance selection should reflect numerical reality, not a wish for exact floating-point equality.
@@ -14477,6 +14880,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 
 ## Assignment 32: Reproducible handoff
 
+### Assignment Introduction
+
+Assignment 32, **Reproducible handoff**, is a focused evidence exercise. You will package one analysis with input identifiers, config, pipeline hash, outputs, plots, and a README for another analyst. The purpose is to connect a real analysis artifact to its method: A reproducible handoff lets another analyst inspect, rerun, and challenge a result. The deliverable is an analysis package, not a screenshot.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A handoff directory and a reproduction checklist.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
+
 ### Why This Matters
 
 A reproducible handoff lets another analyst inspect, rerun, and challenge a result. The deliverable is an analysis package, not a screenshot.
@@ -14589,6 +15005,19 @@ Carry one sentence from this assignment into the next: name the measurement, its
 <div class="assignment-start" aria-hidden="true"></div>
 
 ## Assignment 33: Capstone: defensible claim
+
+### Assignment Introduction
+
+Assignment 33, **Capstone: defensible claim**, is a focused evidence exercise. You will use a small archive or simulation set to make one narrow acoustic claim. State the data, method, uncertainty, counterexample, and next validation step. The purpose is to connect a real analysis artifact to its method: A defensible acoustic claim is narrow, falsifiable, and explicit about uncertainty. The capstone rewards an auditable argument rather than a dramatic metric.
+
+Approach the work as a small, controlled study. Keep the input, configuration, and output together; inspect the resulting plot, value, or clip; and distinguish what the artifact shows from the interpretation you attach to it. The detailed sections below explain the control, protocol, and review standard.
+
+### Deliverables at a Glance
+
+- **Required artifact:** A 1,000-word report with commands, figures, and references.
+- **Methods record:** exact command or configuration, input identifier, decoder, channel policy, and calibration state.
+- **Evidence note:** one literal observation, one bounded interpretation, and one alternative explanation or uncertainty.
+- **Submission package:** artifacts named or linked clearly enough that another analyst can review the result.
 
 ### Why This Matters
 

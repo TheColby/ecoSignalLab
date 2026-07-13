@@ -360,6 +360,9 @@ def _render_page_template(
       --line: #9c998f;
       --link: #17365d;
       --code: #f0eee7;
+      --terminal-bg: #06150d;
+      --terminal-border: #287a48;
+      --terminal-green: #8dffa9;
       --book-font: "TeX Gyre Schola", "New Century Schoolbook",
         "New Century Schoolbook Std", "Century Schoolbook", "URW Bookman", serif;
       --code-font: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
@@ -387,12 +390,12 @@ def _render_page_template(
     p, li, blockquote {{ orphans: 3; widows: 3; }}
     a {{ color: var(--link); }}
     button {{ font: inherit; }}
-    pre {{ position: relative; font-family: var(--code-font); background: #17212f; color: #f5f2e9; padding: 14px; border-radius: 2px; overflow: auto; }}
+    pre {{ position: relative; font-family: var(--code-font); background: var(--terminal-bg); color: var(--terminal-green); border: 1px solid var(--terminal-border); box-shadow: inset 0 0 0 1px rgba(141, 255, 169, 0.08); padding: 14px; border-radius: 2px; overflow: auto; }}
     .copy-btn {{ position: absolute; top: 8px; right: 8px; padding: 4px 8px; font-size: 0.7rem; background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }}
     pre:hover .copy-btn, .copy-btn:focus {{ opacity: 1; }}
     .copy-btn:hover {{ background: rgba(255, 255, 255, 0.2); }}
     code {{ font-family: var(--code-font); background: var(--code); border-radius: 2px; padding: 0.1rem 0.3rem; }}
-    pre code {{ background: transparent; padding: 0; }}
+    pre code {{ background: transparent; color: inherit; font-family: var(--code-font); padding: 0; }}
     table {{ width: 100%; border-collapse: collapse; margin: 16px 0 24px; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }}
     th, td {{ border: 0; border-bottom: 1px solid #c8c3b9; padding: 8px 10px; text-align: left; vertical-align: top; }}
     tr:last-child td {{ border-bottom: 0; }}

@@ -30,6 +30,9 @@ def test_textbook_front_matter_figures_and_assignments_are_generated() -> None:
     assert markdown.count("## How to Use This Book") == 1
     assert markdown.count("# Introduction") == 1
     assert markdown.index("- [Introduction](#introduction)") < markdown.index("- [Part I:")
+    assert "# Part I: Foundations and First Measurements" in markdown
+    assert "# Part IV: ML, Schema, Validation, and Scientific Practice" in markdown
+    assert "Part I - Foundations and First Measurements" not in markdown
     assert "## Sound Is Easy to Hear and Difficult to Measure Well" in markdown
     assert "## The Measurement Chain Is Part of the Result" in markdown
     assert "## How to Read the Rest of This Book" in markdown
@@ -62,6 +65,9 @@ def test_textbook_front_matter_figures_and_assignments_are_generated() -> None:
     assert markdown.count("### The question before the command") == 13
     assert markdown.count("#### Scope and prediction") == 33
     assert markdown.count("### Why This Matters") == 33
+    assert markdown.count("### Assignment Introduction") == 33
+    assert markdown.count("### Deliverables at a Glance") == 33
+    assert "- **Required artifact:** A 250-word provenance note plus the JSON output." in markdown
     assert markdown.count("### Before You Begin") == 33
     assert markdown.count("### Controlled Comparison") == 33
     assert markdown.count("### Method Narrative") == 33

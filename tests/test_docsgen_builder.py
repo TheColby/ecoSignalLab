@@ -52,6 +52,8 @@ graph TD
     assert "break-after: avoid-page" in rendered
     assert 'class="textbook-edition"' in rendered
     assert "body.textbook-edition" in rendered
+    assert "--terminal-green: #8dffa9" in rendered
+    assert "background: var(--terminal-bg)" in rendered
     assert (root / "build" / "html" / "assets" / "fonts" / "texgyreschola-regular.otf").exists()
     assert (root / "build" / "html" / "assets" / "fonts" / "GUST-FONT-LICENSE.txt").exists()
 
