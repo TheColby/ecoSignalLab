@@ -8,6 +8,7 @@ Ambisonics-aware inputs consistently.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,7 @@ class SpatialMetadata:
     source_channel_layout: str | None = None
     ambisonics: AmbisonicsMetadata | None = None
     array_geometry: dict[str, Any] | None = None
+    provenance: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -314,4 +316,113 @@ def infer_spatial_metadata(
         channel_labels=_default_labels(ch),
         source_channel_layout=channel_layout,
         array_geometry=array_geometry,
+    )
+
+
+def _load_sidecar_mapping(path: Path) -> dict[str, Any]:
+    """Load a JSON/YAML spatial sidecar as an object."""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix.lower() == ".json":
+        value = json.loads(text)
+    else:
+        try:
+            import yaml
+        except ImportError as exc:  # pragma: no cover - optional YAML dependency
+            raise RuntimeError("YAML spatial sidecars require PyYAML; use JSON or install pyyaml.") from exc
+        value = yaml.safe_load(text)
+    if not isinstance(value, dict):
+        raise ValueError(f"Spatial sidecar must contain an object: {path}")
+    nested = value.get("spatial_metadata", value)
+    if not isinstance(nested, dict):
+        raise ValueError(f"spatial_metadata must be an object: {path}")
+    return nested
+
+
+def apply_spatial_metadata_sidecar(
+    inferred: SpatialMetadata,
+    sidecar_path: str | Path,
+) -> SpatialMetadata:
+    """Apply a validated, explicit spatial/Ambisonics metadata override.
+
+    Sidecars intentionally cannot change the decoder-observed channel count. This
+    preserves a useful invariant: a metadata override may clarify interpretation,
+    but it cannot invent audio channels that do not exist.
+    """
+    path = Path(sidecar_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Spatial metadata sidecar not found: {path}")
+    override = _load_sidecar_mapping(path)
+    allowed = {
+        "layout_family",
+        "layout_hint",
+        "channels",
+        "channel_labels",
+        "source_channel_layout",
+        "array_geometry",
+        "ambisonics",
+    }
+    unknown = sorted(set(override) - allowed)
+    if unknown:
+        raise ValueError(f"Unsupported spatial sidecar fields in {path}: {', '.join(unknown)}")
+    if "channels" in override and int(override["channels"]) != inferred.channels:
+        raise ValueError(
+            f"Spatial sidecar channels={override['channels']} does not match decoded channels={inferred.channels}."
+        )
+
+    payload = inferred.to_dict()
+    changed: list[str] = []
+    for key in ("layout_family", "layout_hint", "source_channel_layout", "array_geometry"):
+        if key in override:
+            payload[key] = override[key]
+            changed.append(key)
+    if "channel_labels" in override:
+        labels = override["channel_labels"]
+        if not isinstance(labels, list) or len(labels) != inferred.channels or not all(isinstance(x, str) for x in labels):
+            raise ValueError("spatial sidecar channel_labels must be one string per decoded channel.")
+        payload["channel_labels"] = labels
+        changed.append("channel_labels")
+
+    if "ambisonics" in override:
+        raw_ambi = override["ambisonics"]
+        if not isinstance(raw_ambi, dict):
+            raise ValueError("spatial sidecar ambisonics must be an object.")
+        required = {"order", "component_order", "normalization"}
+        missing = sorted(required - set(raw_ambi))
+        if missing:
+            raise ValueError(f"spatial sidecar ambisonics is missing: {', '.join(missing)}")
+        order = int(raw_ambi["order"])
+        if order < 1:
+            raise ValueError("spatial sidecar ambisonics.order must be >= 1.")
+        component_order = str(raw_ambi["component_order"])
+        normalization = str(raw_ambi["normalization"])
+        format_hint = str(raw_ambi.get("format_hint") or "sidecar")
+        confidence = float(raw_ambi.get("convention_confidence", 1.0))
+        rebuilt = _ambisonics_metadata(
+            order=order,
+            channels=inferred.channels,
+            component_order=component_order,
+            normalization=normalization,
+            format_hint=format_hint,
+            confidence=max(0.0, min(confidence, 1.0)),
+        )
+        if "channel_map" in raw_ambi:
+            if not isinstance(raw_ambi["channel_map"], list) or len(raw_ambi["channel_map"]) != inferred.channels:
+                raise ValueError("spatial sidecar ambisonics.channel_map must contain one entry per decoded channel.")
+            rebuilt.channel_map = raw_ambi["channel_map"]
+        payload["ambisonics"] = asdict(rebuilt)
+        changed.append("ambisonics")
+
+    return SpatialMetadata(
+        layout_family=str(payload["layout_family"]),
+        layout_hint=str(payload["layout_hint"]),
+        channels=inferred.channels,
+        channel_labels=list(payload["channel_labels"]),
+        source_channel_layout=(str(payload["source_channel_layout"]) if payload.get("source_channel_layout") else None),
+        ambisonics=(AmbisonicsMetadata(**payload["ambisonics"]) if isinstance(payload.get("ambisonics"), dict) else None),
+        array_geometry=payload.get("array_geometry"),
+        provenance={
+            "source": "sidecar",
+            "sidecar_path": str(path.resolve()),
+            "overridden_fields": changed,
+        },
     )

@@ -1,0 +1,2 @@
+input,json,duration_s,channels,sample_rate,spl_a_mean,spl_c_mean,snr_mean,rt60_mean,config_hash
+/Users/cleider/dev/ecoSignalLab/examples/sample_run/input/demo_stereo.wav,examples/sample_run/output/demo_stereo.json,1.0,2,16000,-31.054904523273834,,0.4196338653564453,1.3362703163564982,7fff5fb11a5d58b9183259fde940a5bec85c2dc01f27c34c1cdacb77ca817c73

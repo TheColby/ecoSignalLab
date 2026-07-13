@@ -27,6 +27,13 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [D3] [Davis, S., & Mermelstein, P. (1980). Comparison of parametric representations for monosyllabic word recognition](https://ieeexplore.ieee.org/document/1163420)
 - [D4] [Serra, X. (1989). A system for sound analysis/transformation/synthesis based on a deterministic plus stochastic decomposition](https://www.upf.edu/web/mtg/sms-tools)
 - [D5] [Harris, F. J. (1978). On the use of windows for harmonic analysis with the DFT](https://ieeexplore.ieee.org/document/1455106)
+- [D6] [Smith, J. O. (2011). Spectral Audio Signal Processing](https://ccrma.stanford.edu/~jos/sasp/)
+- [D7] [Klapuri, A., & Davy, M. (Eds.). (2006). Signal Processing Methods for Music Transcription](https://link.springer.com/book/10.1007/0-387-32845-9)
+- [D8] [Virtanen, T., Plumbley, M. D., & Ellis, D. (Eds.). (2018). Computational Analysis of Sound Scenes and Events](https://link.springer.com/book/10.1007/978-3-319-63450-0)
+- [D9] [Bregman, A. S. (1990). Auditory Scene Analysis](https://mitpress.mit.edu/9780262521956/auditory-scene-analysis/)
+- [D10] [Wang, D., & Brown, G. J. (Eds.). (2006). Computational Auditory Scene Analysis](https://ieeexplore.ieee.org/book/5264093)
+- [D11] [McFee, B., et al. (2015). librosa: Audio and music signal analysis in Python](https://conference.scipy.org/proceedings/scipy2015/pdfs/brian_mcfee.pdf)
+- [D12] [Virtanen, P., et al. (2020). SciPy 1.0: Fundamental Algorithms for Scientific Computing in Python](https://doi.org/10.1038/s41592-019-0686-2)
 
 ## Novelty, Segmentation, Similarity
 
@@ -34,6 +41,10 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [N2] [Müller, M. — Fundamentals of Music Processing (book + resources)](https://www.audiolabs-erlangen.de/resources/MIR/FMP)
 - [N3] [FMP Notebook: Novelty-based segmentation](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html)
 - [N4] [Dixon, S. (2006). Onset detection revisited](https://www.dafx.de/paper-archive/2006/papers/p_133.pdf)
+- [N5] [Bello, J. P., et al. (2005). A tutorial on onset detection in music signals](https://doi.org/10.1109/TSA.2005.851998)
+- [N6] [Serrà, J., Serra, X., & Andrzejak, R. G. (2009). Cross recurrence quantification for cover song identification](https://doi.org/10.1016/j.newar.2008.07.020)
+- [N7] [Casey, M. A., et al. (2008). Content-based music information retrieval: Current directions and future challenges](https://doi.org/10.1109/JPROC.2008.916370)
+- [N8] [Müller, M., Kurth, F., & Clausen, M. (2007). Audio matching via chroma-based statistical features](https://doi.org/10.1007/s00530-006-0045-3)
 
 ## Room Acoustics and Architectural Metrics
 
@@ -41,6 +52,10 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [A2] [Barron, M. (2010). Auditorium Acoustics and Architectural Design](https://www.routledge.com/Auditorium-Acoustics-and-Architectural-Design/Barron/p/book/9780419191603)
 - [A3] [Kuttruff, H. — Room Acoustics](https://www.routledge.com/Room-Acoustics/Kuttruff/p/book/9781138902129)
 - [A4] [IEC 60268-16 / STI intelligibility framework](https://webstore.iec.ch/publication/6022)
+- [A5] [Kuttruff, H. (1991). A simple iteration scheme for the computation of decay constants in rooms](https://doi.org/10.1121/1.401051)
+- [A6] [Lundeby, A., Vigran, T. E., Bietz, H., & Vorländer, M. (1995). Uncertainties of measurements in room acoustics](https://doi.org/10.1121/1.411923)
+- [A7] [Vorlander, M. (2008). Auralization: Fundamentals of Acoustics, Modelling, Simulation, Algorithms and Acoustic Virtual Reality](https://link.springer.com/book/10.1007/978-3-540-48830-9)
+- [A8] [Long, M. (2014). Architectural Acoustics](https://www.elsevier.com/books/architectural-acoustics/long/978-0-12-398258-2)
 
 ## Spatial Audio and TDOA
 
@@ -48,6 +63,10 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [P2] [Blauert, J. — Spatial Hearing](https://mitpress.mit.edu/9780262523545/spatial-hearing/)
 - [P3] [Merimaa, J., & Pulkki, V. (2005). Spatial impulse response rendering I: Analysis and synthesis](https://pubmed.ncbi.nlm.nih.gov/16334689/)
 - [P4] [Farina, A. (2000). Simultaneous measurement of impulse response and distortion with a swept-sine technique](https://www.researchgate.net/publication/2456363)
+- [P5] [Gerzon, M. A. (1973). Periphony: With-height sound reproduction](https://doi.org/10.1121/1.1914257)
+- [P6] [Pulkki, V. (1997). Virtual sound source positioning using vector base amplitude panning](https://doi.org/10.1109/ASPAA.1997.608784)
+- [P7] [Zotter, F., & Frank, M. (2019). Ambisonics: A Practical 3D Audio Theory for Recording, Studio Production, Sound Reinforcement, and Virtual Reality](https://link.springer.com/book/10.1007/978-3-030-17207-7)
+- [P8] [Daniel, J. (2000). Représentation de champs acoustiques, application à la transmission et à la reproduction de scènes sonores complexes](https://theses.hal.science/tel-00005603)
 
 ## Acoustic Forensics and Surveillance (Rob Maher and Collaborators)
 
@@ -64,6 +83,12 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [E3] [Sueur, J., et al. (2008). Rapid acoustic survey for biodiversity appraisal](https://onlinelibrary.wiley.com/doi/10.1111/j.1365-2664.2008.01553.x)
 - [E4] [Villanueva-Rivera, L. J., et al. Soundscape Ecology resources](https://soundscapeecology.org/)
 - [E5] [Towsey, M., et al. (2014). Visualization of long-duration acoustic recordings of the environment](https://www.mdpi.com/1424-8220/14/6/10339)
+- [E6] [Pijanowski, B. C., et al. (2011). Soundscape ecology: The science of sound in the landscape](https://doi.org/10.1093/biosci/biq060)
+- [E7] [Buxton, R. T., et al. (2018). A synthesis of health benefits of natural sounds and their distribution in national parks](https://doi.org/10.1073/pnas.1717419115)
+- [E8] [Bradfer-Lawrence, T., et al. (2019). Guidelines for the use of acoustic indices in environmental research](https://doi.org/10.1111/2041-210X.13254)
+- [E9] [Alcocer, I., et al. (2022). Acoustic indices as proxies for biodiversity: a meta-analysis](https://doi.org/10.1111/brv.12890)
+- [E10] [Gasc, A., et al. (2013). Assessing biodiversity with sound: Do acoustic diversity indices reflect phylogenetic diversity of bird communities?](https://doi.org/10.1111/2041-210X.12097)
+- [E11] [Fuller, S., et al. (2015). Connecting soundscape to landscape: Which acoustic index best describes landscape configuration?](https://doi.org/10.1111/2041-210X.12397)
 
 ## Long-Term Audio Analysis, Calmness, and Diversity
 
@@ -102,6 +127,33 @@ This bibliography is the canonical citation list for `esl` algorithms, metrics, 
 - [M2] [Schölkopf, B., et al. (2001). Estimating the support of a high-dimensional distribution](https://www.mitpressjournals.org/doi/10.1162/089976601750264965)
 - [M3] [Pimentel, M. A. F., et al. (2014). A review of novelty detection](https://www.sciencedirect.com/science/article/pii/S0165168414000787)
 - [M4] [Goodfellow, I., et al. (2016). Deep Learning](https://www.deeplearningbook.org/)
+- [M5] [Chandola, V., Banerjee, A., & Kumar, V. (2009). Anomaly detection: A survey](https://doi.org/10.1145/1541880.1541882)
+- [M6] [Ruff, L., et al. (2021). Unifying review of deep and shallow anomaly detection](https://doi.org/10.1109/PROC.2021.3052449)
+- [M7] [Gemmeke, J. F., et al. (2017). Audio Set: An ontology and human-labeled dataset for audio events](https://doi.org/10.1109/ICASSP.2017.7952261)
+- [M8] [Hershey, S., et al. (2017). CNN architectures for large-scale audio classification](https://doi.org/10.1109/ICASSP.2017.7952132)
+- [M9] [Kong, Q., et al. (2020). PANNs: Large-scale pretrained audio neural networks for audio pattern recognition](https://doi.org/10.1109/TASLP.2020.3030497)
+- [M10] [Baevski, A., Zhou, H., Mohamed, A., & Auli, M. (2020). wav2vec 2.0: A framework for self-supervised learning of speech representations](https://arxiv.org/abs/2006.11477)
+- [M11] [Hsu, W.-N., et al. (2021). HuBERT: Self-supervised speech representation learning by masked prediction of hidden units](https://doi.org/10.1109/TASLP.2021.3122291)
+- [M12] [Gong, Y., Chung, Y.-A., & Glass, J. (2021). AST: Audio Spectrogram Transformer](https://doi.org/10.48550/arXiv.2104.01778)
+- [M13] [Mesaros, A., et al. (2021). Sound event detection in real life: DCASE 2020 challenge](https://doi.org/10.1109/TASLP.2021.3065333)
+
+## Measurement, Calibration, and Reproducibility
+
+- [C1] [ISO 1996-1:2016 - Acoustics - Description, measurement and assessment of environmental noise](https://www.iso.org/standard/66937.html)
+- [C2] [ISO 1996-2:2017 - Acoustics - Description, measurement and assessment of environmental noise](https://www.iso.org/standard/66939.html)
+- [C3] [IEC 60942:2017 - Electroacoustics - Sound calibrators](https://webstore.iec.ch/publication/29068)
+- [C4] [AES17-2020 - AES standard for digital audio engineering - Measurement of digital audio equipment](https://www.aes.org/standards/?id=standards-documents)
+- [C5] [Sturm, B. L. (2014). The state of the art ten years after a state of the art: Future research in music information retrieval](https://doi.org/10.1016/j.jnca.2013.11.008)
+- [C6] [Sandve, G. K., et al. (2013). Ten simple rules for reproducible computational research](https://doi.org/10.1371/journal.pcbi.1003285)
+- [C7] [Peng, R. D. (2011). Reproducible research in computational science](https://doi.org/10.1126/science.1213847)
+- [C8] [Wilkinson, M. D., et al. (2016). The FAIR Guiding Principles for scientific data management and stewardship](https://doi.org/10.1038/sdata.2016.18)
+
+## Datasets, Evaluation, and Open Science
+
+- [O1] [Salamon, J., Jacoby, C., & Bello, J. P. (2014). A dataset and taxonomy for urban sound research](https://doi.org/10.1145/2647868.2655045)
+- [O2] [Fonseca, E., et al. (2022). FSD50K: An open dataset of human-labeled sound events](https://doi.org/10.1109/TASLP.2021.3133208)
+- [O3] [Stowell, D., et al. (2019). Automatic acoustic detection of birds through deep learning: The first Bird Audio Detection challenge](https://doi.org/10.1111/2041-210X.13103)
+- [O4] [Lapp, S., et al. (2023). OpenSoundscape: An open-source bioacoustics analysis package for Python](https://doi.org/10.1111/2041-210X.14196)
 
 ## Libraries and Project Documentation (Implementation Context)
 

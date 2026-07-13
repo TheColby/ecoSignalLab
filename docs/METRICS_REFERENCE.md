@@ -12,19 +12,61 @@ Scope:
 
 ## Notation
 
-- `x_c[n]`: sample `n` in channel `c`
-- `C`: number of channels
-- `F_k`: frame `k` (windowed sample block)
-- `N_k`: number of samples in frame `k`
-- `RMS(F_k) = sqrt((1/(N_k*C)) * sum_{n,c} x_{k,c}[n]^2)`
-- `dB(v) = 20*log10(max(|v|, eps))`
-- `dB_power(p) = 10*log10(max(p, eps))`
-- `L_SPL = L_dBFS + (spl_reference_db - dbfs_reference)` when calibration is provided
-- Optional precision pressure chain:
-  - `Pa_to_dBFS` and `dBFS_to_Pa` require `mic_sensitivity_mv_pa`, `preamp_gain_db`, and `adc_full_scale_vrms`
-- `M(f,t)`: magnitude spectrogram
-- `P(f,t) = M(f,t)^2`: power spectrogram
-- `eps`: small positive constant for numerical stability
+- $x_c[n]$: sample $n$ from channel $c$.
+- $C$: number of channels.
+- $F_k$: frame $k$, a windowed sample block.
+- $N_k$: number of samples in frame $k$.
+- $M(f,t)$: magnitude spectrogram at frequency bin $f$ and frame $t$.
+- $P(f,t) = M(f,t)^2$: power spectrogram. Squaring magnitude makes energy-like
+  quantities additive across bins and time.
+- $\varepsilon$: a small positive numerical floor. It prevents undefined
+  logarithms and divisions at silence; it is not a measured acoustic level.
+
+The reference RMS definition is:
+
+$$
+\operatorname{RMS}(F_k) =
+\sqrt{\frac{1}{N_k C}\sum_{c=1}^{C}\sum_{n=0}^{N_k-1}x_{k,c}[n]^2}
+$$
+
+where $x_{k,c}[n]$ is sample $n$ in channel $c$ of frame $k$. The two sums pool
+samples and channels; the denominator converts total squared amplitude into an
+average before taking the square root. The aggregation rule for a particular
+metric can intentionally differ from this reference definition, so read the
+metric contract table rather than assuming every feature pools channels.
+
+Digital amplitude and power use logarithmic mappings:
+
+$$
+\operatorname{dB}(v) = 20\log_{10}\left(\max\left(|v|, \varepsilon\right)\right)
+$$
+
+$$
+\operatorname{dB}_{\mathrm{power}}(p) =
+10\log_{10}\left(\max\left(p, \varepsilon\right)\right)
+$$
+
+where $v$ is an amplitude-like quantity and $p$ is a power-like quantity. The
+factor is 20 for amplitudes because power is proportional to amplitude squared;
+it is 10 when the input is already power. Mixing those two conventions is a
+reliable way to obtain a confident-looking wrong answer.
+
+When an explicit calibration profile is provided, the basic dBFS-to-SPL mapping
+is:
+
+$$
+L_{\mathrm{SPL}} = L_{\mathrm{dBFS}} +
+\left(L_{\mathrm{SPL,ref}} - L_{\mathrm{dBFS,ref}}\right)
+$$
+
+where $L_{\mathrm{SPL,ref}}$ is the known physical reference level and
+$L_{\mathrm{dBFS,ref}}$ is the matching recorded level. The configuration keys
+that supply this information are `spl_reference_db` and `dbfs_reference`.
+
+The optional precision pressure-chain operations `pa_to_dbfs` and `dbfs_to_pa`
+require the exact configuration keys `mic_sensitivity_mv_pa`, `preamp_gain_db`,
+and `adc_full_scale_vrms`. Those names are code because they are inputs you
+must spell exactly; the acoustic quantities they describe remain mathematics.
 
 All formulas below reflect current `esl` implementation, including metrics labeled as "proxy".
 
@@ -33,6 +75,30 @@ All formulas below reflect current `esl` implementation, including metrics label
 These equations are rendered in generated HTML/PDF docs and each has a plain-English interpretation.
 
 Snark note: formulas do not make a pipeline “scientific” by themselves; assumptions and calibration do.
+
+### How to read the equations in this reference
+
+Each displayed equation answers a deliberately narrow question. It defines a
+quantity, not an interpretation of the world. Read the symbol after the equals
+sign as the calculation, then read the `where` statement as the data contract:
+which samples, frames, bands, channels, or calibration constants are allowed to
+enter the result. A matching unit is part of that contract. A result in `dBFS`
+is a digital level; it does not become `dBA` or SPL because the number happens
+to be large and confidently formatted.
+
+For frame metrics, changing frame size changes the question. A 20 ms RMS value
+describes local amplitude; a 10-minute aggregate describes a much slower
+summary. Neither is automatically wrong, but they should not be compared as if
+they had observed the same temporal detail. For multichannel inputs, consult
+the aggregation column before interpreting an apparent difference: some
+metrics pool channels, some operate on a downmix, and spatial metrics use only
+the channel relationships they explicitly declare.
+
+Every equation should lead to a practical check. Before reporting a scalar,
+inspect its units, validity flags, confidence fields, window/hop settings,
+channel policy, and calibration provenance. The equation tells `esl` what to
+compute. Those companion fields tell you whether the computed value supports
+the claim you want to make.
 
 ### 1) Frame Energy and RMS
 
@@ -48,6 +114,12 @@ where $E_k$ is frame energy, $x_{k,c}[n]$ is sample $n$ in channel $c$, $N_k$ is
 
 Plain English: frame energy is total squared amplitude; RMS is the energy-normalized average amplitude.
 
+Use this to compare signal strength only when windows and channel policy match.
+Doubling the window duration doubles unnormalized energy for a stationary
+signal, while RMS remains comparable because it divides by the number of
+samples. Silence and near-silence need special care later when converted to
+decibels.
+
 ### 2) dBFS Mapping
 
 $$
@@ -57,6 +129,11 @@ $$
 where $L_{\mathrm{dBFS},k}$ is frame level in full-scale decibels and $\varepsilon$ avoids log singularities.
 
 Plain English: RMS is mapped to logarithmic decibels relative to full scale.
+
+The `max` operation is a numerical floor, not a claim that silent audio has a
+physical level. It prevents an undefined logarithm at zero. Treat very low
+values as below the digital measurement floor, and do not attach an SPL unit
+unless the calibration mapping is present in the output provenance.
 
 ### 3) Calibrated SPL Mapping
 
@@ -68,6 +145,13 @@ where $L_{\mathrm{SPL,ref}}$ is physical reference SPL and $L_{\mathrm{dBFS,ref}
 
 Plain English: calibrated SPL is a fixed offset from digital dBFS, derived from calibration reference points.
 
+This offset model assumes the recording chain behaved linearly between the
+reference measurement and the analysed signal. A changed gain setting, a
+different microphone, clipping, or a calibration tone recorded through a
+different path invalidates that assumption. The result should therefore travel
+with the profile and its verification status, not as an orphaned number in a
+spreadsheet.
+
 ### 4) Equivalent Continuous Level (Leq)
 
 $$
@@ -77,6 +161,12 @@ $$
 where $p(t)$ is sound pressure, $p_0$ is reference pressure, and $T$ is analysis duration.
 
 Plain English: Leq is the single steady level carrying the same acoustic energy as the varying signal.
+
+Leq is energy-weighted: a short loud interval can dominate a long quiet one.
+That is useful for exposure and acoustic-energy questions, but it can hide
+temporal structure. Pair it with a level-over-time plot when the timing of
+events matters, and state the integration interval whenever two Leq values are
+compared.
 
 ### 5) Spectral Centroid
 
@@ -88,6 +178,11 @@ where $M(f,t)$ is magnitude at frequency bin $f$ and frame $t$, and $f_c(t)$ is 
 
 Plain English: spectral centroid tracks where the spectrum is centered in frequency (perceptual brightness proxy).
 
+Centroid is not a pitch detector. A high centroid can result from broadband
+noise, harmonics, a recording-chain change, or a genuinely brighter source.
+Use it as a compact spectral-shape descriptor and inspect a spectrogram before
+turning a centroid shift into a musical, ecological, or mechanical diagnosis.
+
 ### 6) Spectral Flux Novelty
 
 $$
@@ -97,6 +192,12 @@ $$
 where $N(t)$ is novelty at frame $t$, driven only by positive spectral changes.
 
 Plain English: novelty rises when new spectral energy appears between successive frames.
+
+Flux responds to change, not importance. A door click, a gain step, and a new
+bird phrase can all produce a peak. Its time resolution is determined by the
+hop; its sensitivity is determined by the feature representation and any
+normalization. Use peak timestamps as review candidates, then listen or inspect
+the corresponding clip before assigning an event label.
 
 ### 7) NDSI
 
@@ -108,6 +209,12 @@ where $E_{\mathrm{bio}}$ is biological-band energy and $E_{\mathrm{anthro}}$ is 
 
 Plain English: NDSI is positive when biological-band energy dominates and negative when anthropogenic-band energy dominates.
 
+The sign is a band-energy contrast, not a biodiversity verdict. Set the bands,
+sample rate, weighting, and channel policy in the analysis record. Wind,
+insects, machinery outside the chosen band, and an inappropriate Nyquist limit
+can all make the ratio misleading while the arithmetic remains perfectly
+correct.
+
 ### 8) Clarity (C50/C80)
 
 $$
@@ -117,6 +224,12 @@ $$
 where $h(t)$ is impulse response and $T$ sets the early/late split boundary.
 
 Plain English: clarity compares early arriving energy to late reverberant energy.
+
+The 50 ms and 80 ms boundaries are conventions tied to speech- and
+music-oriented use, not universal quality scores. Results depend on impulse
+response alignment, noise floor, and the selected integration region. Compare
+variants only when source, receiver, band treatment, and analysis assumptions
+are held constant.
 
 ### 9) Definition (D50)
 
@@ -128,6 +241,11 @@ where numerator is early IR energy and denominator is total IR energy.
 
 Plain English: D50 is the fraction of energy arriving in the first 50 ms.
 
+D50 is bounded in principle between zero and one, which makes its direction
+easy to read: larger values mean more early energy. It is nevertheless an
+impulse-response property under stated conditions, not proof that a listener
+will understand every word in every source/receiver arrangement.
+
 ### 10) Reverberation Time Regression
 
 $$
@@ -137,6 +255,12 @@ $$
 where $m$ is decay slope (dB/s) from linear regression of Schroeder decay in the selected fitting window.
 
 Plain English: steeper decay slope implies shorter reverberation time.
+
+The regression is only as credible as its fit range. `esl` reports fit-quality
+and validity information because a weak tail, background noise, or a non-linear
+decay can make one slope a poor summary. Read RT60 alongside EDT, the selected
+decay range, and the reported fit quality rather than treating a single decimal
+place as precision.
 
 ## Metric Contract Matrix
 

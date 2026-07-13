@@ -90,6 +90,22 @@ where clip duration is zero-clamped implicitly by bounded start/end logic.
 
 Plain English: if your window exceeds file bounds, `esl` trims safely instead of writing nonsense timestamps.
 
+### Ranking is not segmentation
+
+The candidate chunk is a practical analysis unit, not a claim that the acoustic
+event begins and ends at the chunk boundary. A high novelty score tells you
+that the selected representation changed within that chunk; a high SPL score
+tells you that the chunk was energetic. The exported window deliberately gives
+you context before and after the candidate center so you can decide whether the
+interesting moment is an onset, a sustained source, a transition, or an
+artefact.
+
+Choose `--single` when the job is triage and one review clip is useful. Choose
+`--top-k` when a human can review a fixed shortlist. Choose `--all` only when a
+downstream process can handle every candidate and the threshold policy has been
+validated. More clips are not automatically more evidence; they can be more
+duplicates of the same event when the merge gap is too small.
+
 ## Detection Rules
 
 Rules file uses the same threshold shape as `esl stream`:

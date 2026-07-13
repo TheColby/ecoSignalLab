@@ -51,6 +51,13 @@ $$
 
 where $T_{\mathrm{max}}$ is seconds before hitting the RIFF size ceiling.
 
+The byte calculation is deliberately boring because storage limits are
+indifferent to artistic intent. Use bytes per sample, not bits per sample, in
+the final multiplication: 24-bit PCM uses three bytes per sample and float32
+uses four. The result is an approximate payload limit because real containers
+also contain headers and metadata. Treat a file projected near 4 GB as an RF64
+case rather than trying to land exactly on the cliff edge.
+
 ## Practical duration examples for classic WAV
 
 | Format | Bytes/sec | Max duration (approx) |
@@ -130,6 +137,14 @@ where $\rho$ is compression ratio versus equivalent PCM WAV (content-dependent; 
 | MP3 (CBR) | 320 kb/s | 3.22 GB | Highest common CBR preset. |
 
 These are recording-file size estimates, not full analysis memory usage.
+
+File size and processing memory answer different questions. Chunked `esl`
+analysis reads a bounded sample block, produces intermediate feature data, and
+releases decoded audio before moving on. A 200 GB RF64 recording can therefore
+be analysable on a machine with far less RAM, provided the chosen chunk size,
+feature set, plot resolution, and output writer are bounded. Conversely, a
+small compressed file can still be expensive if a workflow expands it to dense
+frame-level arrays or a full self-similarity matrix.
 
 Practical guidance:
 - Use WAV/RF64 or FLAC for measurement-quality and calibration-sensitive workflows.

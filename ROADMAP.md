@@ -122,8 +122,8 @@ turning very large, messy, multichannel acoustic recordings into reproducible, i
 
 ## Next 5 Concrete Builds
 
-1. dataset manifests that connect FrameTable outputs to ML training splits
-2. spatial retrieval performance profiling on long multichannel archives
-3. Ambisonics metadata import overrides from sidecar JSON/YAML
-4. calibration sidecar export for device onboarding packets
-5. calendar-aware shard manifests for absolute day/month/year reporting
+1. calibration sidecar export for device onboarding packets
+2. spatial retrieval performance baselines across representative multichannel deployments
+3. calendar-aware reporting in local time zones with explicit DST display policy
+4. grouped dataset splits for site/device/time-block evaluation
+5. formal Ambisonics convention validation fixtures for FOA and HOA recordings

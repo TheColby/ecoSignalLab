@@ -1,0 +1,80 @@
+{
+  "pipeline_id": "65f8a592-a4f7-49b3-b38f-b93fcafc92cf",
+  "created_utc": "2026-02-18T22:50:42.818100+00:00",
+  "updated_utc": "2026-02-18T22:50:48.850030+00:00",
+  "status": "completed",
+  "config_hash": "109dffa3a8925776f9ed27b3298354ca158d590489b9530008684d19e14af389",
+  "config": {
+    "input_dir": "/Users/cleider/dev/ecoSignalLab/examples/sample_run/input",
+    "output_dir": "/Users/cleider/dev/ecoSignalLab/examples/sample_run/output",
+    "calibration_path": null,
+    "metrics": [
+      "rms_dbfs",
+      "spl_a_db",
+      "snr_db",
+      "rt60_s",
+      "novelty_curve"
+    ],
+    "frame_size": 2048,
+    "hop_size": 512,
+    "sample_rate": null,
+    "chunk_size": null,
+    "seed": 42,
+    "plot": false,
+    "interactive": false,
+    "plot_metrics": [],
+    "include_spectral": true,
+    "ml_export": false,
+    "project": null,
+    "force": false,
+    "stages": [
+      "analyze",
+      "ml_export",
+      "digest"
+    ]
+  },
+  "stages": {
+    "analyze": {
+      "status": "completed",
+      "started_utc": "2026-02-18T22:50:42.818375+00:00",
+      "finished_utc": "2026-02-18T22:50:42.869799+00:00",
+      "duration_s": 0.0514,
+      "counts": {
+        "input_files": 1,
+        "processed": 1,
+        "skipped": 0,
+        "errors": 0
+      },
+      "errors": []
+    },
+    "ml_export": {
+      "status": "completed",
+      "started_utc": "2026-02-18T22:50:42.869896+00:00",
+      "finished_utc": "2026-02-18T22:50:48.846119+00:00",
+      "duration_s": 5.9764,
+      "counts": {
+        "analysis_items": 1,
+        "generated": 1,
+        "skipped": 0,
+        "errors": 0
+      },
+      "errors": []
+    },
+    "digest": {
+      "status": "completed",
+      "started_utc": "2026-02-18T22:50:48.846263+00:00",
+      "finished_utc": "2026-02-18T22:50:48.849954+00:00",
+      "duration_s": 0.0037,
+      "counts": {
+        "rows": 1
+      },
+      "errors": []
+    }
+  },
+  "artifacts": {
+    "analysis_index": "examples/sample_run/output/pipeline_analysis_index.json",
+    "analysis_json_count": 1,
+    "digest_csv": "examples/sample_run/output/pipeline_digest.csv",
+    "digest_json": "examples/sample_run/output/pipeline_digest.json"
+  }
+}

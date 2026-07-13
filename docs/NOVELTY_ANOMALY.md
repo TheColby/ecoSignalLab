@@ -46,6 +46,13 @@ where $M(f,t)$ is magnitude spectrogram energy at frequency bin $f$ and frame $t
 
 Plain English: this novelty curve increases when new spectral components appear.
 
+The subtraction is directional: energy that disappears does not contribute to
+this particular positive-flux score. That choice makes onsets and arrivals easy
+to find, but it means offsets, fades, and a spectral simplification can be
+underrepresented. Frame size controls frequency resolution; hop size controls
+the timestamp spacing. State both when comparing novelty curves from different
+analyses.
+
 $$
 Z(t)=\frac{N(t)-\mu_N}{\sigma_N+\varepsilon}
 $$
@@ -54,6 +61,13 @@ where $\mu_N$ is novelty mean, $\sigma_N$ is novelty standard deviation, and $\v
 
 Plain English: z-scoring puts novelty on a normalized scale so thresholding is more stable.
 
+The normalization baseline is the analysed clip or chunk, not a universal
+acoustic normal. A score of `3` means roughly three local standard deviations
+above that baseline. It does not mean that the sound is three times more
+interesting, alarming, rare, or ecologically important. Archive-scale work
+should use a documented baseline strategy rather than quietly normalizing every
+day in isolation.
+
 $$
 \mathcal{N}(i)=\sum_{u=-L}^{L}\sum_{v=-L}^{L} S(i+u,i+v)\,K(u,v)
 $$
@@ -61,6 +75,12 @@ $$
 where $S$ is self-similarity matrix, $K$ is checkerboard kernel, $L$ is half-kernel width, and $i$ is diagonal frame index.
 
 Plain English: Foote novelty is a checkerboard-kernel contrast around the self-similarity matrix diagonal.
+
+The checkerboard looks for a boundary between two internally similar regions.
+A strong score is therefore evidence for structural change in the chosen
+features, not direct evidence for a named source. Repetition, a scene change,
+a new texture, and a processing artefact can all create the same geometry.
+Inspect the matrix and the audio around each selected peak.
 
 $$
 \hat{\mathcal{N}}(i)=\frac{\max(\mathcal{N}(i),0)}{\max_j \max(\mathcal{N}(j),0)+\varepsilon}
@@ -92,6 +112,12 @@ where $x_i$ and $x_j$ are feature vectors for frames $i$ and $j$, and $S_{ij}$ i
 
 Plain English: entries near 1 mean frames look alike in feature space; entries near 0 mean they do not.
 
+Cosine similarity focuses on vector direction after normalization. It therefore
+emphasizes feature shape more than overall magnitude. That is often desirable
+for pattern recurrence, but it can deliberately suppress a loudness change.
+Choose a metric-based search or include level features when amplitude itself is
+part of what “similar” should mean.
+
 CLI:
 - `esl analyze ... --similarity-matrix --plot`
 - `esl plot results.json --similarity-matrix`
@@ -119,6 +145,12 @@ $$
 where $\mathcal{P}$ is selected event index set from peak picking constraints.
 
 Plain English: not every bump is an event; peaks must be both separated and prominent enough.
+
+Peak picking is a policy layer, not part of the acoustic measurement. Distance
+prevents neighboring frames from becoming duplicate events; prominence rejects
+small ripples relative to the local curve. Record both defaults or overrides in
+the output configuration. If a threshold must be tuned for one file, validate
+it on separate material before using it as a general detector.
 
 ```mermaid
 flowchart LR

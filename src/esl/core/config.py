@@ -52,6 +52,7 @@ class AnalysisConfig:
     frame_table_hdf5: Path | None = None
     checkpoint_dir: Path | None = None
     resume: bool = False
+    spatial_metadata_sidecar: Path | None = None
 
 
 @dataclass(slots=True)

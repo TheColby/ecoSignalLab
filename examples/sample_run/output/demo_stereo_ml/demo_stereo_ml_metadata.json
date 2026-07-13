@@ -1,0 +1,51 @@
+{
+  "clip_feature_names": [
+    "novelty_curve",
+    "rms_dbfs",
+    "rt60_s",
+    "snr_db",
+    "spl_a_db"
+  ],
+  "frame_feature_columns": [
+    "novelty_curve",
+    "rms_dbfs",
+    "snr_db",
+    "spl_a_db"
+  ],
+  "frame_timestamps_s": [
+    0.0,
+    0.032,
+    0.064,
+    0.096,
+    0.128,
+    0.16,
+    0.192,
+    0.224,
+    0.256,
+    0.288,
+    0.32,
+    0.352,
+    0.384,
+    0.416,
+    0.448,
+    0.48,
+    0.512,
+    0.544,
+    0.576,
+    0.608,
+    0.64,
+    0.672,
+    0.704,
+    0.736,
+    0.768,
+    0.8,
+    0.832,
+    0.864,
+    0.872,
+    0.896,
+    0.928
+  ],
+  "seed": 42,
+  "source_config_hash": "7fff5fb11a5d58b9183259fde940a5bec85c2dc01f27c34c1cdacb77ca817c73",
+  "esl_version": "0.1.0"
+}

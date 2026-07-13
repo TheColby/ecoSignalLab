@@ -112,6 +112,42 @@ Where:
 
 Plain English: the same folder produces the same manifest and the same train/val/test assignment every time.
 
+### Archive FrameTable Dataset Manifests
+
+For a sharded deployment, build the dataset manifest after `shard analyze` has
+written its FrameTable sidecars:
+
+```bash
+esl shard analyze out/archive_manifest.json \
+  --out out/archive_analysis \
+  --chunk-hours 1 --streamable-only --summary-only \
+  --frame-table-dir out/frame_tables
+
+esl shard dataset out/archive_analysis/shard_analysis_report.json \
+  --out out/archive_dataset_manifest.json \
+  --split-ratios 0.8,0.1,0.1
+```
+
+Each sample points to its per-shard analysis JSON and whichever FrameTable
+artifacts exist (`csv`, `parquet_dir`, or `hdf5`). It also carries the shard's
+archive-relative interval and absolute calendar timestamps when the manifest
+was indexed with `--calendar-start`.
+
+```mermaid
+flowchart LR
+    A["Shard audio"] --> B["shard analyze"]
+    B --> C["FrameTable sidecars"]
+    B --> D["shard_analysis_report.json"]
+    C --> E["shard dataset"]
+    D --> E
+    E --> F["deterministic train/val/test manifest"]
+```
+
+The default split strategy is deterministic sequential shard order. It is
+reproducible, but it is not magic: for seasonal or site-transfer experiments,
+construct a split policy that matches the scientific question so nearby time
+periods do not leak into both training and evaluation.
+
 ## Long-Duration Note
 
 For very large recordings, prefer this sequence:

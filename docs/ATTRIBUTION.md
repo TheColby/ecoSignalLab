@@ -20,6 +20,7 @@ Operational extraction workflow reference: [`docs/MOMENTS_EXTRACTION.md`](MOMENT
 | `src/esl/metrics/extended.py` | GCC-PHAT ITD estimation | Knapp & Carter (1976), common open implementations | Academic publication | Implemented from standard published method. |
 | `src/esl/ml/export.py` and `src/esl/metrics/extended.py` | Isolation Forest and One-Class SVM | scikit-learn estimators | BSD-3-Clause | Uses scikit-learn public APIs, no vendored model code. |
 | `src/esl/docsgen/builder.py` | Mermaid rendering + browser PDF conversion | Mermaid docs, Playwright docs | MIT (Mermaid), Apache-2.0 (Playwright) | Uses documented runtime APIs; no vendored third-party runtime code. |
+| `src/esl/docsgen/assets/fonts/` | TeX Gyre Schola documentation typeface | [GUST TeX Gyre project](https://www.gust.org.pl/projects/e-foundry/tex-gyre) | GUST Font License | Bundled unchanged for deterministic HTML/PDF typography; license included as `GUST-FONT-LICENSE.txt`. |
 
 ## Third-Party Runtime Dependencies
 

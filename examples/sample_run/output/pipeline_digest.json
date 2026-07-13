@@ -1,0 +1,18 @@
+{
+  "generated_utc": "2026-02-18T22:50:48.849729+00:00",
+  "num_items": 1,
+  "rows": [
+    {
+      "input": "/Users/cleider/dev/ecoSignalLab/examples/sample_run/input/demo_stereo.wav",
+      "json": "examples/sample_run/output/demo_stereo.json",
+      "duration_s": 1.0,
+      "channels": 2,
+      "sample_rate": 16000,
+      "spl_a_mean": -31.054904523273834,
+      "spl_c_mean": null,
+      "snr_mean": 0.4196338653564453,
+      "rt60_mean": 1.3362703163564982,
+      "config_hash": "7fff5fb11a5d58b9183259fde940a5bec85c2dc01f27c34c1cdacb77ca817c73"
+    }
+  ]
+}

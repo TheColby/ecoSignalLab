@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import numpy as np
 import soundfile as sf
@@ -76,3 +77,31 @@ def test_infer_spatial_metadata_flags_incomplete_ambisonic_set() -> None:
     assert ambi["complete_set"] is False
     assert ambi["channels_expected"] == 9
     assert any("not a complete" in warning for warning in ambi["warnings"])
+
+
+def test_analysis_applies_validated_ambisonics_sidecar(tmp_path: Path) -> None:
+    sr = 8000
+    t = np.arange(sr, dtype=np.float64) / sr
+    tone = (0.1 * np.sin(2.0 * np.pi * 220.0 * t)).astype(np.float32)
+    wav = tmp_path / "recorder_channels.wav"
+    sf.write(wav, np.column_stack([tone, tone, tone, tone]), sr)
+    sidecar = tmp_path / "recorder_channels.spatial.json"
+    sidecar.write_text(
+        json.dumps(
+            {
+                "layout_family": "ambisonic",
+                "layout_hint": "ambisonic_b_format",
+                "channel_labels": ["W", "Y", "Z", "X"],
+                "ambisonics": {"order": 1, "component_order": "ACN", "normalization": "SN3D"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = analyze(
+        AnalysisConfig(input_path=wav, output_dir=tmp_path, verbosity=0, spatial_metadata_sidecar=sidecar)
+    )
+    spatial = result["metadata"]["spatial_metadata"]
+    assert spatial["layout_family"] == "ambisonic"
+    assert spatial["ambisonics"]["component_order"] == "ACN"
+    assert spatial["provenance"]["source"] == "sidecar"

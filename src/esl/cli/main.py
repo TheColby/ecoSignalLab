@@ -175,6 +175,9 @@ def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: 
         frame_table_hdf5=(Path(args.frame_table_hdf5) if getattr(args, "frame_table_hdf5", None) else None),
         checkpoint_dir=(Path(args.checkpoint_dir) if getattr(args, "checkpoint_dir", None) else None),
         resume=bool(getattr(args, "resume", False)),
+        spatial_metadata_sidecar=(
+            Path(args.spatial_metadata_sidecar) if getattr(args, "spatial_metadata_sidecar", None) else None
+        ),
     )
 
 
@@ -798,6 +801,9 @@ def _run_shard_index(args: argparse.Namespace) -> int:
             output_path=output_path,
             recursive=not args.no_recursive,
             order_by=args.order_by,
+            calendar_start=args.calendar_start,
+            calendar_timezone=args.calendar_timezone,
+            spatial_sidecar_dir=(Path(args.spatial_sidecar_dir) if args.spatial_sidecar_dir else None),
         )
     )
     print(f"manifest: {manifest_path}")
@@ -808,6 +814,7 @@ def _run_shard_index(args: argparse.Namespace) -> int:
             "total_duration_s": manifest.get("total_duration_s"),
             "total_size_gb": manifest.get("total_size_gb"),
             "order_by": manifest.get("order_by"),
+            "timeline_mode": manifest.get("calendar", {}).get("timeline_mode"),
         },
     )
     return 0
@@ -883,6 +890,20 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
     )
     if args.debug >= 1:
         print(json.dumps(report.get("weighted_metric_means", {}), indent=2))
+    return 0
+
+
+def _run_shard_dataset(args: argparse.Namespace) -> int:
+    from esl.ml import build_dataset_manifest_from_shard_report
+
+    ratios = tuple(float(value) for value in _csv_list(args.split_ratios)) if args.split_ratios else (0.8, 0.1, 0.1)
+    if len(ratios) != 3:
+        raise ValueError("--split-ratios must contain exactly three comma-separated values: train,val,test")
+    out_path, manifest = build_dataset_manifest_from_shard_report(
+        Path(args.report), Path(args.out), split_ratios=(ratios[0], ratios[1], ratios[2])
+    )
+    print(f"dataset_manifest: {out_path}")
+    print("summary:", {"num_samples": manifest.get("num_samples"), "split_counts": manifest.get("split_counts")})
     return 0
 
 
@@ -1164,6 +1185,44 @@ def _run_shard_retrieve(args: argparse.Namespace) -> int:
                 f"dist={float(row.get('distance', 0.0)):.6f} "
                 f"sim={float(row.get('similarity', 0.0)):.6f}"
             )
+    return 0
+
+
+def _run_shard_profile_retrieve(args: argparse.Namespace) -> int:
+    from esl.core.shards import ShardSpatialRetrieveProfileConfig, run_shard_spatial_retrieval_profile
+
+    manifest_path = Path(args.manifest)
+    query_path = Path(args.query)
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Shard manifest not found: {manifest_path}")
+    if not query_path.exists():
+        raise FileNotFoundError(f"Query file not found: {query_path}")
+    report_path, report = run_shard_spatial_retrieval_profile(
+        ShardSpatialRetrieveProfileConfig(
+            manifest_path=manifest_path,
+            query_path=query_path,
+            output_dir=Path(args.out),
+            top_k=int(args.top_k),
+            window_s=float(args.window_seconds),
+            hop_s=float(args.window_hop_seconds),
+            feature_set=str(args.feature_set),
+            distance=str(args.distance),
+            frame_size=int(args.frame_size),
+            hop_size=int(args.hop_size),
+            sample_rate=args.sample_rate,
+            max_shards=args.max_shards,
+            spatial_mode=str(args.spatial_mode),
+            spatial_metrics=_metric_list(args.spatial_metrics),
+            spatial_weight=float(args.spatial_weight),
+            compare_baseline=not bool(args.no_baseline),
+        )
+    )
+    print(f"spatial_retrieval_profile_json: {report_path}")
+    for run in report.get("runs", []):
+        print(
+            f"mode={run.get('spatial_mode')} elapsed_s={float(run.get('elapsed_s', 0.0)):.3f} "
+            f"windows_per_s={float(run.get('windows_per_s', 0.0)):.3f}"
+        )
     return 0
 
 
@@ -2286,6 +2345,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Resume chunked analysis from --checkpoint-dir if a checkpoint exists",
     )
+    pa.add_argument(
+        "--spatial-metadata-sidecar",
+        default=None,
+        help="JSON/YAML override for spatial or Ambisonics metadata; cannot change decoded channel count",
+    )
     pa.add_argument("--metrics", default=None, help="Comma-separated metric list")
     pa.add_argument(
         "--profile",
@@ -2823,6 +2887,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Shard ordering: path or file modification time",
     )
     psh_index.add_argument("--no-recursive", action="store_true", help="Scan only the top-level directory")
+    psh_index.add_argument(
+        "--calendar-start",
+        default=None,
+        help="Absolute start for shard 0, ISO-8601 with offset/Z (for example 2026-01-01T00:00:00Z)",
+    )
+    psh_index.add_argument(
+        "--calendar-timezone",
+        default=None,
+        help="Optional IANA display timezone for local timestamps (for example America/New_York)",
+    )
+    psh_index.add_argument(
+        "--spatial-sidecar-dir",
+        default=None,
+        help="Directory mirroring audio paths with <stem>.spatial.json/.yaml overrides",
+    )
     psh_index.set_defaults(func=_run_shard_index)
 
     psh_an = psh_sub.add_parser("analyze", help="Analyze an ordered shard manifest as one archive")
@@ -2870,6 +2949,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Debug level: 0=none, 1=processing details, 2=internal traces",
     )
     psh_an.set_defaults(func=_run_shard_analyze)
+
+    psh_dataset = psh_sub.add_parser(
+        "dataset",
+        help="Build deterministic ML train/val/test samples pointing at shard FrameTable artifacts",
+    )
+    psh_dataset.add_argument("report", help="Path to shard_analysis_report.json")
+    psh_dataset.add_argument("--out", required=True, help="Output dataset manifest JSON path")
+    psh_dataset.add_argument(
+        "--split-ratios",
+        default="0.8,0.1,0.1",
+        help="Comma-separated deterministic train,val,test ratios (default: 0.8,0.1,0.1)",
+    )
+    psh_dataset.set_defaults(func=_run_shard_dataset)
 
     psh_mom = psh_sub.add_parser("moments", help="Find top-ranked moments across an ordered shard manifest")
     psh_mom.add_argument("manifest", help="Path to shard manifest JSON")
@@ -3056,6 +3148,32 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_ret.set_defaults(func=_run_shard_retrieve)
 
+    psh_prof = psh_sub.add_parser(
+        "profile-retrieve",
+        help="Benchmark production event retrieval with spatial mode against an optional baseline",
+    )
+    psh_prof.add_argument("manifest", help="Path to shard manifest JSON")
+    psh_prof.add_argument("query", help="Query audio/event example")
+    psh_prof.add_argument("--out", required=True, help="Output directory for profile and per-run retrieval reports")
+    psh_prof.add_argument("--top-k", type=int, default=10, help="Number of ranked windows retained per run")
+    psh_prof.add_argument("--window-seconds", type=float, default=10.0, help="Candidate window duration in seconds")
+    psh_prof.add_argument("--window-hop-seconds", type=float, default=5.0, help="Candidate window step in seconds")
+    psh_prof.add_argument("--distance", default="cosine", choices=["cosine", "euclidean", "manhattan"])
+    psh_prof.add_argument("--feature-set", default="core", choices=["auto", "core", "librosa", "all"])
+    psh_prof.add_argument("--frame-size", type=int, default=1024, help="Feature frame size in samples")
+    psh_prof.add_argument("--hop-size", type=int, default=256, help="Feature hop size in samples")
+    psh_prof.add_argument("--sample-rate", type=int, default=None, help="Optional retrieval/resampling rate in Hz")
+    psh_prof.add_argument("--max-shards", type=int, default=None, help="Optional cap on profiled shards")
+    psh_prof.add_argument("--spatial-mode", default="append", choices=["append", "only"])
+    psh_prof.add_argument(
+        "--spatial-metrics",
+        default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
+        help="Comma-separated spatial metrics used by the spatial run",
+    )
+    psh_prof.add_argument("--spatial-weight", type=float, default=0.5, help="Spatial blend weight for append mode")
+    psh_prof.add_argument("--no-baseline", action="store_true", help="Run only the requested spatial mode")
+    psh_prof.set_defaults(func=_run_shard_profile_retrieve)
+
     psh_plot = psh_sub.add_parser("plot", help="Render archive-scale plots from shard_analysis_report.json")
     psh_plot.add_argument("report", help="Path to shard_analysis_report.json")
     psh_plot.add_argument("--out", required=True, help="Output directory for archive PNG plots")
@@ -3064,8 +3182,8 @@ def _build_parser() -> argparse.ArgumentParser:
         default="none",
         choices=["none", "day", "month", "year", "all"],
         help=(
-            "Also write archive-relative campaign rollup PNG/CSV summaries: "
-            "none(default), day, month(30 days), year(365 days), or all"
+            "Also write PNG/CSV rollups: calendar UTC bins when report timestamps are absolute; "
+            "otherwise archive-relative day, month(30 days), year(365 days), or all"
         ),
     )
     psh_plot.set_defaults(func=_run_shard_plot)

@@ -1,0 +1,14 @@
+{
+  "audio_path": "/Users/cleider/dev/ecoSignalLab/examples/sample_run/input/demo_stereo.wav",
+  "sample_rate": 16000,
+  "n_fft": 1024,
+  "hop": 256,
+  "n_frames": 59,
+  "kernel_L": 9,
+  "peak_frames": [
+    9
+  ],
+  "peak_times_s": [
+    0.176
+  ]
+}

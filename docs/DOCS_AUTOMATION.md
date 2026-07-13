@@ -18,6 +18,34 @@ Script wrapper:
 python scripts/build_docs.py --root . --out docs/build --formats html,pdf
 ```
 
+Dedicated user guide:
+
+```bash
+python scripts/generate_user_guide.py
+```
+
+This renders the curated [`USERGUIDE.md`](USERGUIDE.md) manual and writes the
+top-level `USERGUIDE.pdf`, following the same reproducible HTML-to-PDF pipeline.
+
+Textbook:
+
+```bash
+python scripts/generate_textbook.py
+```
+
+This writes a curated, source-controlled [`TEXTBOOK.md`](TEXTBOOK.md) from the
+maintained technical chapters and renders the top-level `TEXTBOOK.pdf`.
+
+### Print Master
+
+`TEXTBOOK.pdf` is the ready-to-print US Letter (8.5 x 11 in) textbook master.
+It uses the TeX Gyre Schola book face, a 0.9 in binding-safe horizontal margin,
+black print text, a clean unnumbered title page, running title/edition headers,
+and centered folios. It has no
+bleed, crop marks, or printer imposition: provide the single-page PDF to a
+printer or print-on-demand service that performs its own binding and imposition.
+Hyperlinks remain active in compatible PDF readers.
+
 ## Output Layout
 
 - HTML: `docs/build/html/*.html`

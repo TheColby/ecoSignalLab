@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "input": "/Users/cleider/dev/ecoSignalLab/examples/sample_run/input/demo_stereo.wav",
+      "json": "examples/sample_run/output/demo_stereo.json",
+      "status": "processed",
+      "config_hash": "7fff5fb11a5d58b9183259fde940a5bec85c2dc01f27c34c1cdacb77ca817c73"
+    }
+  ],
+  "generated_utc": "2026-02-18T22:50:42.869396+00:00"
+}

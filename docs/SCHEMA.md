@@ -115,6 +115,18 @@ Where:
 
 Plain English: `esl` does not silently pretend every four-channel file is the same creature. If the filename or decoder hints indicate Ambisonics, the JSON records what convention it inferred and how confident that inference is.
 
+An explicit JSON/YAML sidecar can override the inferred spatial interpretation.
+It is recorded as `metadata.spatial_metadata.provenance` with `source: sidecar`,
+the absolute sidecar path, and the overridden fields. Decoder-observed channel
+count remains immutable; the sidecar is an interpretation contract, not a way to
+invent channels.
+
+Shard manifests have a separate `calendar` node. Its `timeline_mode` is either
+`archive_relative` or `absolute`. In absolute mode, manifest and shard-report
+rows additionally expose `start_time_utc`/`end_time_utc` and optional local-time
+display fields. Dataset manifests created by `esl shard dataset` retain those
+same timeline fields alongside FrameTable artifact locations.
+
 For RF64 container guidance and 4 GB WAV limits, see [`RF64_AND_LARGE_FILES.md`](RF64_AND_LARGE_FILES.md).
 
 `metadata.channel_metrics` includes:

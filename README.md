@@ -218,13 +218,15 @@ Friendly mental model:
 - Find archive-level top-ranked events with `esl shard moments`.
 - Find the archive shards most similar to a query recording with `esl shard similar`.
 - Find the exact archive windows most similar to a query recording with `esl shard retrieve`, including spatial-aware matching.
+- Profile baseline versus spatial archive retrieval throughput before a long run with `esl shard profile-retrieve`.
 - Summarize long-archive manifests and reports with `esl shard insights`.
 - Run higher-level insight workflows with `esl insights`: scene changes, calmness/chaos/diversity, occupancy, drift, retrieval, embeddings, reports, simulation comparison, and storyboards.
 - Generate static and interactive plots, including similarity and novelty matrix views.
 - Build ML-ready frame tables and tensors for PyTorch/HuggingFace workflows, including appendable CSV, Parquet-dataset, and HDF5 sidecars.
 - Build deterministic ML dataset manifests from exported feature metadata with `esl features manifest`.
+- Turn a streamed shard-analysis report into deterministic ML splits that point directly at FrameTable sidecars with `esl shard dataset`.
 - Verify calibration math with deterministic reference fixtures using `esl calibrate verify`.
-- Emit structured spatial metadata, including Ambisonics order, channel-map, and normalization profiles, in analysis outputs.
+- Emit structured spatial metadata, including Ambisonics order, channel-map, normalization profiles, and validated JSON/YAML sidecar overrides, in analysis outputs.
 - Compare architectural design variants (`--project` / `--variant`) with delta reports.
 - Ingest online datasets (Freesound/HuggingFace), auto-analyze, and summarize.
 - Run regression validation across datasets to catch metric drifts.
@@ -609,6 +611,28 @@ Equivalent script entry:
 ```bash
 python scripts/build_docs.py --out docs/build --formats html,pdf
 ```
+
+### Build the dedicated user guide PDF
+
+```bash
+python scripts/generate_user_guide.py
+```
+
+This renders [`docs/USERGUIDE.md`](docs/USERGUIDE.md) into HTML under
+`docs/build/userguide/` and the printable [`USERGUIDE.pdf`](USERGUIDE.pdf).
+
+### Build the textbook
+
+```bash
+python scripts/generate_textbook.py
+```
+
+This assembles maintained technical chapters into [`docs/TEXTBOOK.md`](docs/TEXTBOOK.md),
+renders HTML under `docs/build/textbook/`, and writes the ready-to-print US Letter
+[`TEXTBOOK.pdf`](TEXTBOOK.pdf). The print master uses binding-safe margins, a
+New Century Schoolbook-compatible book face, running headers, centered folios,
+an unnumbered title page, and monochrome-safe text. It is a single-page print master; a printer performs
+imposition and binding.
 
 Docs rendering guarantees:
 - Mermaid diagrams are rendered in HTML/PDF.

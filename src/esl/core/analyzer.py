@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 
 from esl import __version__
-from esl.core.audio import AudioBuffer, detect_signal_layout, probe_audio_metadata, read_audio, stream_audio
+from esl.core.audio import AudioBuffer, probe_audio_metadata, read_audio, stream_audio
 from esl.core.calibration import calibration_to_dict
 from esl.core.config import AnalysisConfig
 from esl.core.context import AnalysisContext
@@ -32,7 +32,7 @@ from esl.core.out_of_core import (
     load_checkpoint,
     save_checkpoint,
 )
-from esl.core.spatial_metadata import infer_spatial_metadata
+from esl.core.spatial_metadata import apply_spatial_metadata_sidecar, infer_spatial_metadata
 from esl.core.utils import canonicalize, config_hash, library_versions, pipeline_hash, set_seed
 from esl.metrics.base import MetricResult
 from esl.metrics.registry import METRIC_CATALOG_VERSION, MetricRegistry, create_registry
@@ -40,6 +40,18 @@ from esl.schema import SCHEMA_VERSION
 
 
 CHECKPOINT_FILENAME = "analysis_state.json"
+
+
+def _spatial_metadata(config: AnalysisConfig, channels: int, source_channel_layout: str | None) -> dict[str, Any]:
+    """Resolve inferred spatial metadata plus an optional explicit sidecar."""
+    metadata = infer_spatial_metadata(
+        channels,
+        config.input_path,
+        source_channel_layout=source_channel_layout,
+    )
+    if config.spatial_metadata_sidecar is not None:
+        metadata = apply_spatial_metadata_sidecar(metadata, config.spatial_metadata_sidecar)
+    return metadata.to_dict()
 
 
 def _serialize_metric(result: MetricResult, spec: dict[str, Any]) -> dict[str, Any]:
@@ -254,34 +266,31 @@ def _assemble_result(
                 "ffmpeg_version": audio.decoder_provenance.get("ffmpeg_version"),
                 "ffprobe": audio.decoder_provenance.get("ffprobe"),
             },
-            "channel_layout_hint": detect_signal_layout(audio.channels, audio.source_path),
-            "spatial_metadata": infer_spatial_metadata(
+            "spatial_metadata": _spatial_metadata(
+                config,
                 audio.channels,
-                audio.source_path,
-                source_channel_layout=(
+                (
                     str(audio.decoder_provenance.get("ffprobe", {}).get("channel_layout"))
                     if isinstance(audio.decoder_provenance.get("ffprobe"), dict)
                     else None
                 ),
-            ).to_dict(),
+            ),
         }
+        resolved_meta["channel_layout_hint"] = str(resolved_meta["spatial_metadata"]["layout_hint"])
     else:
         resolved_meta = dict(audio_metadata or {})
-        resolved_meta.setdefault("channel_layout_hint", detect_signal_layout(int(resolved_meta.get("channels", 1)), config.input_path))
-        resolved_meta.setdefault(
-            "spatial_metadata",
-            infer_spatial_metadata(
-                int(resolved_meta.get("channels", 1)),
-                config.input_path,
-                source_channel_layout=(
-                    str(resolved_meta.get("decoder", {}).get("ffprobe", {}).get("channel_layout"))
-                    if isinstance(resolved_meta.get("decoder"), dict)
-                    and isinstance(resolved_meta.get("decoder", {}).get("ffprobe"), dict)
-                    and resolved_meta.get("decoder", {}).get("ffprobe", {}).get("channel_layout") is not None
-                    else None
-                ),
-            ).to_dict(),
+        decoder_meta = resolved_meta.get("decoder") or resolved_meta.get("decoder_provenance")
+        source_layout = (
+            str(decoder_meta.get("ffprobe", {}).get("channel_layout"))
+            if isinstance(decoder_meta, dict)
+            and isinstance(decoder_meta.get("ffprobe"), dict)
+            and decoder_meta.get("ffprobe", {}).get("channel_layout") is not None
+            else None
         )
+        resolved_meta["spatial_metadata"] = _spatial_metadata(
+            config, int(resolved_meta.get("channels", 1)), source_layout
+        )
+        resolved_meta["channel_layout_hint"] = str(resolved_meta["spatial_metadata"]["layout_hint"])
         resolved_meta.setdefault("decoder", resolved_meta.pop("decoder_provenance", None))
         channel_summary = channel_summary or {"channels": [], "aggregate": {}, "aggregation_rules": {}}
         validity_flags = validity_flags or _validity_flags_from_summary(
@@ -585,7 +594,6 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
         "subtype": probe.get("subtype"),
         "backend": source_backend,
         "decoder_provenance": decoder_provenance,
-        "channel_layout_hint": detect_signal_layout(int(audio_acc.channels or probe.get("channels") or 1), config.input_path),
     }
     validity = _validity_flags_from_summary(
         channel_summary=channel_summary,

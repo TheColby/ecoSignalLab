@@ -3,7 +3,14 @@
 References:
 - Davis & Mermelstein (1980), MFCC/mel filterbank conventions.
 - Foote (2000), similarity and novelty segmentation context.
+- Müller (2015), Fundamentals of Music Processing: chroma and music-structure
+  representations. https://www.audiolabs-erlangen.de/resources/MIR/FMP
+- Bello et al. (2005), onset detection context. https://doi.org/10.1109/TSA.2005.851998
 - Librosa documentation for feature APIs (optional backend).
+
+Attribution: the optional rich path calls public librosa APIs; esl's feature
+assembly, metadata, export, and fallback behavior are project code. See
+docs/ATTRIBUTION.md.
 """
 
 from __future__ import annotations

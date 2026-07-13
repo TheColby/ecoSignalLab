@@ -92,6 +92,28 @@ $$
 
 where $m$ is the selected metric mean.
 
+## What a distance can and cannot mean
+
+Distance is a ranking device. It answers “which candidate is closest under this
+representation and this normalization?” It does not answer “which recording is
+the same source,” “which sound is most meaningful,” or “which room is best.”
+Those are separate claims that need listening, annotations, controlled
+conditions, or domain-specific criteria.
+
+Cosine distance is a sensible default for high-dimensional feature vectors
+because it compares their direction after normalization. Euclidean and
+Manhattan distance retain different sensitivity to coordinate differences and
+feature scale. If one feature has a much larger numeric range than another,
+that feature can dominate both distances; use `--normalize` for multi-metric
+comparisons when equal influence is intended. Keep the query and corpus sample
+rate, feature set, frame/hop, channel policy, and calibration treatment aligned.
+
+Read the returned `details` and provenance rather than relying only on rank.
+Two candidates separated by a tiny distance difference are effectively tied at
+the resolution of the chosen representation. Use the top results as a review
+set, then listen and inspect plots. The ranking saves time; it does not replace
+judgment.
+
 ## Useful options
 
 - `--top-k N`: number of matches returned

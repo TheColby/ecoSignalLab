@@ -65,6 +65,7 @@ features = [
 ]
 docs = [
   "playwright>=1.48",
+  "pypdf>=4.0",
 ]
 mat = [
   "scipy>=1.10",
@@ -87,6 +88,9 @@ Issues = "https://github.com/TheColby/ecoSignalLab/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
+
+[tool.setuptools.package-data]
+"esl.docsgen" = ["assets/fonts/*"]
 
 [tool.setuptools.data-files]
 "share/man/man1" = [

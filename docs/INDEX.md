@@ -5,6 +5,8 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 ## Start Here
 
 - [Getting Started](GETTING_STARTED.md)
+- [User Guide (PDF source)](USERGUIDE.md)
+- [Textbook (generated PDF source)](TEXTBOOK.md)
 - [Task Recipes (Beginner)](TASK_RECIPES.md)
 - [Soundscape Insights](INSIGHTS.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
@@ -12,6 +14,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 - [Announcement FAQ](ANNOUNCEMENT_FAQ.md)
 - [Glossary](GLOSSARY.md)
 - [Shard Workflows](SHARD_WORKFLOWS.md)
+- [ML Features / FrameTable](ML_FEATURES.md)
 - [Man Pages](MANPAGES.md)
 
 ## Recipe Index by Device Type

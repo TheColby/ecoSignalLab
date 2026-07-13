@@ -97,6 +97,10 @@ def run_shard_manifest_summary(manifest_path: Path, output_dir: Path) -> ShardIn
         "relative_path",
         "start_s",
         "end_s",
+        "start_time_utc",
+        "end_time_utc",
+        "start_time_local",
+        "end_time_local",
         "duration_s",
         "size_gb",
         "sample_rate",
@@ -138,6 +142,7 @@ def run_shard_manifest_summary(manifest_path: Path, output_dir: Path) -> ShardIn
             "num_shards": int(len(items)),
             "archive_duration_s": float(manifest.get("total_duration_s") or sum(durations)),
             "archive_size_gb": float(manifest.get("total_size_gb") or sum(sizes)),
+            "calendar": manifest.get("calendar", {"timeline_mode": "archive_relative"}),
             "duration_s": {
                 "min": float(np.min(durations)) if durations else 0.0,
                 "max": float(np.max(durations)) if durations else 0.0,

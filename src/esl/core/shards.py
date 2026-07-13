@@ -9,13 +9,17 @@ from __future__ import annotations
 
 import csv
 import json
+import time
+import tracemalloc
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
+from esl import __version__
 from esl.core import AnalysisConfig, analyze, load_calibration
 from esl.core.similarity import (
     SimilaritySearchConfig,
@@ -40,12 +44,14 @@ from esl.core.moments import (
     _select_windows,
 )
 from esl.core.streaming import StreamRunConfig, run_stream_analysis
+from esl.core.spatial_metadata import apply_spatial_metadata_sidecar, infer_spatial_metadata
 from esl.io import save_json
 from esl.metrics.registry import create_registry
+from esl.schema import SCHEMA_VERSION
 from esl.viz.feature_vectors import extract_feature_vectors, extract_feature_vectors_from_array
 
 
-SHARD_MANIFEST_VERSION = "1.0.0"
+SHARD_MANIFEST_VERSION = "1.1.0"
 DEFAULT_SPATIAL_SIMILARITY_METRICS = (
     "interchannel_coherence",
     "iacc",
@@ -88,6 +94,39 @@ def _as_float(value: Any) -> float | None:
     return None
 
 
+def _parse_calendar_start(value: str | None, timezone_name: str | None) -> tuple[datetime | None, ZoneInfo | None]:
+    if value is None:
+        if timezone_name is not None:
+            raise ValueError("--calendar-timezone requires --calendar-start.")
+        return None, None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("--calendar-start must be ISO-8601, for example 2026-01-01T00:00:00Z.") from exc
+    if parsed.tzinfo is None:
+        raise ValueError("--calendar-start must include a UTC offset or Z to avoid ambiguous archive time.")
+    try:
+        display_zone = ZoneInfo(timezone_name) if timezone_name else None
+    except Exception as exc:
+        raise ValueError(f"Unknown IANA timezone: {timezone_name}") from exc
+    return parsed.astimezone(timezone.utc), display_zone
+
+
+def _iso_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _sidecar_for(root: Path | None, relative_path: Path) -> Path | None:
+    if root is None:
+        return None
+    base = root / relative_path.parent / f"{relative_path.stem}.spatial"
+    for suffix in (".json", ".yaml", ".yml"):
+        candidate = Path(f"{base}{suffix}")
+        if candidate.exists():
+            return candidate.resolve()
+    return None
+
+
 @dataclass(slots=True)
 class ShardManifestConfig:
     input_dir: Path
@@ -95,6 +134,9 @@ class ShardManifestConfig:
     recursive: bool = True
     patterns: tuple[str, ...] = SUPPORTED_PATTERNS
     order_by: str = "path"  # path|mtime
+    calendar_start: str | None = None
+    calendar_timezone: str | None = None
+    spatial_sidecar_dir: Path | None = None
 
 
 @dataclass(slots=True)
@@ -196,6 +238,28 @@ class ShardRetrieveConfig:
     spatial_weight: float = 0.5
 
 
+@dataclass(slots=True)
+class ShardSpatialRetrieveProfileConfig:
+    """Benchmark event retrieval with an optional spatial baseline comparison."""
+
+    manifest_path: Path
+    query_path: Path
+    output_dir: Path
+    top_k: int = 10
+    window_s: float = 10.0
+    hop_s: float = 5.0
+    feature_set: str = "core"
+    distance: str = "cosine"
+    frame_size: int = 1024
+    hop_size: int = 256
+    sample_rate: int | None = None
+    max_shards: int | None = None
+    spatial_mode: str = "append"
+    spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
+    spatial_weight: float = 0.5
+    compare_baseline: bool = True
+
+
 def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]]:
     """Create an ordered shard manifest from a directory of audio files."""
     files = iter_supported_files(cfg.input_dir, patterns=cfg.patterns, recursive=cfg.recursive)
@@ -208,6 +272,8 @@ def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]
     cumulative_start_s = 0.0
     total_size_bytes = 0
     root = cfg.input_dir.resolve()
+    calendar_start, display_zone = _parse_calendar_start(cfg.calendar_start, cfg.calendar_timezone)
+    sidecar_root = cfg.spatial_sidecar_dir.resolve() if cfg.spatial_sidecar_dir else None
 
     for idx, fp in enumerate(files):
         meta = probe_audio_metadata(fp)
@@ -218,8 +284,7 @@ def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]
         cumulative_start_s = end_s
         total_size_bytes += size_bytes
         rel = fp.resolve().relative_to(root)
-        items.append(
-            {
+        item: dict[str, Any] = {
                 "shard_index": idx,
                 "path": str(fp.resolve()),
                 "relative_path": str(rel),
@@ -238,8 +303,29 @@ def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]
                 "codec_name": meta.get("codec_name"),
                 "channel_layout": meta.get("channel_layout"),
                 "mtime_utc": datetime.fromtimestamp(fp.stat().st_mtime, tz=timezone.utc).isoformat(),
-            }
-        )
+        }
+        sidecar = _sidecar_for(sidecar_root, rel)
+        if sidecar is not None:
+            spatial = infer_spatial_metadata(
+                int(meta.get("channels") or 1),
+                fp,
+                source_channel_layout=(str(meta["channel_layout"]) if meta.get("channel_layout") else None),
+            )
+            item["spatial_metadata"] = apply_spatial_metadata_sidecar(spatial, sidecar).to_dict()
+            item["channel_layout_hint"] = item["spatial_metadata"]["layout_hint"]
+            item["spatial_metadata_sidecar"] = str(sidecar)
+        else:
+            item["spatial_metadata"] = meta.get("spatial_metadata")
+            item["channel_layout_hint"] = meta.get("channel_layout_hint")
+        if calendar_start is not None:
+            absolute_start = calendar_start + timedelta(seconds=start_s)
+            absolute_end = calendar_start + timedelta(seconds=end_s)
+            item["start_time_utc"] = _iso_utc(absolute_start)
+            item["end_time_utc"] = _iso_utc(absolute_end)
+            if display_zone is not None:
+                item["start_time_local"] = absolute_start.astimezone(display_zone).isoformat()
+                item["end_time_local"] = absolute_end.astimezone(display_zone).isoformat()
+        items.append(item)
 
     manifest = {
         "schema_version": SHARD_MANIFEST_VERSION,
@@ -252,6 +338,11 @@ def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]
         "total_duration_s": float(cumulative_start_s),
         "total_size_bytes": int(total_size_bytes),
         "total_size_gb": float(total_size_bytes / 1_000_000_000.0),
+        "calendar": {
+            "timeline_mode": "absolute" if calendar_start is not None else "archive_relative",
+            "archive_start_utc": _iso_utc(calendar_start) if calendar_start is not None else None,
+            "display_timezone": cfg.calendar_timezone,
+        },
         "items": items,
     }
     cfg.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -371,6 +462,11 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
                         frame_table_hdf5=_frame_table_hdf5_path(cfg.frame_table_hdf5_root, relative_path),
                         checkpoint_dir=_checkpoint_dir(cfg.checkpoint_root, relative_path),
                         resume=cfg.resume,
+                        spatial_metadata_sidecar=(
+                            Path(str(item["spatial_metadata_sidecar"]))
+                            if item.get("spatial_metadata_sidecar")
+                            else None
+                        ),
                     ),
                     registry=reg,
                 )
@@ -402,10 +498,18 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
             "status": status,
             "timeline_start_s": float(item.get("start_s") or 0.0),
             "timeline_end_s": float(item.get("end_s") or 0.0),
+            "start_time_utc": item.get("start_time_utc"),
+            "end_time_utc": item.get("end_time_utc"),
+            "start_time_local": item.get("start_time_local"),
+            "end_time_local": item.get("end_time_local"),
             "duration_s": duration_s,
             "channels": int(result.get("metadata", {}).get("channels") or item.get("channels") or 0),
             "sample_rate": int(result.get("metadata", {}).get("sample_rate") or item.get("sample_rate") or 0),
             "analysis_mode": result.get("analysis_mode"),
+            "spatial_layout": result.get("metadata", {}).get("spatial_metadata", {}).get("layout_hint"),
+            "frame_table_csv": result.get("artifacts", {}).get("frame_table_csv"),
+            "frame_table_parquet_dir": result.get("artifacts", {}).get("frame_table_parquet_dir"),
+            "frame_table_hdf5": result.get("artifacts", {}).get("frame_table_hdf5"),
         }
         for metric_name in report_metrics:
             mean_v = None
@@ -431,10 +535,18 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
         "status",
         "timeline_start_s",
         "timeline_end_s",
+        "start_time_utc",
+        "end_time_utc",
+        "start_time_local",
+        "end_time_local",
         "duration_s",
         "channels",
         "sample_rate",
         "analysis_mode",
+        "spatial_layout",
+        "frame_table_csv",
+        "frame_table_parquet_dir",
+        "frame_table_hdf5",
         *[f"{name}_mean" for name in report_metrics],
         "error",
     ]
@@ -462,6 +574,7 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
         "errors": int(errors),
         "archive_duration_s": float(manifest.get("total_duration_s") or 0.0),
         "archive_size_gb": float(manifest.get("total_size_gb") or 0.0),
+        "calendar": manifest.get("calendar", {"timeline_mode": "archive_relative"}),
         "report_metrics": report_metrics,
         "weighted_metric_means": weighted_metric_means,
         "rows": rows,
@@ -1160,6 +1273,123 @@ def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str,
     }
     report_path = (cfg.output_dir / "event_retrieval.json").resolve()
     report["artifacts"]["event_retrieval_json"] = str(report_path)
+    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report_path, report
+
+
+def run_shard_spatial_retrieval_profile(
+    cfg: ShardSpatialRetrieveProfileConfig,
+) -> tuple[Path, dict[str, Any]]:
+    """Profile baseline and spatial event retrieval using the production path.
+
+    Peak memory is Python allocation telemetry from ``tracemalloc``. It does not
+    include decoder-native or OS page-cache memory, so it is intentionally named
+    as such in the report rather than presented as total process RSS.
+    """
+    manifest = load_shard_manifest(cfg.manifest_path)
+    all_items = [item for item in manifest.get("items", []) if isinstance(item, dict)]
+    items = all_items[: int(cfg.max_shards)] if cfg.max_shards is not None and cfg.max_shards >= 0 else all_items
+    if not items:
+        raise RuntimeError(f"No shard items found in manifest: {cfg.manifest_path}")
+    requested_mode = str(cfg.spatial_mode).strip().lower()
+    if requested_mode not in {"append", "only"}:
+        raise ValueError("spatial_mode must be append or only for spatial retrieval profiling")
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    modes = ["off", requested_mode] if cfg.compare_baseline else [requested_mode]
+    runs: list[dict[str, Any]] = []
+    selected_duration_s = float(sum(float(item.get("duration_s") or 0.0) for item in items))
+
+    for mode in modes:
+        run_dir = cfg.output_dir / f"retrieval_{mode}"
+        tracemalloc.start()
+        started = time.perf_counter()
+        retrieval_path, retrieval = run_shard_event_retrieval(
+            ShardRetrieveConfig(
+                manifest_path=cfg.manifest_path,
+                query_path=cfg.query_path,
+                output_dir=run_dir,
+                top_k=cfg.top_k,
+                window_s=cfg.window_s,
+                hop_s=cfg.hop_s,
+                feature_set=cfg.feature_set,
+                distance=cfg.distance,
+                frame_size=cfg.frame_size,
+                hop_size=cfg.hop_size,
+                sample_rate=cfg.sample_rate,
+                max_shards=cfg.max_shards,
+                write_clips=False,
+                spatial_mode=mode,
+                spatial_metrics=list(cfg.spatial_metrics),
+                spatial_weight=cfg.spatial_weight,
+            )
+        )
+        elapsed_s = max(time.perf_counter() - started, 1e-12)
+        _, peak_bytes = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        windows = int(retrieval.get("windows_scanned") or 0)
+        runs.append(
+            {
+                "spatial_mode": mode,
+                "elapsed_s": float(elapsed_s),
+                "python_tracemalloc_peak_bytes": int(peak_bytes),
+                "windows_scanned": windows,
+                "windows_per_s": float(windows / elapsed_s),
+                "archive_duration_s": selected_duration_s,
+                "archive_realtime_factor": float(selected_duration_s / elapsed_s) if selected_duration_s > 0.0 else None,
+                "retrieval_report_json": str(retrieval_path),
+                "candidate_windows": int(retrieval.get("candidate_windows") or 0),
+                "skipped_windows": int(len(retrieval.get("skipped") or [])),
+            }
+        )
+
+    baseline = next((run for run in runs if run["spatial_mode"] == "off"), None)
+    spatial = next((run for run in runs if run["spatial_mode"] == requested_mode), None)
+    comparison: dict[str, Any] | None = None
+    if baseline is not None and spatial is not None:
+        base_elapsed = float(baseline["elapsed_s"])
+        comparison = {
+            "spatial_mode": requested_mode,
+            "elapsed_overhead_s": float(spatial["elapsed_s"] - base_elapsed),
+            "elapsed_overhead_percent": float(((float(spatial["elapsed_s"]) / base_elapsed) - 1.0) * 100.0),
+            "windows_per_s_ratio": float(float(spatial["windows_per_s"]) / max(float(baseline["windows_per_s"]), 1e-12)),
+        }
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "esl_version": __version__,
+        "profile_kind": "shard_spatial_event_retrieval",
+        "created_utc": _now_utc(),
+        "manifest_path": str(cfg.manifest_path.resolve()),
+        "query_path": str(cfg.query_path.resolve()),
+        "archive": {
+            "shards_total": len(all_items),
+            "shards_profiled": len(items),
+            "duration_s_profiled": selected_duration_s,
+            "channels": sorted({int(item.get("channels") or 0) for item in items}),
+            "calendar": manifest.get("calendar", {"timeline_mode": "archive_relative"}),
+        },
+        "config": {
+            "top_k": cfg.top_k,
+            "window_s": cfg.window_s,
+            "hop_s": cfg.hop_s,
+            "feature_set": cfg.feature_set,
+            "distance": cfg.distance,
+            "frame_size": cfg.frame_size,
+            "hop_size": cfg.hop_size,
+            "sample_rate": cfg.sample_rate,
+            "spatial_mode": requested_mode,
+            "spatial_metrics": list(cfg.spatial_metrics),
+            "spatial_weight": cfg.spatial_weight,
+            "compare_baseline": cfg.compare_baseline,
+            "clips_written": False,
+        },
+        "runs": runs,
+        "comparison": comparison,
+        "telemetry_notes": [
+            "Wall time covers the production retrieval path with WAV clip export disabled.",
+            "python_tracemalloc_peak_bytes excludes native decoder allocations and OS page cache.",
+        ],
+    }
+    report_path = (cfg.output_dir / "spatial_retrieval_profile.json").resolve()
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report_path, report
 

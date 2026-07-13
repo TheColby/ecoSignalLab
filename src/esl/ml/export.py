@@ -20,6 +20,7 @@ import numpy as np
 from esl.ml.device import device_resolution_dict, resolve_compute_device
 
 FRAMETABLE_VERSION = "1.0.0"
+DATASET_MANIFEST_VERSION = "1.1.0"
 
 
 @dataclass(slots=True)
@@ -214,6 +215,12 @@ def _write_parquet(path: Path, rows: list[dict[str, Any]]) -> bool:
         import pandas as pd
     except Exception:
         return False
+    try:
+        df = pd.DataFrame.from_records(rows)
+        df.to_parquet(path, index=False)
+        return True
+    except Exception:
+        return False
 
 
 def build_dataset_manifest_from_ml_metadata(
@@ -257,6 +264,7 @@ def build_dataset_manifest_from_ml_metadata(
                 "source_config_hash": payload.get("source_config_hash"),
                 "source_pipeline_hash": payload.get("source_pipeline_hash"),
                 "esl_version": payload.get("esl_version"),
+                "artifacts": payload.get("artifacts", {}),
             }
         )
 
@@ -265,7 +273,8 @@ def build_dataset_manifest_from_ml_metadata(
         split_counts[str(row["split"])] += 1
 
     manifest = {
-        "dataset_manifest_version": "1.0.0",
+        "dataset_manifest_version": DATASET_MANIFEST_VERSION,
+        "manifest_kind": "ml_metadata_collection",
         "root_dir": str(root.resolve()),
         "pattern": pattern,
         "num_samples": len(samples),
@@ -277,12 +286,91 @@ def build_dataset_manifest_from_ml_metadata(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return out_path, manifest
-    try:
-        df = pd.DataFrame.from_records(rows)
-        df.to_parquet(path, index=False)
-        return True
-    except Exception:
-        return False
+
+
+def build_dataset_manifest_from_shard_report(
+    report_path: str | Path,
+    output_path: str | Path,
+    *,
+    split_ratios: tuple[float, float, float] = (0.8, 0.1, 0.1),
+) -> tuple[Path, dict[str, Any]]:
+    """Create deterministic ML splits that point to FrameTables from a shard report.
+
+    Each successful shard is one sample. The manifest deliberately retains both
+    archive-relative and, when available, calendar timestamps so ML code can
+    avoid rebuilding the archive timeline from filenames.
+    """
+    report_file = Path(report_path)
+    report = json.loads(report_file.read_text(encoding="utf-8"))
+    if not isinstance(report, dict) or not isinstance(report.get("rows"), list):
+        raise ValueError(f"Invalid shard analysis report: {report_file}")
+    if sum(split_ratios) <= 0.0:
+        split_ratios = (1.0, 0.0, 0.0)
+    ratio_total = float(sum(split_ratios))
+    train_ratio = float(split_ratios[0]) / ratio_total
+    val_ratio = float(split_ratios[1]) / ratio_total
+    rows = sorted(
+        (row for row in report["rows"] if isinstance(row, dict) and row.get("status") != "error"),
+        key=lambda row: (int(row.get("shard_index", -1)), str(row.get("relative_path", ""))),
+    )
+    samples: list[dict[str, Any]] = []
+    for idx, row in enumerate(rows):
+        position = idx / max(len(rows), 1)
+        split = "train" if position < train_ratio else "val" if position < train_ratio + val_ratio else "test"
+        result: dict[str, Any] = {}
+        json_path = Path(str(row.get("json", "")))
+        if json_path.exists():
+            loaded = json.loads(json_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                result = loaded
+        metadata = result.get("metadata", {}) if isinstance(result.get("metadata"), dict) else {}
+        artifacts = result.get("artifacts", {}) if isinstance(result.get("artifacts"), dict) else {}
+        samples.append(
+            {
+                "sample_id": f"shard_{int(row.get('shard_index', idx)):06d}",
+                "split": split,
+                "shard_index": int(row.get("shard_index", -1)),
+                "relative_path": row.get("relative_path"),
+                "input_path": row.get("input"),
+                "analysis_json": str(json_path.resolve()) if json_path.exists() else row.get("json"),
+                "timeline": {
+                    "start_s": row.get("timeline_start_s"),
+                    "end_s": row.get("timeline_end_s"),
+                    "start_time_utc": row.get("start_time_utc"),
+                    "end_time_utc": row.get("end_time_utc"),
+                    "start_time_local": row.get("start_time_local"),
+                    "end_time_local": row.get("end_time_local"),
+                },
+                "frame_table": {
+                    "csv": artifacts.get("frame_table_csv", row.get("frame_table_csv")),
+                    "parquet_dir": artifacts.get("frame_table_parquet_dir", row.get("frame_table_parquet_dir")),
+                    "hdf5": artifacts.get("frame_table_hdf5", row.get("frame_table_hdf5")),
+                    "metadata_json": artifacts.get("frame_table_metadata_json"),
+                    "version": FRAMETABLE_VERSION,
+                    "tensor_layout": "[channels, frames, features]",
+                },
+                "spatial_metadata": metadata.get("spatial_metadata", row.get("spatial_metadata")),
+                "source_config_hash": result.get("config_hash"),
+                "source_pipeline_hash": result.get("pipeline_hash"),
+                "esl_version": result.get("esl_version"),
+            }
+        )
+    split_counts = {name: sum(1 for sample in samples if sample["split"] == name) for name in ("train", "val", "test")}
+    manifest = {
+        "dataset_manifest_version": DATASET_MANIFEST_VERSION,
+        "manifest_kind": "shard_analysis_report",
+        "source_report": str(report_file.resolve()),
+        "calendar": report.get("calendar", {"timeline_mode": "archive_relative"}),
+        "num_samples": len(samples),
+        "split_ratios": {"train": split_ratios[0], "val": split_ratios[1], "test": split_ratios[2]},
+        "split_counts": split_counts,
+        "split_strategy": "deterministic_sequential_shard_order",
+        "samples": samples,
+    }
+    out_path = Path(output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return out_path, manifest
 
 
 def export_ml_features(
@@ -357,13 +445,14 @@ def export_ml_features(
         "source_config_hash": result.get("config_hash"),
         "source_pipeline_hash": result.get("pipeline_hash"),
         "esl_version": result.get("esl_version"),
+        "artifacts": {key: str(Path(value).resolve()) for key, value in artifacts.items()},
     }
     meta_path = out / f"{prefix}_ml_metadata.json"
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     artifacts["ml_metadata_json"] = str(meta_path)
     dataset_manifest_path = out / f"{prefix}_dataset_manifest.json"
     dataset_manifest = {
-        "dataset_manifest_version": "1.0.0",
+        "dataset_manifest_version": DATASET_MANIFEST_VERSION,
         "sample_id": prefix,
         "split": "unspecified",
         "root_dir": str(out.resolve()),

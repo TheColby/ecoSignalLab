@@ -89,6 +89,84 @@ Where:
 
 This is what lets a sharded archive behave like one logical timeline.
 
+## Calendar-Aware Timelines
+
+Archive-relative seconds are always present. When you know when shard zero
+started, add a real clock at index time:
+
+```bash
+esl shard index archive_dir --out out/archive_manifest.json \
+  --calendar-start 2026-01-01T00:00:00Z \
+  --calendar-timezone America/New_York
+```
+
+`--calendar-start` must include `Z` or a UTC offset. This avoids silently
+guessing whether `01:30` occurred before or after a daylight-saving transition.
+The manifest then stores `start_time_utc` and `end_time_utc` for every shard;
+with `--calendar-timezone`, it additionally stores display-oriented local times.
+
+```mermaid
+flowchart LR
+    A["Shard 0 start time"] --> B["UTC archive clock"]
+    B --> C["start_time_utc / end_time_utc"]
+    B --> D["optional IANA local clock"]
+    C --> E["analysis report / ML dataset manifest"]
+    D --> E
+```
+
+Where $t_i$ is the archive-relative start of shard $i$ and $T_0$ is the supplied
+UTC archive start:
+
+$$
+T_i = T_0 + t_i
+$$
+
+Plain English: archive seconds remain the stable processing coordinate; calendar
+timestamps make reports understandable to humans and deployment logs.
+
+When an analysis report has absolute timestamps, `esl shard plot --rollup day`,
+`month`, or `year` groups on real UTC calendar boundaries. Without an archive
+clock it preserves the older archive-relative 24-hour, 30-day, and 365-day
+campaign bins.
+
+## Spatial and Ambisonics Sidecars
+
+Filename inference is a useful hint, not a spatial-audio contract. Use a JSON or
+YAML sidecar when you know the channel convention:
+
+```json
+{
+  "layout_family": "ambisonic",
+  "layout_hint": "ambisonic_b_format",
+  "channel_labels": ["W", "Y", "Z", "X"],
+  "ambisonics": {
+    "order": 1,
+    "component_order": "ACN",
+    "normalization": "SN3D"
+  }
+}
+```
+
+For one file:
+
+```bash
+esl analyze recorder_channels.wav \
+  --spatial-metadata-sidecar recorder_channels.spatial.json
+```
+
+For an archive, create a directory mirroring the audio layout and name entries
+`<stem>.spatial.json`, `.yaml`, or `.yml`:
+
+```bash
+esl shard index archive_dir --out out/archive_manifest.json \
+  --spatial-sidecar-dir spatial_sidecars
+```
+
+The decoder remains authoritative for channel count. A sidecar may clarify order,
+normalization, labels, layout, and geometry, but it cannot claim that a four
+channel WAV contains nine HOA channels. The output records the sidecar path and
+overridden fields under `metadata.spatial_metadata.provenance`.
+
 ## Command 2: Analyze the manifest as one archive
 
 ```bash
@@ -116,6 +194,21 @@ Artifacts:
 - `out/shard_analysis/shards/.../*.json`
 - `out/shard_analysis/shard_analysis_index.csv`
 - `out/shard_analysis/shard_analysis_report.json`
+
+## Build an Archive ML Dataset Manifest
+
+After a streamed shard analysis with FrameTables, create reproducible splits:
+
+```bash
+esl shard dataset out/shard_analysis/shard_analysis_report.json \
+  --out out/archive_dataset_manifest.json \
+  --split-ratios 0.8,0.1,0.1
+```
+
+The output maps each shard sample to its source audio, analysis JSON, FrameTable
+artifacts, spatial metadata, and archive/calendar interval. See
+[ML Features](ML_FEATURES.md#archive-frametable-dataset-manifests) for the
+split semantics and leakage warning.
 
 ## Why this is different from `batch`
 
@@ -398,6 +491,55 @@ d = (1-w)d_f + wd_s
 $$
 
 Plain English: with `append`, `esl` blends ordinary timbral similarity with spatial-scene similarity.
+
+## Profile Spatial Retrieval Before a Long Run
+
+Before committing a large multichannel archive to a new spatial metric set, run
+the production retrieval path on a representative shard subset:
+
+```bash
+esl shard profile-retrieve archive_manifest.json query_event.wav \
+  --out out/spatial_profile \
+  --max-shards 100 \
+  --window-seconds 10 \
+  --window-hop-seconds 5 \
+  --spatial-mode append \
+  --spatial-metrics interchannel_coherence,iacc,ild_db,itd_s \
+  --spatial-weight 0.7
+```
+
+By default this runs the same query twice: ordinary feature retrieval (`off`)
+and the requested spatial mode. It writes
+`out/spatial_profile/spatial_retrieval_profile.json` plus one normal retrieval
+report per run, with clip export disabled so file writing does not pollute the
+comparison.
+
+```mermaid
+flowchart LR
+    A["Representative archive shards"] --> B["baseline retrieval: off"]
+    A --> C["spatial retrieval: append or only"]
+    B --> D["wall time / windows per second"]
+    C --> D
+    D --> E["spatial_retrieval_profile.json"]
+```
+
+The report records:
+
+- `elapsed_s`: wall-clock time for the real retrieval path
+- `windows_per_s`: candidate windows processed per second
+- `archive_realtime_factor`: profiled archive duration divided by elapsed time
+- `python_tracemalloc_peak_bytes`: Python allocation peak only
+- `elapsed_overhead_percent`: spatial cost relative to the baseline
+
+Where $T_a$ is profiled archive duration and $T_w$ is measured wall time:
+
+$$
+R = \frac{T_a}{T_w}
+$$
+
+Plain English: $R=20$ means the tested workflow processed twenty seconds of
+archive for every second on the clock. `tracemalloc` does not see native decoder
+buffers or the operating system page cache, so do not mistake it for total RSS.
 
 ## Archive-Level Event Retrieval
 

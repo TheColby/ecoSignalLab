@@ -299,6 +299,48 @@ def test_cli_shard_retrieve_spatial_only_ranks_matching_stereo_event(tmp_path: P
     assert "spatial_distance" in best["distance_components"]
 
 
+def test_cli_shard_profile_retrieve_compares_spatial_mode(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    sr = 8000
+    t = np.arange(int(sr * 0.4), dtype=np.float64) / sr
+    base = 0.1 * np.sin(2.0 * np.pi * 440.0 * t)
+    query = np.column_stack([base[: int(sr * 0.2)], base[: int(sr * 0.2)]]).astype(np.float32)
+    sf.write(tmp_path / "query.wav", query, sr)
+    sf.write(archive / "a.wav", np.column_stack([base, base]).astype(np.float32), sr)
+    sf.write(archive / "b.wav", np.column_stack([base, -base]).astype(np.float32), sr)
+    manifest_path = tmp_path / "manifest.json"
+    assert main(["shard", "index", str(archive), "--out", str(manifest_path)]) == 0
+
+    out_dir = tmp_path / "profile"
+    assert (
+        main(
+            [
+                "shard",
+                "profile-retrieve",
+                str(manifest_path),
+                str(tmp_path / "query.wav"),
+                "--out",
+                str(out_dir),
+                "--window-seconds",
+                "0.2",
+                "--window-hop-seconds",
+                "0.2",
+                "--spatial-mode",
+                "only",
+                "--spatial-metrics",
+                "interchannel_coherence",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads((out_dir / "spatial_retrieval_profile.json").read_text(encoding="utf-8"))
+    assert payload["profile_kind"] == "shard_spatial_event_retrieval"
+    assert [run["spatial_mode"] for run in payload["runs"]] == ["off", "only"]
+    assert payload["comparison"] is not None
+    assert all(float(run["windows_per_s"]) > 0.0 for run in payload["runs"])
+
+
 def test_cli_shard_similar_metric_mode_single_metric(tmp_path: Path) -> None:
     archive = tmp_path / "archive"
     archive.mkdir(parents=True, exist_ok=True)
@@ -481,6 +523,76 @@ def test_cli_shard_plot_writes_campaign_rollups(tmp_path: Path) -> None:
     assert rollup_csv.exists()
     text = rollup_csv.read_text(encoding="utf-8")
     assert "period_index,period_start_s,period_end_s,shard_count,total_duration_s,rms_dbfs_mean" in text
+
+
+def test_cli_shard_calendar_manifest_and_dataset_manifest(tmp_path: Path) -> None:
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _write_wav(archive / "a.wav", seconds=0.25, freq=220.0)
+    _write_wav(archive / "b.wav", seconds=0.25, freq=440.0)
+    sidecars = tmp_path / "sidecars"
+    sidecars.mkdir()
+    (sidecars / "a.spatial.json").write_text(
+        json.dumps({"layout_family": "mono", "layout_hint": "pressure_reference", "channel_labels": ["reference"]}),
+        encoding="utf-8",
+    )
+    manifest_path = tmp_path / "manifest.json"
+    assert (
+        main(
+            [
+                "shard",
+                "index",
+                str(archive),
+                "--out",
+                str(manifest_path),
+                "--calendar-start",
+                "2026-01-01T00:00:00Z",
+                "--calendar-timezone",
+                "America/New_York",
+                "--spatial-sidecar-dir",
+                str(sidecars),
+            ]
+        )
+        == 0
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["calendar"]["timeline_mode"] == "absolute"
+    assert manifest["items"][0]["start_time_utc"] == "2026-01-01T00:00:00Z"
+    assert manifest["items"][0]["start_time_local"].endswith("-05:00")
+    assert manifest["items"][0]["spatial_metadata"]["provenance"]["source"] == "sidecar"
+
+    analysis_dir = tmp_path / "analysis"
+    assert (
+        main(
+            [
+                "shard",
+                "analyze",
+                str(manifest_path),
+                "--out",
+                str(analysis_dir),
+                "--metrics",
+                "rms_dbfs",
+                "--report-metrics",
+                "rms_dbfs",
+                "--chunk-seconds",
+                "0.1",
+                "--streamable-only",
+                "--frame-table-dir",
+                str(tmp_path / "frame_tables"),
+            ]
+        )
+        == 0
+    )
+    dataset_path = tmp_path / "dataset_manifest.json"
+    assert main(["shard", "dataset", str(analysis_dir / "shard_analysis_report.json"), "--out", str(dataset_path)]) == 0
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    assert dataset["manifest_kind"] == "shard_analysis_report"
+    assert dataset["calendar"]["timeline_mode"] == "absolute"
+    assert dataset["samples"][0]["timeline"]["start_time_utc"] == "2026-01-01T00:00:00Z"
+    assert dataset["samples"][0]["frame_table"]["csv"]
+    plot_dir = tmp_path / "calendar_plot"
+    assert main(["shard", "plot", str(analysis_dir / "shard_analysis_report.json"), "--out", str(plot_dir), "--rollup", "day"]) == 0
+    assert "period_start_utc" in (plot_dir / "archive_rollup_day.csv").read_text(encoding="utf-8")
 
 
 def test_cli_shard_insights_summary_scene_calmness_and_report(tmp_path: Path) -> None:
