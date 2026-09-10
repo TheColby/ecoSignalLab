@@ -3046,7 +3046,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_sim.add_argument(
         "--spatial-metrics",
-        default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
+        default="interchannel_correlation_zerolag,interchannel_coherence_msc,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
         help="Comma-separated spatial metrics used when --spatial-mode is append or only",
     )
     psh_sim.add_argument("--spatial-weight", type=float, default=0.5, help="Blend weight for spatial distance when --spatial-mode append")
@@ -3121,7 +3121,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_ret.add_argument(
         "--spatial-metrics",
-        default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
+        default="interchannel_correlation_zerolag,interchannel_coherence_msc,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
         help="Comma-separated spatial metrics used when --spatial-mode is append or only",
     )
     psh_ret.add_argument(
@@ -3167,7 +3167,7 @@ def _build_parser() -> argparse.ArgumentParser:
     psh_prof.add_argument("--spatial-mode", default="append", choices=["append", "only"])
     psh_prof.add_argument(
         "--spatial-metrics",
-        default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
+        default="interchannel_correlation_zerolag,interchannel_coherence_msc,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
         help="Comma-separated spatial metrics used by the spatial run",
     )
     psh_prof.add_argument("--spatial-weight", type=float, default=0.5, help="Spatial blend weight for append mode")

@@ -11,6 +11,8 @@ References:
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from esl.core.calibration import db, dbfs_to_spl, weighted_rms
@@ -104,8 +106,62 @@ def _architectural_cache(ctx: AnalysisContext) -> dict[str, np.ndarray | float]:
         "rt60_fit": rt60_fit,
         "edt_fit": edt_fit,
     }
+    cache.update(_decay_validity(cache))
     ctx.cache[key] = cache
     return cache
+
+
+def _finite_summary(series: np.ndarray) -> dict[str, float]:
+    """Summary over the finite entries of a series that may contain NaN.
+
+    A frame marked unavailable should not poison the summary of the frames that
+    were measurable; if nothing is finite the summary is NaN throughout, which
+    is the correct report for "no measurement was possible".
+    """
+    arr = np.asarray(series, dtype=np.float64)
+    finite = arr[np.isfinite(arr)]
+    if finite.size == 0:
+        nan = float("nan")
+        return {"mean": nan, "std": nan, "min": nan, "max": nan, "p50": nan, "p95": nan}
+    return summarize(finite)
+
+
+DECAY_MIN_DYNAMIC_RANGE_DB = 35.0
+DECAY_MIN_FIT_R2 = 0.95
+
+
+def _decay_validity(cache: dict[str, Any]) -> dict[str, Any]:
+    """Decide whether a decay-derived time constant means anything.
+
+    A reverse-integrated energy curve can be fitted to any signal, so a decay
+    time is always *computable*.  It is only a reverberation time when the input
+    actually decays: enough dynamic range for the ISO evaluation window, a
+    negative slope, and a fit the data supports.  Without this test a steady tone
+    or a DC offset yields a confident-looking RT.
+    """
+    fit = cache.get("rt60_fit") or {}
+    dynamic_range = float(cache.get("dynamic_range_db", 0.0) or 0.0)
+    r2 = float(fit.get("r2", float("nan")))
+    slope = float(fit.get("slope_db_per_s", float("nan")))
+    rt60 = float(cache.get("rt60", float("nan")))
+
+    reasons: list[str] = []
+    if not np.isfinite(rt60):
+        reasons.append("decay fit did not converge to a finite decay time")
+    if dynamic_range < DECAY_MIN_DYNAMIC_RANGE_DB:
+        reasons.append(
+            f"decay curve spans only {dynamic_range:.1f} dB; ISO 3382-1 T30 needs at least "
+            f"{DECAY_MIN_DYNAMIC_RANGE_DB:.0f} dB below the starting level"
+        )
+    if not (np.isfinite(slope) and slope < 0.0):
+        reasons.append("energy decay curve does not decrease over the evaluation range")
+    if not (np.isfinite(r2) and r2 >= DECAY_MIN_FIT_R2):
+        reasons.append(f"decay fit r2 = {r2:.3f} is below {DECAY_MIN_FIT_R2}")
+
+    return {
+        "decay_valid": not reasons,
+        "decay_invalid_reason": "; ".join(reasons) if reasons else None,
+    }
 
 
 class RMSDbfsMetric:
@@ -320,18 +376,38 @@ class SpectralCentroidMetric:
         description="Spectral centroid over time.",
     )
 
+    # spectral_features adds 1e-12 to every magnitude bin, so an all-zero frame
+    # still sums to bins * 1e-12.  Anything within an order of magnitude of that
+    # floor carries no signal.
+    SILENCE_FLOOR_FACTOR = 10.0
+
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         f, t, mag = _spectral_cache(ctx)
         num = np.sum(f[:, None] * mag, axis=0)
         den = np.sum(mag, axis=0)
         centroid = num / np.maximum(den, 1e-12)
+        # With no signal, num/den collapses to the mean bin frequency -- roughly
+        # half of Nyquist -- which looks like a measurement and is not one.
+        floor = float(mag.shape[0]) * 1e-12 * self.SILENCE_FLOOR_FACTOR
+        silent = den <= floor
+        centroid = np.where(silent, np.nan, centroid)
+        silent_share = float(np.mean(silent)) if silent.size else 0.0
+        valid = silent_share < 1.0
         return MetricResult(
             name=self.spec.name,
             units=self.spec.units,
-            summary=summarize(centroid),
+            summary=_finite_summary(centroid),
             series=centroid.tolist(),
             timestamps_s=t.tolist(),
-            confidence=1.0,
+            confidence=1.0 if silent_share == 0.0 else max(0.2, 1.0 - silent_share),
+            extra={
+                "valid": valid,
+                "invalid_reason": (
+                    None if valid else "every frame is below the spectral energy floor; centroid is undefined"
+                ),
+                "silent_frame_share": silent_share,
+                "silence_floor_magnitude_sum": floor,
+            },
         )
 
 
@@ -513,9 +589,20 @@ class AcousticComplexityIndexMetric:
         )
 
 
-class InterchannelCoherenceMetric:
+class InterchannelCorrelationZeroLagMetric:
+    """Zero-lag normalized cross-correlation between adjacent channels.
+
+    This is a Pearson correlation coefficient computed per frame, so it is
+    bounded in [-1, 1] and *can be negative*.  It is deliberately not called
+    coherence: magnitude-squared coherence is a frequency-domain quantity
+    bounded in [0, 1] and is provided separately as
+    ``interchannel_coherence_msc``.  The two answer different questions -- a
+    pair of broadband signals differing only by a short delay has near-zero
+    zero-lag correlation but near-unity coherence.
+    """
+
     spec = MetricSpec(
-        name="interchannel_coherence",
+        name="interchannel_correlation_zerolag",
         category="Spatial",
         units="ratio",
         window_size=2048,
@@ -524,7 +611,7 @@ class InterchannelCoherenceMetric:
         calibration_dependency=False,
         ml_compatible=True,
         confidence_logic="Reduced for low-energy frames",
-        description="Mean adjacent-channel correlation per frame.",
+        description="Mean adjacent-channel zero-lag correlation per frame, in [-1, 1].",
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
@@ -554,6 +641,102 @@ class InterchannelCoherenceMetric:
             series=coh.tolist(),
             timestamps_s=framed.times_s.tolist(),
             confidence=conf,
+        )
+
+
+class InterchannelCoherenceMSCMetric:
+    """Magnitude-squared coherence between the first two channels.
+
+    Welch estimate with ``nperseg = frame_size`` and ``noverlap = frame_size -
+    hop_size``.  Bounded in [0, 1] by construction; a single segment would give
+    unity everywhere, so the value is only meaningful because several segments
+    are averaged.  The reported scalar is the power-weighted mean of
+    Gamma^2(f) over ``band_hz``; the full function is summarized in ``extra``.
+    """
+
+    BAND_HZ = (20.0, None)
+
+    spec = MetricSpec(
+        name="interchannel_coherence_msc",
+        category="Spatial",
+        units="ratio",
+        window_size=2048,
+        hop_size=512,
+        streaming_capable=True,
+        calibration_dependency=False,
+        ml_compatible=True,
+        confidence_logic="Requires several Welch segments; reduced for short inputs",
+        description="Welch magnitude-squared coherence of channels 1 and 2, in [0, 1].",
+    )
+
+    def compute(self, ctx: AnalysisContext) -> MetricResult:
+        from scipy.signal import coherence as _coherence
+
+        if ctx.channels < 2:
+            return MetricResult(
+                name=self.spec.name,
+                units=self.spec.units,
+                summary=summarize(np.array([float("nan")], dtype=np.float64)),
+                series=[float("nan")],
+                timestamps_s=[0.0],
+                confidence=0.0,
+                extra={
+                    "valid": False,
+                    "invalid_reason": "magnitude-squared coherence requires at least two channels",
+                    "channel_pair": None,
+                },
+            )
+
+        a = np.asarray(ctx.signal[:, 0], dtype=np.float64)
+        b = np.asarray(ctx.signal[:, 1], dtype=np.float64)
+        nperseg = int(min(ctx.frame_size, a.size))
+        noverlap = int(max(0, min(nperseg - 1, ctx.frame_size - ctx.hop_size)))
+        segments = 0 if nperseg <= 0 else 1 + max(0, (a.size - nperseg) // max(1, nperseg - noverlap))
+        if segments < 8:
+            return MetricResult(
+                name=self.spec.name,
+                units=self.spec.units,
+                summary=summarize(np.array([float("nan")], dtype=np.float64)),
+                series=[float("nan")],
+                timestamps_s=[0.0],
+                confidence=0.0,
+                extra={
+                    "valid": False,
+                    "invalid_reason": f"only {segments} Welch segments available; at least 8 required",
+                    "welch_segments": int(segments),
+                    "channel_pair": [0, 1],
+                },
+            )
+
+        freqs, gamma2 = _coherence(a, b, fs=ctx.sample_rate, nperseg=nperseg, noverlap=noverlap)
+        lo, hi = self.BAND_HZ
+        mask = freqs >= float(lo)
+        if hi is not None:
+            mask &= freqs <= float(hi)
+        if not np.any(mask):
+            mask = np.ones_like(freqs, dtype=bool)
+        weights = np.abs(np.fft.rfft(a[:nperseg]))
+        weights = weights[: mask.size] if weights.size >= mask.size else np.ones_like(freqs)
+        w = np.maximum(weights[mask], 0.0)
+        band = np.clip(gamma2[mask], 0.0, 1.0)
+        value = float(np.sum(band * w) / np.sum(w)) if float(np.sum(w)) > 0.0 else float(np.mean(band))
+        return MetricResult(
+            name=self.spec.name,
+            units=self.spec.units,
+            summary=summarize(np.array([value], dtype=np.float64)),
+            series=[value],
+            timestamps_s=[0.0],
+            confidence=0.9,
+            extra={
+                "valid": True,
+                "channel_pair": [0, 1],
+                "welch_nperseg": int(nperseg),
+                "welch_noverlap": int(noverlap),
+                "welch_segments": int(segments),
+                "band_hz": [float(lo), None if hi is None else float(hi)],
+                "gamma2_unweighted_mean": float(np.mean(band)),
+                "gamma2_max": float(np.max(band)),
+            },
         )
 
 
@@ -644,6 +827,8 @@ class RT60Metric:
                 "decay_db": c["decay"].tolist(),
                 "dynamic_range_db": float(c["dynamic_range_db"]),
                 "fit": c["rt60_fit"],
+                "valid": bool(c["decay_valid"]),
+                "invalid_reason": c["decay_invalid_reason"],
             },
         )
 
@@ -670,7 +855,12 @@ class EDTMetric:
             units=self.spec.units,
             summary=summarize(np.array([v])),
             confidence=float(c["confidence"]),
-            extra={"value": v, "fit": c["edt_fit"]},
+            extra={
+                "value": v,
+                "fit": c["edt_fit"],
+                "valid": bool(c["decay_valid"]),
+                "invalid_reason": c["decay_invalid_reason"],
+            },
         )
 
 
@@ -769,7 +959,8 @@ def builtin_plugins() -> list[object]:
         ZeroCrossingRateMetric(),
         BioacousticIndexMetric(),
         AcousticComplexityIndexMetric(),
-        InterchannelCoherenceMetric(),
+        InterchannelCorrelationZeroLagMetric(),
+        InterchannelCoherenceMSCMetric(),
         NoveltyCurveMetric(),
         SpectralChangeMetric(),
         RT60Metric(),

@@ -1,0 +1,37 @@
+input,metric,expected_unavailable,outcome,verdict,value,flagged_invalid,detail
+digital_silence,itd_s,True,flagged_invalid,correctly_unavailable,-0.0010000000000000002,True,GCC-PHAT peak-to-sidelobe ratio below 3 in 100% of frames; the channel pair is not a delayed copy of one source and the 
+digital_silence,interchannel_coherence_msc,True,nan,correctly_unavailable,nan,True,
+digital_silence,iacc,True,flagged_invalid,correctly_unavailable,0.0,True,both channels are below the energy floor
+digital_silence,rms_dbfs,False,returned_value,correctly_reported,-240.00001525878906,False,
+digital_silence,spectral_centroid_hz,True,nan,correctly_unavailable,nan,True,every frame is below the spectral energy floor; centroid is undefined
+digital_silence,t30_s,True,nan,correctly_unavailable,nan,True,decay fit did not converge to a finite decay time; decay curve spans only 0.0 dB; this estimate needs at least 35 dB; en
+dc_offset_only,itd_s,False,returned_value,correctly_reported,0.0,False,
+dc_offset_only,interchannel_coherence_msc,True,nan,correctly_unavailable,nan,True,
+dc_offset_only,iacc,False,returned_value,correctly_reported,0.8791680932044983,False,
+dc_offset_only,rms_dbfs,False,returned_value,correctly_reported,-7.958800792694092,False,
+dc_offset_only,spectral_centroid_hz,False,returned_value,correctly_reported,7.828009903908414,False,
+dc_offset_only,t30_s,True,flagged_invalid,correctly_unavailable,2.9446082567905476,True,decay fit r2 = 0.769 is below 0.95
+hard_clipped,itd_s,True,flagged_invalid,correctly_unavailable,4.459459459459459e-05,True,GCC-PHAT peak-to-sidelobe ratio below 3 in 88% of frames; the channel pair is not a delayed copy of one source and the r
+hard_clipped,interchannel_coherence_msc,False,returned_value,correctly_reported,0.010148013383741224,False,
+hard_clipped,iacc,False,returned_value,correctly_reported,0.059296025537155767,False,
+hard_clipped,rms_dbfs,False,returned_value,correctly_reported,-0.6124778389930725,False,
+hard_clipped,spectral_centroid_hz,False,returned_value,correctly_reported,11997.171030170051,False,
+hard_clipped,t30_s,True,flagged_invalid,correctly_unavailable,2.9690823944140106,True,decay fit r2 = 0.774 is below 0.95
+mono_single_channel,itd_s,True,flagged_invalid,correctly_unavailable,0.0,True,interchannel delay requires at least two channels
+mono_single_channel,interchannel_coherence_msc,True,nan,correctly_unavailable,nan,True,magnitude-squared coherence requires at least two channels
+mono_single_channel,iacc,True,flagged_invalid,correctly_unavailable,0.9999999693922095,True,interchannel correlation requires at least two channels
+mono_single_channel,rms_dbfs,False,returned_value,correctly_reported,-13.966670036315918,False,
+mono_single_channel,spectral_centroid_hz,False,returned_value,correctly_reported,12011.132708527586,False,
+mono_single_channel,t30_s,True,flagged_invalid,correctly_unavailable,0.24206687093874996,True,decay fit r2 = 0.766 is below 0.95
+independent_channels,itd_s,True,flagged_invalid,correctly_unavailable,0.00010934684684684683,True,GCC-PHAT peak-to-sidelobe ratio below 3 in 85% of frames; the channel pair is not a delayed copy of one source and the r
+independent_channels,interchannel_coherence_msc,False,returned_value,correctly_reported,0.010186545939944478,False,
+independent_channels,iacc,False,returned_value,correctly_reported,0.06098875193982511,False,
+independent_channels,rms_dbfs,False,returned_value,correctly_reported,-18.428407669067383,False,
+independent_channels,spectral_centroid_hz,False,returned_value,correctly_reported,11979.007236657133,False,
+independent_channels,t30_s,True,flagged_invalid,correctly_unavailable,2.5775905942847634,True,decay fit r2 = 0.770 is below 0.95
+shorter_than_one_frame,itd_s,True,flagged_invalid,correctly_unavailable,0.00020833333333333335,True,GCC-PHAT peak-to-sidelobe ratio below 3 in 100% of frames; the channel pair is not a delayed copy of one source and the 
+shorter_than_one_frame,interchannel_coherence_msc,True,nan,correctly_unavailable,nan,True,only 1 Welch segments available; at least 8 required
+shorter_than_one_frame,iacc,False,returned_value,correctly_reported,0.07925991714000702,False,
+shorter_than_one_frame,rms_dbfs,False,returned_value,correctly_reported,-16.794483184814453,False,
+shorter_than_one_frame,spectral_centroid_hz,False,returned_value,correctly_reported,12169.248009434714,False,
+shorter_than_one_frame,t30_s,True,flagged_invalid,correctly_unavailable,0.03201486433213701,True,decay curve spans only 31.7 dB; this estimate needs at least 35 dB; decay fit r2 = 0.702 is below 0.95

@@ -1,0 +1,10 @@
+component,predicted_mib_per_s,note
+"decoded waveform (float64, 2 ch)",0.732421875,read_audio promotes the decoded float32 buffer to float64
+"complex STFT (complex128, 1 ch)",1.4662742614746094,93.75 frames/s x 1025 bins
+"magnitude spectrogram (float64, 1 ch)",0.7331371307373047,cached alongside the complex transform
+"framed time-domain buffer (float32, 2 ch)",1.46484375,"overlapping frames are materialised, not viewed"
+retained metric series (float64),0.004291534423828125,6 metrics at one value per frame
+predicted total (all arrays live at once),4.400968551635742,"upper bound: peak RSS reflects the largest coexisting set, not the sum"
+predicted subset (transform + magnitude + waveform),2.931833267211914,the arrays that plausibly coexist at the peak
+measured full-file slope,3.3070397755456344,"least-squares fit, r2 = 1.0000"
+raw stereo float32 data rate,0.3662109375,for reference: what the audio itself costs

@@ -1,0 +1,36 @@
+{
+  "created_utc": "2026-09-10T01:05:29.676682+00:00",
+  "tone_path": "/tmp/esl_cal_verify_84qtt56r/sine_1khz_minus20dbfs_precision_chain.wav",
+  "sample_rate": 48000,
+  "channels": 1,
+  "weighting": "A",
+  "device_id": null,
+  "dbfs_reference": -20.0,
+  "spl_reference_db": 74.0,
+  "mic_sensitivity_mv_pa": 12.5,
+  "preamp_gain_db": 34.0,
+  "adc_full_scale_vrms": 1.0,
+  "measured_rms": 0.10000000149011612,
+  "measured_dbfs": -19.99999987057016,
+  "drift_db": 1.2942983929065122e-07,
+  "max_drift_db": 0.001,
+  "within_tolerance": true,
+  "spl_estimate_db": 74.00000012942984,
+  "pressure_chain_supported": true,
+  "measured_pa_rms": 0.15962098757604837,
+  "measured_db_spl_from_pa": 78.04119995598909,
+  "assumptions": [
+    "Drift compares measured tone RMS (dBFS) against configured dbfs_reference.",
+    "SPL estimate is a reference offset mapping, not a compliance measurement.",
+    "Precision Pa<->dBFS conversion requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms."
+  ],
+  "profile": {
+    "dbfs_reference": -20.0,
+    "spl_reference_db": 74.0,
+    "weighting": "A",
+    "mic_sensitivity_mv_pa": 12.5,
+    "preamp_gain_db": 34.0,
+    "adc_full_scale_vrms": 1.0,
+    "calibration_tone_file": null
+  }
+}

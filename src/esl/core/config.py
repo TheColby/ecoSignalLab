@@ -53,6 +53,38 @@ class AnalysisConfig:
     checkpoint_dir: Path | None = None
     resume: bool = False
     spatial_metadata_sidecar: Path | None = None
+    channel_pair: tuple[int, int] | None = None
+    """Zero-based channel indices used by paired-channel metrics.
+
+    When unset, paired metrics fall back to channels (0, 1) and record that the
+    pair was inferred from channel count rather than declared.
+    """
+
+    channel_semantics: str = "unspecified"
+    """How the declared channel pair should be interpreted.
+
+    ``"binaural"`` asserts that the pair really is a left/right ear signal, which
+    is what licenses the interaural reading of IACC, ILD and ITD.  Anything else
+    leaves them as interchannel quantities.
+    """
+
+    stream_continuity: bool = True
+    """Keep the streaming frame grid aligned with full-file framing.
+
+    When true, chunked analysis re-blocks the stream so every frame starts on
+    the same global grid a full-file run would use, carrying
+    ``frame_size - hop_size`` samples of overlap across chunk boundaries.  Set
+    false to reproduce the legacy behaviour in which each chunk is framed
+    independently from its own sample 0.
+    """
+
+    stream_context_frames: int = 1
+    """Frames of already-emitted context prepended to each chunk.
+
+    One frame is enough for first-difference metrics (spectral flux and the
+    novelty curves built on it) to see their predecessor across a boundary.
+    Ignored when ``stream_continuity`` is false.
+    """
 
 
 @dataclass(slots=True)

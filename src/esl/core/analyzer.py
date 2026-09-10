@@ -7,7 +7,7 @@ context such as impulse-response decay fitting.
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -18,10 +18,17 @@ from typing import Any
 import numpy as np
 
 from esl import __version__
-from esl.core.audio import AudioBuffer, probe_audio_metadata, read_audio, stream_audio
+from esl.core.audio import (
+    AudioBuffer,
+    probe_audio_metadata,
+    read_audio,
+    stream_audio,
+    stream_audio_frame_aligned,
+)
 from esl.core.calibration import calibration_to_dict
 from esl.core.config import AnalysisConfig
 from esl.core.context import AnalysisContext
+from esl.metrics.base import MetricResult
 from esl.core.out_of_core import (
     AudioAccumulator,
     FrameTableCsvWriter,
@@ -51,7 +58,13 @@ def _spatial_metadata(config: AnalysisConfig, channels: int, source_channel_layo
     )
     if config.spatial_metadata_sidecar is not None:
         metadata = apply_spatial_metadata_sidecar(metadata, config.spatial_metadata_sidecar)
-    return metadata.to_dict()
+    payload = metadata.to_dict()
+    declared = config.channel_pair is not None
+    pair = list(config.channel_pair) if declared else [0, min(1, max(0, channels - 1))]
+    payload["channel_pair"] = pair
+    payload["channel_pair_source"] = "declared" if declared else "inferred_from_channel_count"
+    payload["channel_semantics"] = str(config.channel_semantics or "unspecified")
+    return payload
 
 
 def _serialize_metric(result: MetricResult, spec: dict[str, Any]) -> dict[str, Any]:
@@ -334,7 +347,7 @@ def _assemble_result(
             "validity_flags": validity_flags,
             "calibration": calibration_to_dict(config.calibration),
             "assumptions": assumptions,
-            "warnings": warnings or [],
+            "warnings": list(warnings or []) + list(getattr(registry, "alias_warnings", [])),
             "analysis_strategy": {
                 "out_of_core": bool(mode == "streaming"),
                 "summary_statistics": RUNNING_SUMMARY_METHOD if mode == "streaming" else "exact_from_materialized_signal",
@@ -426,6 +439,24 @@ def _save_stream_state(
     return save_checkpoint(checkpoint_path, payload)
 
 
+def _drop_leading_frames(result: MetricResult, lead: int) -> MetricResult:
+    """Discard the first ``lead`` per-frame values of a chunk-local metric result.
+
+    Frame-aligned streaming hands each chunk a few frames of context from the
+    previous chunk so that first-difference metrics see their predecessor.
+    Those frames were already accumulated (or are pure lead-in) and must not be
+    counted twice.  Scalar or whole-chunk results, which carry no per-frame
+    series, are returned unchanged.
+    """
+    if lead <= 0:
+        return result
+    series = result.series or []
+    stamps = result.timestamps_s or []
+    if len(series) <= lead or len(stamps) != len(series):
+        return result
+    return replace(result, series=list(series[lead:]), timestamps_s=list(stamps[lead:]))
+
+
 def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_names: list[str]) -> dict[str, Any]:
     probe = probe_audio_metadata(config.input_path)
     format_name = str(probe.get("format_name") or Path(config.input_path).suffix.lstrip(".").upper() or "unknown")
@@ -449,11 +480,25 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
 
     resume_from, audio_acc, metric_acc = _load_stream_state(config=config, metric_names=metric_names)
     processed_chunks = 0
-    for chunk in stream_audio(
-        config.input_path,
-        chunk_size=int(config.chunk_size or 131072),
-        target_sr=config.sample_rate,
-    ):
+    continuity = bool(config.stream_continuity)
+    context_frames = max(0, int(config.stream_context_frames)) if continuity else 0
+    dropped_context_frames = 0
+    if continuity:
+        chunk_source = stream_audio_frame_aligned(
+            config.input_path,
+            frame_size=int(config.frame_size),
+            hop_size=int(config.hop_size),
+            chunk_size=int(config.chunk_size or 131072),
+            target_sr=config.sample_rate,
+            context_frames=context_frames,
+        )
+    else:
+        chunk_source = stream_audio(
+            config.input_path,
+            chunk_size=int(config.chunk_size or 131072),
+            target_sr=config.sample_rate,
+        )
+    for chunk in chunk_source:
         if chunk.index < resume_from:
             continue
         chunk_buffer = AudioBuffer(
@@ -492,8 +537,16 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
         )
         ctx = AnalysisContext(audio=chunk_buffer, config=chunk_cfg, calibration=config.calibration)
         chunk_metrics = registry.compute(ctx, metric_names)
+        lead = int(getattr(chunk, "context_frames", 0) or 0)
+        if lead > 0:
+            chunk_metrics = {name: _drop_leading_frames(result, lead) for name, result in chunk_metrics.items()}
+            dropped_context_frames += lead
         chunk_offset = chunk.start_sample / float(chunk.sample_rate)
-        audio_acc.update(chunk.samples, chunk.sample_rate)
+        new_samples = int(getattr(chunk, "new_samples", -1))
+        if new_samples < 0 or new_samples >= int(chunk.samples.shape[0]):
+            audio_acc.update(chunk.samples, chunk.sample_rate)
+        elif new_samples > 0:
+            audio_acc.update(chunk.samples[-new_samples:], chunk.sample_rate)
         for name, result in chunk_metrics.items():
             metric_acc[name].update(result, chunk_offset_s=chunk_offset)
         if frame_writer is not None:
@@ -525,7 +578,17 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
     resolved_duration = float(resolved_num_samples / resolved_sample_rate) if resolved_sample_rate > 0 else 0.0
 
     artifacts: dict[str, Any] = {}
-    warnings = ["Streaming mode merged chunk-local frame metrics without full-file materialization."]
+    if continuity:
+        warnings = [
+            "Streaming mode used frame-aligned chunks with "
+            f"{int(config.frame_size - config.hop_size)}-sample overlap and "
+            f"{context_frames} context frame(s) per chunk; the frame grid matches full-file framing."
+        ]
+    else:
+        warnings = [
+            "Streaming mode framed each chunk independently; frames straddling chunk "
+            "boundaries were not computed and the frame grid is re-anchored at every chunk."
+        ]
     if config.summary_only:
         warnings.append("Series payloads were omitted from JSON; use frame table artifacts for long-form rows.")
     if config.frame_table_csv is not None:
@@ -618,6 +681,10 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
             "processed_chunks": int(processed_chunks),
             "resume_from_chunk": int(resume_from),
             "streaming_capable_metrics_only": True,
+            "frame_continuity": "aligned_overlap" if continuity else "independent_chunks",
+            "context_frames_per_chunk": int(context_frames),
+            "context_frames_discarded": int(dropped_context_frames),
+            "chunk_overlap_samples": int(config.frame_size - config.hop_size) if continuity else 0,
         },
     )
 

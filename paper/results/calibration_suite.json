@@ -1,0 +1,81 @@
+{
+  "created_utc": "2026-09-10T01:05:29.686488+00:00",
+  "verification_kind": "calibration_fixture_suite",
+  "fixture": "all",
+  "fixture_count": 6,
+  "passed_count": 6,
+  "failed_count": 0,
+  "max_abs_error_db": 0.001,
+  "within_tolerance": true,
+  "fixture_results": [
+    {
+      "fixture": "sine_1khz_minus12dbfs",
+      "report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_1khz_minus12dbfs.json",
+      "within_tolerance": true,
+      "expected_dbfs_rms": -12.0,
+      "measured_dbfs_rms": -12.000000253286988,
+      "abs_error_db": 2.532869878280053e-07,
+      "pressure_chain_error_db": null
+    },
+    {
+      "fixture": "sine_1khz_minus20dbfs",
+      "report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_1khz_minus20dbfs.json",
+      "within_tolerance": true,
+      "expected_dbfs_rms": -20.0,
+      "measured_dbfs_rms": -19.99999987057016,
+      "abs_error_db": 1.2942983929065122e-07,
+      "pressure_chain_error_db": null
+    },
+    {
+      "fixture": "sine_1khz_minus20dbfs_precision_chain",
+      "report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_1khz_minus20dbfs_precision_chain.json",
+      "within_tolerance": true,
+      "expected_dbfs_rms": -20.0,
+      "measured_dbfs_rms": -19.99999987057016,
+      "abs_error_db": 1.2942983929065122e-07,
+      "pressure_chain_error_db": 0.0
+    },
+    {
+      "fixture": "sine_1khz_minus26dbfs",
+      "report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_1khz_minus26dbfs.json",
+      "within_tolerance": true,
+      "expected_dbfs_rms": -26.0,
+      "measured_dbfs_rms": -26.00000023242929,
+      "abs_error_db": 2.3242929003686186e-07,
+      "pressure_chain_error_db": null
+    },
+    {
+      "fixture": "sine_250hz_minus20dbfs",
+      "report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_250hz_minus20dbfs.json",
+      "within_tolerance": true,
+      "expected_dbfs_rms": -20.0,
+      "measured_dbfs_rms": -19.99999987057016,
+      "abs_error_db": 1.2942983929065122e-07,
+      "pressure_chain_error_db": null
+    },
+    {
+      "fixture": "sine_4khz_minus20dbfs",
+      "report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_4khz_minus20dbfs.json",
+      "within_tolerance": true,
+      "expected_dbfs_rms": -20.0,
+      "measured_dbfs_rms": -19.99999987057016,
+      "abs_error_db": 1.2942983929065122e-07,
+      "pressure_chain_error_db": null
+    }
+  ],
+  "artifacts": {
+    "reports_dir": "/home/claude/esl/paper/results/calibration_suite_reports"
+  },
+  "audit_equations": [
+    "rms_linear = sqrt(mean(x^2))",
+    "measured_dbfs = 20 * log10(max(rms_linear, eps))",
+    "drift_db = measured_dbfs - dbfs_reference",
+    "spl_estimate_db = measured_dbfs + (spl_reference_db - dbfs_reference)",
+    "within_tolerance = abs(drift_db) <= max_abs_error_db",
+    "precision Pa<->dBFS requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms"
+  ],
+  "assumptions": [
+    "Suite mode runs every built-in deterministic calibration verification fixture.",
+    "Per-fixture reports are written beside the suite report for CI and onboarding review."
+  ]
+}

@@ -61,6 +61,22 @@ class AudioChunk:
     start_sample: int
     sample_rate: int
     samples: np.ndarray  # [chunk_samples, num_channels]
+    context_frames: int = 0
+    """Leading frames carried from the previous chunk purely as analysis context.
+
+    Consumers must discard the first ``context_frames`` entries of any
+    per-frame metric series computed on this chunk; those frames were already
+    emitted (or exist only to seed first-difference metrics such as spectral
+    flux) and would otherwise be double counted.
+    """
+
+    new_samples: int = -1
+    """Samples in this chunk not already seen in a previous chunk.
+
+    ``-1`` means "all of them" (the non-overlapping legacy behaviour).
+    Whole-signal accumulators must use this to avoid double counting the
+    overlap region.
+    """
 
 
 @dataclass(slots=True)
@@ -491,6 +507,126 @@ def stream_audio(
         end = min(start + chunk_size, buf.num_samples)
         yield AudioChunk(index=idx, start_sample=start, sample_rate=buf.sample_rate, samples=buf.samples[start:end])
         idx += 1
+
+
+def stream_audio_frame_aligned(
+    path: str | Path,
+    *,
+    frame_size: int,
+    hop_size: int,
+    chunk_size: int = 131072,
+    target_sr: int | None = None,
+    context_frames: int = 1,
+) -> Generator[AudioChunk, None, None]:
+    """Yield hop-aligned, overlapping chunks whose framing matches full-file framing.
+
+    ``stream_audio`` cuts the signal at fixed sample boundaries and each chunk is
+    then framed from its own sample 0.  Unless ``chunk_size`` happens to be a
+    multiple of ``hop_size``, that re-anchors the analysis grid at every chunk,
+    and frames that would straddle a boundary are dropped entirely.  This
+    generator instead tracks the global frame grid: every emitted chunk starts on
+    a multiple of ``hop_size``, carries ``frame_size - hop_size`` samples of
+    overlap so boundary-straddling frames are still computed, and optionally
+    prepends ``context_frames`` already-emitted frames so that first-difference
+    metrics (spectral flux and friends) see their predecessor.
+
+    Each yielded chunk reports how many leading frames are context
+    (:attr:`AudioChunk.context_frames`) and how many of its samples are new
+    (:attr:`AudioChunk.new_samples`).
+    """
+    if frame_size <= 0 or hop_size <= 0:
+        raise ValueError("frame_size and hop_size must be positive")
+    if hop_size > frame_size:
+        raise ValueError("hop_size must not exceed frame_size")
+    context_frames = max(0, int(context_frames))
+
+    buf: np.ndarray | None = None
+    buf_start = 0  # global index of buf[0]
+    next_frame = 0  # global start of the next frame not yet emitted
+    emitted_end = 0  # global sample index one past the last frame emitted
+    idx = 0
+    sample_rate = 0
+    total_samples = 0
+    channels = 0
+
+    def _emit(
+        buffer: np.ndarray,
+        buffer_start: int,
+        first_frame: int,
+        n_frames: int,
+        chunk_index: int,
+        prior_end: int,
+    ) -> AudioChunk:
+        lead = min(context_frames, (first_frame - buffer_start) // hop_size)
+        start = first_frame - lead * hop_size
+        stop = first_frame + (n_frames - 1) * hop_size + frame_size
+        lo = start - buffer_start
+        hi = stop - buffer_start
+        window = buffer[lo:hi]
+        return AudioChunk(
+            index=chunk_index,
+            start_sample=start,
+            sample_rate=sample_rate,
+            samples=window,
+            context_frames=lead,
+            new_samples=max(0, stop - max(prior_end, start)),
+        )
+
+    for raw in stream_audio(path, chunk_size=chunk_size, target_sr=target_sr):
+        sample_rate = int(raw.sample_rate)
+        channels = int(raw.samples.shape[1]) if raw.samples.ndim == 2 else 1
+        total_samples += int(raw.samples.shape[0])
+        buf = raw.samples if buf is None else np.concatenate([buf, raw.samples], axis=0)
+        available = buf_start + int(buf.shape[0])
+
+        span = available - frame_size - next_frame
+        n_new = (span // hop_size) + 1 if span >= 0 else 0
+        if n_new > 0:
+            chunk = _emit(buf, buf_start, next_frame, n_new, idx, emitted_end)
+            yield chunk
+            idx += 1
+            emitted_end = next_frame + (n_new - 1) * hop_size + frame_size
+            next_frame += n_new * hop_size
+
+        # Retain enough history for the next chunk's overlap and context frames.
+        keep_from = max(0, next_frame - context_frames * hop_size)
+        if keep_from > buf_start:
+            buf = buf[keep_from - buf_start :]
+            buf_start = keep_from
+
+    if buf is None or sample_rate == 0:
+        return
+
+    if idx == 0:
+        # Signal shorter than one frame: full-file framing zero-pads it to a
+        # single frame, so emit it whole and let the framing helper pad.
+        if int(buf.shape[0]) > 0:
+            yield AudioChunk(
+                index=0,
+                start_sample=buf_start,
+                sample_rate=sample_rate,
+                samples=buf,
+                context_frames=0,
+                new_samples=int(buf.shape[0]),
+            )
+        return
+
+    # Reproduce full-file framing's trailing flush-right frame.
+    if total_samples >= frame_size and (total_samples - frame_size) % hop_size != 0:
+        start = total_samples - frame_size
+        if start >= buf_start:
+            window = buf[start - buf_start : start - buf_start + frame_size]
+        else:  # pragma: no cover - only if the tail was trimmed too aggressively
+            window = np.zeros((frame_size, channels), dtype=buf.dtype)
+            window[: buf.shape[0]] = buf[:frame_size]
+        yield AudioChunk(
+            index=idx,
+            start_sample=start,
+            sample_rate=sample_rate,
+            samples=window,
+            context_frames=0,
+            new_samples=max(0, total_samples - max(emitted_end, start)),
+        )
 
 
 def detect_signal_layout(channels: int, source_path: str | Path) -> str:

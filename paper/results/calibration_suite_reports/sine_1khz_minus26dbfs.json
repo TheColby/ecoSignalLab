@@ -1,0 +1,45 @@
+{
+  "created_utc": "2026-09-10T01:05:29.679901+00:00",
+  "verification_kind": "calibration_reference_fixture",
+  "fixture": "sine_1khz_minus26dbfs",
+  "fixture_definition": {
+    "frequency_hz": 1000.0,
+    "duration_s": 1.0,
+    "sample_rate": 48000,
+    "dbfs_rms": -26.0,
+    "weighting": "Z",
+    "spl_reference_db": 94.0,
+    "mic_sensitivity_mv_pa": null,
+    "preamp_gain_db": null,
+    "adc_full_scale_vrms": null
+  },
+  "tone_path": "/tmp/esl_cal_verify_dsp6adg5/sine_1khz_minus26dbfs.wav",
+  "expected_dbfs_rms": -26.0,
+  "measured_dbfs_rms": -26.00000023242929,
+  "abs_error_db": 2.3242929003686186e-07,
+  "max_abs_error_db": 0.001,
+  "within_tolerance": true,
+  "pressure_chain_error_db": null,
+  "calibration_profile": {
+    "dbfs_reference": -26.0,
+    "spl_reference_db": 94.0,
+    "weighting": "Z",
+    "mic_sensitivity_mv_pa": null,
+    "preamp_gain_db": null,
+    "adc_full_scale_vrms": null
+  },
+  "check_report_path": "/home/claude/esl/paper/results/calibration_suite_reports/sine_1khz_minus26dbfs.check.json",
+  "audit_equations": [
+    "rms_linear = sqrt(mean(x^2))",
+    "measured_dbfs = 20 * log10(max(rms_linear, eps))",
+    "drift_db = measured_dbfs - dbfs_reference",
+    "spl_estimate_db = measured_dbfs + (spl_reference_db - dbfs_reference)",
+    "within_tolerance = abs(drift_db) <= max_abs_error_db",
+    "precision Pa<->dBFS requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms"
+  ],
+  "assumptions": [
+    "Reference tone is synthesized deterministically as a floating-point sine wave.",
+    "Verification compares measured RMS dBFS against the fixture's expected RMS dBFS.",
+    "This is a software-path verification, not a replacement for traceable hardware calibration."
+  ]
+}

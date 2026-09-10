@@ -297,7 +297,7 @@ def run_spatial_timeline(
                 "time_s": float(start / buf.sample_rate),
                 "dominant_channel": dominant,
                 "total_energy": float(np.sum(energy)),
-                "interchannel_coherence": coherence,
+                "interchannel_correlation_zerolag": coherence,
                 "ild_db": ild_db,
                 "itd_s": itd_s,
                 "azimuth_proxy_deg": azimuth_proxy_deg,
@@ -310,7 +310,7 @@ def run_spatial_timeline(
         "time_s",
         "dominant_channel",
         "total_energy",
-        "interchannel_coherence",
+        "interchannel_correlation_zerolag",
         "ild_db",
         "itd_s",
         "azimuth_proxy_deg",
@@ -337,16 +337,16 @@ def run_spatial_timeline(
             "frames": len(rows),
             "csv_path": str(csv_path),
             "summary": {
-                "mean_interchannel_coherence": float(
+                "mean_interchannel_correlation_zerolag": float(
                     np.nanmean(
                         [
-                            r["interchannel_coherence"]
+                            r["interchannel_correlation_zerolag"]
                             for r in rows
-                            if r["interchannel_coherence"] is not None
+                            if r["interchannel_correlation_zerolag"] is not None
                         ]
                     )
                 )
-                if any(r["interchannel_coherence"] is not None for r in rows)
+                if any(r["interchannel_correlation_zerolag"] is not None for r in rows)
                 else None,
             },
         }

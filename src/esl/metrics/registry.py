@@ -12,7 +12,17 @@ from esl.metrics.extended import extended_plugins
 if TYPE_CHECKING:
     from esl.core.context import AnalysisContext
 
-METRIC_CATALOG_VERSION = "esl-metrics-1.0.0"
+METRIC_CATALOG_VERSION = "esl-metrics-1.1.0"
+
+DEPRECATED_METRIC_ALIASES: dict[str, tuple[str, str]] = {
+    "interchannel_coherence": (
+        "interchannel_correlation_zerolag",
+        "'interchannel_coherence' was a zero-lag normalized cross-correlation in [-1, 1], "
+        "not magnitude-squared coherence. It has been renamed to "
+        "'interchannel_correlation_zerolag'; use 'interchannel_coherence_msc' for "
+        "magnitude-squared coherence in [0, 1].",
+    ),
+}
 
 
 class MetricRegistry:
@@ -20,6 +30,8 @@ class MetricRegistry:
 
     def __init__(self) -> None:
         self._plugins: dict[str, MetricPlugin] = {}
+        self._aliases: dict[str, str] = {}
+        self.alias_warnings: list[str] = []
 
     def register(self, plugin: MetricPlugin) -> None:
         name = plugin.spec.name
@@ -27,10 +39,32 @@ class MetricRegistry:
             raise ValueError(f"Metric already registered: {name}")
         self._plugins[name] = plugin
 
+    def register_alias(self, alias: str, target: str) -> None:
+        if alias in self._plugins:
+            raise ValueError(f"Alias collides with a registered metric: {alias}")
+        self._aliases[alias] = target
+
+    def resolve(self, name: str) -> str:
+        """Map a possibly deprecated metric name onto its current name."""
+        if name in self._plugins:
+            return name
+        target = self._aliases.get(name)
+        if target is None:
+            return name
+        note = DEPRECATED_METRIC_ALIASES.get(name)
+        message = note[1] if note else f"Metric '{name}' is deprecated; use '{target}'."
+        if message not in self.alias_warnings:
+            self.alias_warnings.append(message)
+        return target
+
+    def aliases(self) -> dict[str, str]:
+        return dict(self._aliases)
+
     def get(self, name: str) -> MetricPlugin:
-        if name not in self._plugins:
+        resolved = self.resolve(name)
+        if resolved not in self._plugins:
             raise KeyError(f"Metric not found: {name}")
-        return self._plugins[name]
+        return self._plugins[resolved]
 
     def names(self) -> list[str]:
         return sorted(self._plugins.keys())
@@ -68,6 +102,8 @@ def create_registry(with_external: bool = True) -> MetricRegistry:
         reg.register(plugin)
     for plugin in extended_plugins():
         reg.register(plugin)
+    for alias, (target, _reason) in DEPRECATED_METRIC_ALIASES.items():
+        reg.register_alias(alias, target)
     if with_external:
         try:
             load_external_plugins(reg)

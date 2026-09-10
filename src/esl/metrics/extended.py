@@ -33,6 +33,7 @@ from esl.core.calibration import db, dbfs_to_spl, weighted_rms
 from esl.core.context import AnalysisContext
 from esl.metrics.base import MetricResult, MetricSpec
 from esl.metrics.helpers import (
+    fit_decay_diagnostics,
     fit_decay_time,
     frame_rms,
     frame_signal,
@@ -128,9 +129,39 @@ def _ir_cache(ctx: AnalysisContext) -> dict[str, Any]:
         "total_energy": total_e,
         "t20": fit_decay_time(decay, t, lo_db=-5.0, hi_db=-25.0),
         "t30": fit_decay_time(decay, t, lo_db=-5.0, hi_db=-35.0),
+        "t20_fit": fit_decay_diagnostics(decay, t, lo_db=-5.0, hi_db=-25.0),
+        "t30_fit": fit_decay_diagnostics(decay, t, lo_db=-5.0, hi_db=-35.0),
+        "dynamic_range_db": float(np.nanmax(decay) - np.nanmin(decay)) if decay.size else 0.0,
     }
     ctx.cache[key] = cache
     return cache
+
+
+def _decay_validity_extra(cache: dict[str, Any], key: str, required_range_db: float) -> dict[str, Any]:
+    """Validity payload for a decay-time metric, mirroring builtin._decay_validity."""
+    fit = cache.get(f"{key}_fit") or {}
+    value = float(cache.get(key, float("nan")))
+    dynamic_range = float(cache.get("dynamic_range_db", 0.0) or 0.0)
+    r2 = float(fit.get("r2", float("nan")))
+    slope = float(fit.get("slope_db_per_s", float("nan")))
+    reasons: list[str] = []
+    if not np.isfinite(value):
+        reasons.append("decay fit did not converge to a finite decay time")
+    if dynamic_range < required_range_db:
+        reasons.append(
+            f"decay curve spans only {dynamic_range:.1f} dB; this estimate needs at least "
+            f"{required_range_db:.0f} dB"
+        )
+    if not (np.isfinite(slope) and slope < 0.0):
+        reasons.append("energy decay curve does not decrease over the evaluation range")
+    if not (np.isfinite(r2) and r2 >= 0.95):
+        reasons.append(f"decay fit r2 = {r2:.3f} is below 0.95")
+    return {
+        "valid": not reasons,
+        "invalid_reason": "; ".join(reasons) if reasons else None,
+        "fit": fit,
+        "dynamic_range_db": dynamic_range,
+    }
 
 
 def _bandpass_rt(ir: np.ndarray, sr: int, center_hz: float) -> float:
@@ -344,12 +375,31 @@ def _acoustic_entropy(ctx: AnalysisContext) -> float:
     return float(hf * ht)
 
 
+def resolve_channel_pair(ctx: AnalysisContext) -> tuple[tuple[int, int], bool, str]:
+    """Return ((ch_a, ch_b), declared, semantics) for paired-channel metrics.
+
+    ``declared`` is False when the pair was inferred from channel count rather
+    than requested, which is the distinction the result contract exists to
+    preserve: an inferred pair is a guess and must not be reported as though the
+    caller had asserted it.
+    """
+    cfg = getattr(ctx, "config", None)
+    requested = getattr(cfg, "channel_pair", None) if cfg is not None else None
+    semantics = str(getattr(cfg, "channel_semantics", "unspecified") or "unspecified") if cfg is not None else "unspecified"
+    if requested is not None:
+        a, b = int(requested[0]), int(requested[1])
+        if 0 <= a < ctx.channels and 0 <= b < ctx.channels and a != b:
+            return (a, b), True, semantics
+    return (0, min(1, max(0, ctx.channels - 1))), False, semantics
+
+
 def _stereo_frames(ctx: AnalysisContext) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     framed = frame_signal(ctx.signal, ctx.sample_rate, ctx.frame_size, ctx.hop_size)
     if ctx.channels < 2:
         x = framed.frames[:, :, 0]
         return x, x, framed.times_s
-    return framed.frames[:, :, 0], framed.frames[:, :, 1], framed.times_s
+    (a, b), _declared, _semantics = resolve_channel_pair(ctx)
+    return framed.frames[:, :, a], framed.frames[:, :, b], framed.times_s
 
 
 def _max_norm_xcorr(a: np.ndarray, b: np.ndarray, max_lag: int) -> float:
@@ -360,7 +410,58 @@ def _max_norm_xcorr(a: np.ndarray, b: np.ndarray, max_lag: int) -> float:
     mid = len(c) // 2
     lo = max(0, mid - max_lag)
     hi = min(len(c), mid + max_lag + 1)
-    return float(np.max(np.abs(c[lo:hi]))) if hi > lo else 0.0
+    if hi <= lo:
+        return 0.0
+    # A normalized correlation coefficient cannot exceed unity; floating-point
+    # accumulation can put it a few ULP above, which is indefensible to report.
+    return float(min(1.0, np.max(np.abs(c[lo:hi]))))
+
+
+def _gcc_phat_itd_with_psr(
+    a: np.ndarray, b: np.ndarray, sr: int, max_tau_s: float = 0.001, exclude_bins: int = 4
+) -> tuple[float, float]:
+    """Return (lag_s, peak-to-sidelobe ratio) for a GCC-PHAT delay estimate.
+
+    The PSR is the correlation peak divided by the RMS of the search window
+    outside a small exclusion zone around that peak.  For an uncorrelated
+    channel pair the GCC-PHAT surface is essentially flat, the argmax lands on
+    noise, and the PSR stays near unity -- which is how a caller can tell that
+    the returned lag carries no information rather than having to know in
+    advance that the input was degenerate.
+    """
+    n = 1
+    target = len(a) + len(b)
+    while n < target:
+        n <<= 1
+    A = np.fft.rfft(a, n=n)
+    B = np.fft.rfft(b, n=n)
+    R = A * np.conj(B)
+    R /= np.maximum(np.abs(R), EPS)
+    cc = np.fft.irfft(R, n=n)
+    cc = np.concatenate((cc[-(n // 2) :], cc[: n // 2 + 1]))
+    max_shift = int(max_tau_s * sr)
+    mid = len(cc) // 2
+    lo = max(0, mid - max_shift)
+    hi = min(len(cc), mid + max_shift + 1)
+    if hi <= lo:
+        return 0.0, 0.0
+    window = cc[lo:hi]
+    rel = int(np.argmax(window))
+    peak = float(window[rel])
+    mask = np.ones(window.shape[0], dtype=bool)
+    mask[max(0, rel - exclude_bins) : rel + exclude_bins + 1] = False
+    floor = float(np.sqrt(np.mean(np.square(window[mask])))) if np.any(mask) else 0.0
+    if abs(peak) <= EPS:
+        # A flat, all-zero correlation surface (digital silence) carries no peak
+        # at all; reporting an infinite peak-to-sidelobe ratio would invert the
+        # meaning of the test.
+        psr = 0.0
+    elif floor > EPS:
+        psr = float(abs(peak) / floor)
+    else:
+        psr = float("inf")
+    lag = (rel + lo) - mid
+    return float(lag / sr), psr
 
 
 def _gcc_phat_itd(a: np.ndarray, b: np.ndarray, sr: int, max_tau_s: float = 0.001) -> float:
@@ -862,7 +963,14 @@ class T20Metric:
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         ir = _ir_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(ir["t20"]), 0.8)
+        extra = _decay_validity_extra(ir, "t20", required_range_db=25.0)
+        return _scalar_result(
+            self.spec.name,
+            self.spec.units,
+            float(ir["t20"]),
+            0.8 if extra["valid"] else 0.2,
+            extra=extra,
+        )
 
 
 class T30Metric:
@@ -881,7 +989,14 @@ class T30Metric:
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         ir = _ir_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(ir["t30"]), 0.85)
+        extra = _decay_validity_extra(ir, "t30", required_range_db=35.0)
+        return _scalar_result(
+            self.spec.name,
+            self.spec.units,
+            float(ir["t30"]),
+            0.85 if extra["valid"] else 0.2,
+            extra=extra,
+        )
 
 
 class TsMetric:
@@ -1189,6 +1304,32 @@ class IACCMetric:
         max_lag = max(1, int(0.001 * ctx.sample_rate))
         vals = np.array([_max_norm_xcorr(l[i], r[i], max_lag=max_lag) for i in range(l.shape[0])], dtype=np.float64)
         conf = 1.0 if ctx.channels >= 2 else 0.3
+        pair, declared, semantics = resolve_channel_pair(ctx)
+        binaural = declared and semantics == "binaural"
+        energy = float(np.mean(np.square(l))) + float(np.mean(np.square(r)))
+        silent = energy < 1e-12
+        valid = ctx.channels >= 2 and not silent
+        if silent:
+            conf = 0.0
+        extra = {
+            "valid": valid,
+            "invalid_reason": (
+                "interchannel correlation requires at least two channels"
+                if ctx.channels < 2
+                else ("both channels are below the energy floor" if silent else None)
+            ),
+            "channel_pair": list(pair),
+            "channel_pair_declared": bool(declared),
+            "channel_semantics": semantics,
+            "interaural_interpretation": bool(binaural),
+            "lag_search_ms": 1.0,
+        }
+        if not binaural:
+            extra["naming_note"] = (
+                "Computed as an interchannel cross-correlation coefficient. The interaural "
+                "reading (IACC) requires a channel pair declared binaural; ISO 3382-1 further "
+                "specifies octave-band and early/late time windows that this value does not apply."
+            )
         return MetricResult(
             name=self.spec.name,
             units=self.spec.units,
@@ -1196,6 +1337,7 @@ class IACCMetric:
             series=vals.tolist(),
             timestamps_s=ts.tolist(),
             confidence=conf,
+            extra=extra,
         )
 
 
@@ -1276,10 +1418,34 @@ class ITDMetric:
         description="Interaural time difference proxy.",
     )
 
+    PSR_THRESHOLD = 3.0
+
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         l, r, ts = _stereo_frames(ctx)
-        itd = np.array([_gcc_phat_itd(l[i], r[i], ctx.sample_rate) for i in range(l.shape[0])], dtype=np.float64)
-        conf = 1.0 if ctx.channels >= 2 else 0.3
+        pairs = [_gcc_phat_itd_with_psr(l[i], r[i], ctx.sample_rate) for i in range(l.shape[0])]
+        itd = np.array([p[0] for p in pairs], dtype=np.float64)
+        psr = np.array([p[1] for p in pairs], dtype=np.float64)
+        finite = psr[np.isfinite(psr)]
+        median_psr = float(np.median(finite)) if finite.size else float("inf")
+        share_confident = float(np.mean(psr >= self.PSR_THRESHOLD)) if psr.size else 0.0
+
+        if ctx.channels < 2:
+            valid = False
+            reason = "interchannel delay requires at least two channels"
+            conf = 0.3
+        elif share_confident < 0.5:
+            valid = False
+            reason = (
+                f"GCC-PHAT peak-to-sidelobe ratio below {self.PSR_THRESHOLD:g} in "
+                f"{100.0 * (1.0 - share_confident):.0f}% of frames; the channel pair is not "
+                "a delayed copy of one source and the reported lag has no physical meaning"
+            )
+            conf = 0.2
+        else:
+            valid = True
+            reason = None
+            conf = 1.0
+
         return MetricResult(
             name=self.spec.name,
             units=self.spec.units,
@@ -1287,6 +1453,16 @@ class ITDMetric:
             series=itd.tolist(),
             timestamps_s=ts.tolist(),
             confidence=conf,
+            extra={
+                "valid": valid,
+                "invalid_reason": reason,
+                "channel_pair": list(resolve_channel_pair(ctx)[0]),
+                "channel_pair_declared": bool(resolve_channel_pair(ctx)[1]),
+                "median_peak_to_sidelobe_ratio": median_psr,
+                "frames_above_psr_threshold": share_confident,
+                "psr_threshold": float(self.PSR_THRESHOLD),
+                "sign_convention": "lag of channel 1 relative to channel 2; negative means channel 2 is delayed",
+            },
         )
 
 

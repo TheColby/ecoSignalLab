@@ -1,0 +1,327 @@
+{
+  "analytic_accuracy": {
+    "cases": 24,
+    "frame_size": 2048,
+    "max_centroid_error_hz_commensurate": 0.01738871918064433,
+    "max_centroid_error_hz_off_bin": 0.5463306620126787,
+    "max_crest_error_db": 0.0003296972908519713,
+    "max_peak_error_db": 1.4162698564135212e-05,
+    "max_rms_error_db": 0.00033487129149989414
+  },
+  "calibration": {
+    "all_passed": true,
+    "fixture_count": 6,
+    "max_achieved_abs_error_db": 2.532869878280053e-07,
+    "tolerance_db": 0.001
+  },
+  "created_utc": "2026-09-10T01:05:31Z",
+  "decay_accuracy": {
+    "cases": 24,
+    "degraded_cases": 9,
+    "degraded_cases_flagged_invalid": 9,
+    "noiseless_single_slope_max_t30_error_s": 8.679832781410823e-07,
+    "worst_noisy_single_slope_t30_error_percent": 1582.8749258605303
+  },
+  "evaluation_elapsed_s": 268.32779225299964,
+  "event_localization": [
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 14.176124559357461,
+      "median_abs_error_ms": 8.152558059954629,
+      "p95_abs_error_ms": 13.659802754148485,
+      "snr_db": "inf",
+      "transition": "tone_to_tone",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 12.88353787880503,
+      "median_abs_error_ms": 6.397414827716386,
+      "p95_abs_error_ms": 12.56102990580916,
+      "snr_db": 20.0,
+      "transition": "tone_to_tone",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 12.113398057527647,
+      "median_abs_error_ms": 4.935089617169375,
+      "p95_abs_error_ms": 11.452059965424997,
+      "snr_db": 10.0,
+      "transition": "tone_to_tone",
+      "trials": 40
+    },
+    {
+      "detection_rate": 0.775,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 4724.844800527503,
+      "median_abs_error_ms": 5.27251172589871,
+      "p95_abs_error_ms": 3036.5552631404707,
+      "snr_db": 0.0,
+      "transition": "tone_to_tone",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 9.037206486889104,
+      "median_abs_error_ms": 4.172713772421677,
+      "p95_abs_error_ms": 8.212158662487566,
+      "snr_db": "inf",
+      "transition": "tone_to_noise",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 9.871522736636607,
+      "median_abs_error_ms": 3.525399180592359,
+      "p95_abs_error_ms": 8.308494630241059,
+      "snr_db": 20.0,
+      "transition": "tone_to_noise",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 13.261614045564585,
+      "median_abs_error_ms": 3.765761059396411,
+      "p95_abs_error_ms": 11.871369547531874,
+      "snr_db": 10.0,
+      "transition": "tone_to_noise",
+      "trials": 40
+    },
+    {
+      "detection_rate": 0.825,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 6350.626281307306,
+      "median_abs_error_ms": 7.97862780802383,
+      "p95_abs_error_ms": 4958.977557001355,
+      "snr_db": 0.0,
+      "transition": "tone_to_noise",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 12.70861237627674,
+      "median_abs_error_ms": 4.282722429924668,
+      "p95_abs_error_ms": 11.87103165468004,
+      "snr_db": "inf",
+      "transition": "level_step",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 10.397255948105588,
+      "median_abs_error_ms": 4.6839871354644735,
+      "p95_abs_error_ms": 9.597171484944544,
+      "snr_db": 20.0,
+      "transition": "level_step",
+      "trials": 40
+    },
+    {
+      "detection_rate": 1.0,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 9.417765015690804,
+      "median_abs_error_ms": 4.15273651000625,
+      "p95_abs_error_ms": 8.481403675925359,
+      "snr_db": 10.0,
+      "transition": "level_step",
+      "trials": 40
+    },
+    {
+      "detection_rate": 0.4,
+      "hop_duration_ms": 16.0,
+      "max_abs_error_ms": 6199.036729043008,
+      "median_abs_error_ms": 937.6952145594306,
+      "p95_abs_error_ms": 5614.302040264771,
+      "snr_db": 0.0,
+      "transition": "level_step",
+      "trials": 40
+    }
+  ],
+  "memory": {
+    "baseline_import_only_mib": 384.33203125,
+    "extrapolated_full_1h_gib": 11.74192056201753,
+    "extrapolated_full_24h_gib": 279.14708991277786,
+    "extrapolated_streaming_1h_gib": 0.3753242492675781,
+    "full": {
+      "floor_dominates_below_s": 60.0,
+      "floor_mib": 384.33203125,
+      "intercept_mib": 118.38346354166639,
+      "points_used_for_fit": 9,
+      "r2": 0.9999997098244001,
+      "slope_mib_per_s": 3.3070397755456344
+    },
+    "full_slope_multiple_of_data_rate": 9.030423280423278,
+    "measured_floor_mib": 384.33203125,
+    "predicted_full_slope_mib_per_s": 4.400968551635742,
+    "predicted_full_slope_subset_mib_per_s": 2.931833267211914,
+    "streaming": {
+      "floor_dominates_below_s": 480.0,
+      "floor_mib": 384.33203125,
+      "intercept_mib": 384.33203125,
+      "points_used_for_fit": 0,
+      "r2": NaN,
+      "slope_mib_per_s": 0.0
+    }
+  },
+  "metric_catalog": {
+    "categories": {
+      "Anomaly / Novelty": 6,
+      "Architectural Acoustics": 13,
+      "Basic": 11,
+      "Ecoacoustics": 7,
+      "Level & Loudness": 20,
+      "Noise & SNR": 1,
+      "Spatial": 10,
+      "Spectral": 6,
+      "Temporal": 1
+    },
+    "deprecated_aliases": {
+      "interchannel_coherence": "interchannel_correlation_zerolag"
+    },
+    "streaming_capable": 37,
+    "total": 75
+  },
+  "provenance_axes": [
+    {
+      "axis": "Time aggregation (mean / Leq / L90 / Lmax)",
+      "levels": 4,
+      "max_db": 98.32442855834961,
+      "min_db": 86.52946701049805,
+      "range_db": 11.794961547851557
+    },
+    {
+      "axis": "Frequency weighting (A / C / Z)",
+      "levels": 3,
+      "max_db": 91.02668868909952,
+      "min_db": 84.29587568554776,
+      "range_db": 6.730813003551759
+    },
+    {
+      "axis": "Channel policy (downmix / ch1 / ch2)",
+      "levels": 3,
+      "max_db": 92.26903924171006,
+      "min_db": 91.89197528076492,
+      "range_db": 0.3770639609451365
+    },
+    {
+      "axis": "Frame length (512 - 8192)",
+      "levels": 4,
+      "max_db": 92.08547241800993,
+      "min_db": 92.08098508084584,
+      "range_db": 0.004487337164093219
+    }
+  ],
+  "provenance_dispersion": {
+    "combinations": 84,
+    "conservative_combinations": 48,
+    "conservative_range_db": 8.121247164496054,
+    "interdecile_range_db": 14.466781692070285,
+    "largest_single_axis": "Time aggregation (mean / Leq / L90 / Lmax)",
+    "largest_single_axis_range_db": 11.794961547851557,
+    "max_db": 100.05251121520996,
+    "min_db": 84.15093308261287,
+    "p5_db": 84.29960858388492,
+    "p95_db": 98.7663902759552,
+    "std_db": 4.126807634619453,
+    "total_range_db": 15.901578132597095
+  },
+  "repository_commit": "1a34208dc2fe8a619110fdb4db806202a6ca83b8",
+  "seed": 20260906,
+  "software": {
+    "numpy": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "soundfile": "0.14.0"
+  },
+  "spatial": [
+    {
+      "case": "identical",
+      "coherence_msc": 0.9999999999999998,
+      "correlation_zerolag": 1.0,
+      "expected_ild_db": 0.0,
+      "expected_itd_us": 0.0,
+      "iacc": 0.999999983246262,
+      "itd_abs_error_us": 0.0,
+      "itd_median_psr": 3622782544.640141,
+      "itd_valid": true,
+      "measured_ild_db": 0.0,
+      "measured_itd_us": 0.0
+    },
+    {
+      "case": "second_channel_delayed_12_samples",
+      "coherence_msc": 0.9995487312936566,
+      "correlation_zerolag": -0.00043329303295759885,
+      "expected_ild_db": 0.0,
+      "expected_itd_us": -250.0,
+      "iacc": 0.9939346767760612,
+      "itd_abs_error_us": 5.421010862427522e-14,
+      "itd_median_psr": 325.25593945169885,
+      "itd_valid": true,
+      "measured_ild_db": 0.00012628428521566093,
+      "measured_itd_us": -250.00000000000006
+    },
+    {
+      "case": "second_channel_minus_6_db",
+      "coherence_msc": 0.9999999999999998,
+      "correlation_zerolag": 1.0,
+      "expected_ild_db": 6.020599913279624,
+      "expected_itd_us": 0.0,
+      "iacc": 0.999999983246262,
+      "itd_abs_error_us": 0.0,
+      "itd_median_psr": 3622782544.640141,
+      "itd_valid": true,
+      "measured_ild_db": 6.020600318908691,
+      "measured_itd_us": 0.0
+    },
+    {
+      "case": "partially_correlated",
+      "coherence_msc": 0.5039265589350104,
+      "correlation_zerolag": 0.7072387225257186,
+      "expected_ild_db": NaN,
+      "expected_itd_us": 0.0,
+      "iacc": 0.7072387202365978,
+      "itd_abs_error_us": 0.0,
+      "itd_median_psr": 38.61204195533068,
+      "itd_valid": true,
+      "measured_ild_db": 0.08935683220624924,
+      "measured_itd_us": 0.0
+    },
+    {
+      "case": "independent_noise",
+      "coherence_msc": 0.009703784972649109,
+      "correlation_zerolag": 0.00016320075392685352,
+      "expected_ild_db": 0.0,
+      "expected_itd_us": NaN,
+      "iacc": 0.05987067095733978,
+      "itd_abs_error_us": NaN,
+      "itd_median_psr": 2.5362748231411665,
+      "itd_valid": false,
+      "measured_ild_db": 0.00471135089173913,
+      "measured_itd_us": 34.34684684684684
+    }
+  ],
+  "streaming": {
+    "aligned_metrics_checked": 18,
+    "aligned_series_identical": true,
+    "legacy_max_frames_missing_percent": 8.217716115261473,
+    "legacy_worst_relative_difference_percent": 2.330888454073173
+  },
+  "validity": {
+    "cases": 36,
+    "correctly_reported": 18,
+    "correctly_unavailable": 18,
+    "expected_unavailable": 18,
+    "false_alarm_cases": [],
+    "false_alarms": 0,
+    "missed": 0,
+    "missed_cases": []
+  }
+}

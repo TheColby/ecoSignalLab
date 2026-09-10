@@ -53,7 +53,8 @@ from esl.viz.feature_vectors import extract_feature_vectors, extract_feature_vec
 
 SHARD_MANIFEST_VERSION = "1.1.0"
 DEFAULT_SPATIAL_SIMILARITY_METRICS = (
-    "interchannel_coherence",
+    "interchannel_correlation_zerolag",
+    "interchannel_coherence_msc",
     "iacc",
     "ild_db",
     "itd_s",
