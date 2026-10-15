@@ -57,7 +57,9 @@ def _plot_signal_waveform(t: np.ndarray, x: np.ndarray, out_dir: Path) -> None:
     _save(fig, out_dir, "signal_waveform.png")
 
 
-def _plot_frame_hop_overlay(t: np.ndarray, x: np.ndarray, sr: int, frame: int, hop: int, out_dir: Path) -> None:
+def _plot_frame_hop_overlay(
+    t: np.ndarray, x: np.ndarray, sr: int, frame: int, hop: int, out_dir: Path
+) -> None:
     view_s = 0.28
     n = int(view_s * sr)
     fig, ax = plt.subplots(figsize=(11, 3.4))
@@ -114,7 +116,9 @@ def _plot_overlap_add(frame: int, out_dir: Path) -> None:
     _save(fig, out_dir, "overlap_add_hann_50pct.png")
 
 
-def _plot_spectrogram_with_frames(x: np.ndarray, sr: int, frame: int, hop: int, out_dir: Path) -> None:
+def _plot_spectrogram_with_frames(
+    x: np.ndarray, sr: int, frame: int, hop: int, out_dir: Path
+) -> None:
     f, t, z = stft(x, fs=sr, nperseg=frame, noverlap=frame - hop, boundary=None)
     mag = 20.0 * np.log10(np.abs(z) + 1e-8)
     fig, ax = plt.subplots(figsize=(11, 4.2))
@@ -205,7 +209,9 @@ def _plot_foa(sr: int, duration_s: float, out_dir: Path) -> None:
     _save(fig, out_dir, "foa_wxyz_waveforms.png")
 
 
-def _plot_chunk_vs_frame_timeline(duration_s: float, chunk_s: float, frame_s: float, hop_s: float, out_dir: Path) -> None:
+def _plot_chunk_vs_frame_timeline(
+    duration_s: float, chunk_s: float, frame_s: float, hop_s: float, out_dir: Path
+) -> None:
     fig, ax = plt.subplots(figsize=(11.2, 2.8))
     ax.set_title("Streaming Chunks vs Frame/Hop Timeline")
     ax.set_xlim(0, duration_s)
@@ -220,7 +226,9 @@ def _plot_chunk_vs_frame_timeline(duration_s: float, chunk_s: float, frame_s: fl
     while c < duration_s - 1e-9:
         end = min(duration_s, c + chunk_s)
         ax.add_patch(
-            plt.Rectangle((c, 1.35), end - c, 0.55, color="#bfdbfe", alpha=0.65, ec="#1d4ed8", lw=0.6)
+            plt.Rectangle(
+                (c, 1.35), end - c, 0.55, color="#bfdbfe", alpha=0.65, ec="#1d4ed8", lw=0.6
+            )
         )
         ax.text(c + 0.04, 1.62, f"chunk {idx}", fontsize=7.5, color="#1d4ed8")
         c += chunk_s
@@ -229,13 +237,17 @@ def _plot_chunk_vs_frame_timeline(duration_s: float, chunk_s: float, frame_s: fl
     k = 0.0
     while k < duration_s - 1e-9:
         ax.add_patch(
-            plt.Rectangle((k, 0.5), frame_s, 0.4, color="#93c5fd", alpha=0.35, ec="#1e3a8a", lw=0.35)
+            plt.Rectangle(
+                (k, 0.5), frame_s, 0.4, color="#93c5fd", alpha=0.35, ec="#1e3a8a", lw=0.35
+            )
         )
         k += hop_s
     _save(fig, out_dir, "chunk_vs_frame_timeline.png")
 
 
-def generate(out_dir: Path, sr: int = 16000, duration_s: float = 2.0, frame: int = 1024, hop: int = 256) -> None:
+def generate(
+    out_dir: Path, sr: int = 16000, duration_s: float = 2.0, frame: int = 1024, hop: int = 256
+) -> None:
     _mkdir(out_dir)
     t, x = _signal(sr=sr, duration_s=duration_s)
     _plot_signal_waveform(t=t, x=x, out_dir=out_dir)
@@ -247,14 +259,22 @@ def generate(out_dir: Path, sr: int = 16000, duration_s: float = 2.0, frame: int
     _plot_checkerboard_kernel(out_dir=out_dir)
     _plot_multichannel(sr=sr, duration_s=duration_s, out_dir=out_dir)
     _plot_foa(sr=sr, duration_s=duration_s, out_dir=out_dir)
-    _plot_chunk_vs_frame_timeline(duration_s=12.0, chunk_s=3.0, frame_s=frame / sr, hop_s=hop / sr, out_dir=out_dir)
+    _plot_chunk_vs_frame_timeline(
+        duration_s=12.0, chunk_s=3.0, frame_s=frame / sr, hop_s=hop / sr, out_dir=out_dir
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate signal/window visual assets for docs.")
-    parser.add_argument("--out", default="docs/examples/signal_window_guide", help="Output directory")
-    parser.add_argument("--sample-rate", type=int, default=16000, help="Synthetic signal sample rate")
-    parser.add_argument("--duration", type=float, default=2.0, help="Synthetic signal duration (seconds)")
+    parser.add_argument(
+        "--out", default="docs/examples/signal_window_guide", help="Output directory"
+    )
+    parser.add_argument(
+        "--sample-rate", type=int, default=16000, help="Synthetic signal sample rate"
+    )
+    parser.add_argument(
+        "--duration", type=float, default=2.0, help="Synthetic signal duration (seconds)"
+    )
     parser.add_argument("--frame-size", type=int, default=1024)
     parser.add_argument("--hop-size", type=int, default=256)
     args = parser.parse_args()

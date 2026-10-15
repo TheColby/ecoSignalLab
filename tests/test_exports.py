@@ -1,6 +1,6 @@
+import importlib.util
 from pathlib import Path
 
-import importlib.util
 import numpy as np
 import soundfile as sf
 

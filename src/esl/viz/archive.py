@@ -46,7 +46,9 @@ def _report_metric_names(report: dict[str, Any], rows: list[dict[str, Any]]) -> 
     return sorted(found)
 
 
-def _write_rollup_csv(path: Path, rollup_rows: list[dict[str, Any]], metric_names: list[str]) -> None:
+def _write_rollup_csv(
+    path: Path, rollup_rows: list[dict[str, Any]], metric_names: list[str]
+) -> None:
     fieldnames = [
         "period_index",
         "period_start_s",
@@ -65,7 +67,9 @@ def _write_rollup_csv(path: Path, rollup_rows: list[dict[str, Any]], metric_name
             writer.writerow({name: row.get(name, "") for name in fieldnames})
 
 
-def _rollup_rows(rows: list[dict[str, Any]], metric_names: list[str], bucket_s: float) -> list[dict[str, Any]]:
+def _rollup_rows(
+    rows: list[dict[str, Any]], metric_names: list[str], bucket_s: float
+) -> list[dict[str, Any]]:
     groups: dict[int, dict[str, Any]] = {}
     for row in rows:
         start_s = _finite_float(row.get("timeline_start_s")) or 0.0
@@ -105,7 +109,9 @@ def _rollup_rows(rows: list[dict[str, Any]], metric_names: list[str], bucket_s: 
         }
         for name in metric_names:
             weight = float(group["_weights"][name])
-            clean[f"{name}_mean"] = float(group["_weighted_sums"][name] / weight) if weight > 0.0 else ""
+            clean[f"{name}_mean"] = (
+                float(group["_weighted_sums"][name] / weight) if weight > 0.0 else ""
+            )
         output.append(clean)
     return output
 
@@ -129,13 +135,19 @@ def _calendar_bucket(value: datetime, rollup: str) -> tuple[str, datetime, datet
         return start.date().isoformat(), start, end
     if rollup == "month":
         start = value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        end = start.replace(year=start.year + 1, month=1) if start.month == 12 else start.replace(month=start.month + 1)
+        end = (
+            start.replace(year=start.year + 1, month=1)
+            if start.month == 12
+            else start.replace(month=start.month + 1)
+        )
         return start.strftime("%Y-%m"), start, end
     start = value.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     return str(start.year), start, start.replace(year=start.year + 1)
 
 
-def _calendar_rollup_rows(rows: list[dict[str, Any]], metric_names: list[str], rollup: str) -> list[dict[str, Any]]:
+def _calendar_rollup_rows(
+    rows: list[dict[str, Any]], metric_names: list[str], rollup: str
+) -> list[dict[str, Any]]:
     groups: dict[str, dict[str, Any]] = {}
     for row in rows:
         timestamp = _parse_utc(row.get("start_time_utc"))
@@ -166,25 +178,42 @@ def _calendar_rollup_rows(rows: list[dict[str, Any]], metric_names: list[str], r
     output: list[dict[str, Any]] = []
     for index, label in enumerate(sorted(groups)):
         group = groups[label]
-        clean = {key: group[key] for key in ("period_label", "period_start_utc", "period_end_utc", "shard_count", "total_duration_s")}
+        clean = {
+            key: group[key]
+            for key in (
+                "period_label",
+                "period_start_utc",
+                "period_end_utc",
+                "shard_count",
+                "total_duration_s",
+            )
+        }
         clean.update({"period_index": index, "period_start_s": "", "period_end_s": ""})
         for name in metric_names:
             weight = float(group["_weights"][name])
-            clean[f"{name}_mean"] = float(group["_weighted_sums"][name] / weight) if weight > 0.0 else ""
+            clean[f"{name}_mean"] = (
+                float(group["_weighted_sums"][name] / weight) if weight > 0.0 else ""
+            )
         output.append(clean)
     return output
 
 
-def _plot_rollup(path: Path, rollup_rows: list[dict[str, Any]], metric_names: list[str], label: str) -> None:
+def _plot_rollup(
+    path: Path, rollup_rows: list[dict[str, Any]], metric_names: list[str], label: str
+) -> None:
     x = np.array([int(row["period_index"]) for row in rollup_rows], dtype=np.int64)
-    durations_h = np.array([float(row["total_duration_s"]) / 3600.0 for row in rollup_rows], dtype=np.float64)
+    durations_h = np.array(
+        [float(row["total_duration_s"]) / 3600.0 for row in rollup_rows], dtype=np.float64
+    )
 
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.bar(x, durations_h, width=0.8, alpha=0.65, label="Analyzed duration")
     calendar_labels = [str(row.get("period_label", "")) for row in rollup_rows]
     calendar_mode = any(calendar_labels)
     ax.set_title(f"Archive Rollup by {'Calendar ' if calendar_mode else ''}{label.capitalize()}")
-    ax.set_xlabel(f"{'Calendar ' + label if calendar_mode else 'Archive-relative ' + label + ' index'}")
+    ax.set_xlabel(
+        f"{'Calendar ' + label if calendar_mode else 'Archive-relative ' + label + ' index'}"
+    )
     ax.set_ylabel("Analyzed duration (hours)")
     ax.grid(True, axis="y", alpha=0.3)
     if calendar_mode:
@@ -211,12 +240,18 @@ def _plot_rollup(path: Path, rollup_rows: list[dict[str, Any]], metric_names: li
     plt.close(fig)
 
 
-def plot_shard_report(report_path: str | Path, output_dir: str | Path, *, rollup: str = "none") -> list[Path]:
+def plot_shard_report(
+    report_path: str | Path, output_dir: str | Path, *, rollup: str = "none"
+) -> list[Path]:
     """Render archive-level overview plots from a shard analysis report."""
     report = json.loads(Path(report_path).read_text(encoding="utf-8"))
     out_dir = Path(output_dir)
     _ensure_dir(out_dir)
-    rows = [row for row in report.get("rows", []) if isinstance(row, dict) and row.get("status") != "error"]
+    rows = [
+        row
+        for row in report.get("rows", [])
+        if isinstance(row, dict) and row.get("status") != "error"
+    ]
     if not rows:
         return []
 

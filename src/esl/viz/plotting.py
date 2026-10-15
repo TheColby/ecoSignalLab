@@ -35,7 +35,9 @@ def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def _save_line(ts: list[float], values: list[float], title: str, ylabel: str, out_path: Path) -> None:
+def _save_line(
+    ts: list[float], values: list[float], title: str, ylabel: str, out_path: Path
+) -> None:
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.plot(ts, values, linewidth=1.0)
     ax.set_title(title)
@@ -55,7 +57,9 @@ def _mel_to_hz(m: np.ndarray) -> np.ndarray:
     return 700.0 * (10 ** (m / 2595.0) - 1.0)
 
 
-def _mel_filterbank(sr: int, n_fft: int, n_mels: int = 64, fmin: float = 20.0, fmax: float | None = None) -> np.ndarray:
+def _mel_filterbank(
+    sr: int, n_fft: int, n_mels: int = 64, fmin: float = 20.0, fmax: float | None = None
+) -> np.ndarray:
     # Triangular mel filterbank following classic MFCC-style design (Davis & Mermelstein, 1980).
     if fmax is None:
         fmax = sr / 2.0
@@ -98,7 +102,12 @@ def _plot_spectral_suite(audio_path: str | Path, out_dir: Path) -> list[Path]:
         mag_db,
         origin="lower",
         aspect="auto",
-        extent=[t.min() if t.size else 0, t.max() if t.size else 0, f.min() if f.size else 0, f.max() if f.size else 0],
+        extent=[
+            t.min() if t.size else 0,
+            t.max() if t.size else 0,
+            f.min() if f.size else 0,
+            f.max() if f.size else 0,
+        ],
         cmap="magma",
     )
     ax.set_title("Spectrogram")
@@ -116,7 +125,13 @@ def _plot_spectral_suite(audio_path: str | Path, out_dir: Path) -> list[Path]:
     mel_db = 10.0 * np.log10(np.maximum(mel, 1e-12))
     p_mel = out_dir / "mel_spectrogram.png"
     fig, ax = plt.subplots(figsize=(10, 5))
-    im = ax.imshow(mel_db, origin="lower", aspect="auto", extent=[t.min() if t.size else 0, t.max() if t.size else 0, 0, mel_db.shape[0]], cmap="viridis")
+    im = ax.imshow(
+        mel_db,
+        origin="lower",
+        aspect="auto",
+        extent=[t.min() if t.size else 0, t.max() if t.size else 0, 0, mel_db.shape[0]],
+        cmap="viridis",
+    )
     ax.set_title("Mel Spectrogram")
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Mel band")
@@ -234,7 +249,9 @@ def _plot_similarity_matrix(
     fig, ax = plt.subplots(figsize=(8, 7))
     if t.size > 1:
         extent = [float(t[0]), float(t[-1]), float(t[0]), float(t[-1])]
-        im = ax.imshow(ssm, origin="lower", aspect="auto", extent=extent, cmap="viridis", vmin=0.0, vmax=1.0)
+        im = ax.imshow(
+            ssm, origin="lower", aspect="auto", extent=extent, cmap="viridis", vmin=0.0, vmax=1.0
+        )
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Time (s)")
     else:
@@ -249,20 +266,20 @@ def _plot_similarity_matrix(
     return out_path
 
 
-def _checkerboard_kernel(L: int, sigma_scale: float = 0.5) -> np.ndarray:
+def _checkerboard_kernel(kernel_half_size: int, sigma_scale: float = 0.5) -> np.ndarray:
     """Build Foote-style Gaussian checkerboard kernel of size (2L+1)."""
-    if L < 1:
+    if kernel_half_size < 1:
         raise ValueError("L must be >= 1")
-    axis = np.arange(-L, L + 1, dtype=np.float64)
-    sigma = max(1e-6, L * float(sigma_scale))
+    axis = np.arange(-kernel_half_size, kernel_half_size + 1, dtype=np.float64)
+    sigma = max(1e-6, kernel_half_size * float(sigma_scale))
     g = np.exp(-(axis**2) / (2.0 * sigma * sigma))
     gauss = np.outer(g, g)
 
-    sign = np.zeros((2 * L + 1, 2 * L + 1), dtype=np.float64)
-    sign[:L, :L] = 1.0
-    sign[L + 1 :, L + 1 :] = 1.0
-    sign[:L, L + 1 :] = -1.0
-    sign[L + 1 :, :L] = -1.0
+    sign = np.zeros((2 * kernel_half_size + 1, 2 * kernel_half_size + 1), dtype=np.float64)
+    sign[:kernel_half_size, :kernel_half_size] = 1.0
+    sign[kernel_half_size + 1 :, kernel_half_size + 1 :] = 1.0
+    sign[:kernel_half_size, kernel_half_size + 1 :] = -1.0
+    sign[kernel_half_size + 1 :, :kernel_half_size] = -1.0
     # Center row and center column remain zero by design (Foote novelty kernel).
     return gauss * sign
 
@@ -307,14 +324,17 @@ def compute_novelty_matrix(
             "peaks_s": np.array([], dtype=np.float64),
         }
 
-    L_target = max(2, kernel_size // 2)
-    L_max = max(1, (n_frames - 1) // 2)
-    L = int(min(L_target, L_max))
-    kernel = _checkerboard_kernel(L, sigma_scale=kernel_sigma_scale)
+    target_half_size = max(2, kernel_size // 2)
+    max_half_size = max(1, (n_frames - 1) // 2)
+    kernel_half_size = int(min(target_half_size, max_half_size))
+    kernel = _checkerboard_kernel(kernel_half_size, sigma_scale=kernel_sigma_scale)
 
     novelty = np.zeros(n_frames, dtype=np.float64)
-    for idx in range(L, n_frames - L):
-        local = ssm[idx - L : idx + L + 1, idx - L : idx + L + 1]
+    for idx in range(kernel_half_size, n_frames - kernel_half_size):
+        local = ssm[
+            idx - kernel_half_size : idx + kernel_half_size + 1,
+            idx - kernel_half_size : idx + kernel_half_size + 1,
+        ]
         novelty[idx] = float(np.sum(local * kernel))
 
     novelty = np.maximum(novelty, 0.0)
@@ -322,7 +342,7 @@ def compute_novelty_matrix(
     if max_nov > 0:
         novelty = novelty / max_nov
 
-    peak_distance = max(1, L // 2)
+    peak_distance = max(1, kernel_half_size // 2)
     prominence = 0.08 if max_nov > 0 else 0.0
     peaks_idx, _ = find_peaks(novelty, distance=peak_distance, prominence=prominence)
     peaks_s = t[peaks_idx] if t.size > 0 else np.array([], dtype=np.float64)
@@ -370,13 +390,17 @@ def plot_novelty_matrix(
     out_path = out_dir / "novelty_matrix.png"
 
     fig = plt.figure(figsize=(12, 7))
-    gs = fig.add_gridspec(2, 2, width_ratios=[1.45, 1.0], height_ratios=[1.0, 1.0], wspace=0.28, hspace=0.32)
+    gs = fig.add_gridspec(
+        2, 2, width_ratios=[1.45, 1.0], height_ratios=[1.0, 1.0], wspace=0.28, hspace=0.32
+    )
 
     # SSM
     ax0 = fig.add_subplot(gs[:, 0])
     if t.size > 1:
         extent = [float(t[0]), float(t[-1]), float(t[0]), float(t[-1])]
-        im0 = ax0.imshow(ssm, origin="lower", aspect="auto", extent=extent, cmap="viridis", vmin=0.0, vmax=1.0)
+        im0 = ax0.imshow(
+            ssm, origin="lower", aspect="auto", extent=extent, cmap="viridis", vmin=0.0, vmax=1.0
+        )
         for p in peaks_idx.tolist():
             if p < t.size:
                 px = float(t[p])
@@ -406,13 +430,17 @@ def plot_novelty_matrix(
     if t.size == novelty.size and t.size > 0:
         ax2.plot(t, novelty, linewidth=1.4, color="#0ea5e9")
         if peaks_idx.size > 0:
-            ax2.scatter(t[peaks_idx], novelty[peaks_idx], color="#ef4444", s=18, zorder=5, label="Peaks")
+            ax2.scatter(
+                t[peaks_idx], novelty[peaks_idx], color="#ef4444", s=18, zorder=5, label="Peaks"
+            )
         ax2.set_xlabel("Time (s)")
     else:
         x = np.arange(novelty.size)
         ax2.plot(x, novelty, linewidth=1.4, color="#0ea5e9")
         if peaks_idx.size > 0:
-            ax2.scatter(peaks_idx, novelty[peaks_idx], color="#ef4444", s=18, zorder=5, label="Peaks")
+            ax2.scatter(
+                peaks_idx, novelty[peaks_idx], color="#ef4444", s=18, zorder=5, label="Peaks"
+            )
         ax2.set_xlabel("Frame")
     ax2.set_ylabel("Novelty (norm.)")
     ax2.set_ylim(0.0, max(1.05, float(np.max(novelty) * 1.05 if novelty.size else 1.0)))

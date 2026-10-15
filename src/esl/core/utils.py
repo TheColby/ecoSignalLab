@@ -6,8 +6,8 @@ import hashlib
 import json
 import platform
 import random
-from importlib import metadata
 from dataclasses import asdict, is_dataclass
+from importlib import metadata
 from pathlib import Path
 from typing import Any
 
@@ -34,7 +34,9 @@ def canonicalize(value: Any) -> Any:
     if is_dataclass(value) and not isinstance(value, type):
         return canonicalize(asdict(value))
     if isinstance(value, dict):
-        return {str(k): canonicalize(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
+        return {
+            str(k): canonicalize(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))
+        }
     if isinstance(value, (list, tuple)):
         return [canonicalize(v) for v in value]
     if isinstance(value, Path):
@@ -50,7 +52,9 @@ def canonicalize(value: Any) -> Any:
 
 def config_hash(config: Any) -> str:
     """Create stable content hash for configuration provenance."""
-    payload = json.dumps(canonicalize(config), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(canonicalize(config), sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
     return hashlib.sha256(payload).hexdigest()
 
 

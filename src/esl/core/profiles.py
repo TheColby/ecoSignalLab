@@ -60,8 +60,8 @@ def load_resolution_profiles(path: str | Path) -> list[ResolutionProfile]:
                 raise RuntimeError(f"Profile '{name}' field 'metrics' must be a list")
             metrics = [str(m).strip() for m in metrics_raw if str(m).strip()]
 
-        def _opt_int(field: str) -> int | None:
-            val = item.get(field)
+        def _opt_int(field: str, profile_item: dict[str, Any] = item) -> int | None:
+            val = profile_item.get(field)
             return None if val is None else int(val)
 
         out.append(

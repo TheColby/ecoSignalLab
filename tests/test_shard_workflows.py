@@ -92,7 +92,10 @@ def test_cli_shard_analyze_writes_archive_report(tmp_path: Path) -> None:
     frame_table_csv = out_dir / "frame_tables" / "a_frame_table.csv"
     assert frame_table_csv.exists()
     assert (out_dir / "frame_tables_hdf5" / "a_frame_table.h5").exists()
-    if importlib.util.find_spec("pyarrow") is not None or importlib.util.find_spec("fastparquet") is not None:
+    if (
+        importlib.util.find_spec("pyarrow") is not None
+        or importlib.util.find_spec("fastparquet") is not None
+    ):
         assert any((out_dir / "frame_tables_parquet").rglob("part-*.parquet"))
 
 
@@ -522,7 +525,10 @@ def test_cli_shard_plot_writes_campaign_rollups(tmp_path: Path) -> None:
     rollup_csv = plot_out / "archive_rollup_month.csv"
     assert rollup_csv.exists()
     text = rollup_csv.read_text(encoding="utf-8")
-    assert "period_index,period_start_s,period_end_s,shard_count,total_duration_s,rms_dbfs_mean" in text
+    assert (
+        "period_index,period_start_s,period_end_s,shard_count,total_duration_s,rms_dbfs_mean"
+        in text
+    )
 
 
 def test_cli_shard_calendar_manifest_and_dataset_manifest(tmp_path: Path) -> None:
@@ -533,7 +539,13 @@ def test_cli_shard_calendar_manifest_and_dataset_manifest(tmp_path: Path) -> Non
     sidecars = tmp_path / "sidecars"
     sidecars.mkdir()
     (sidecars / "a.spatial.json").write_text(
-        json.dumps({"layout_family": "mono", "layout_hint": "pressure_reference", "channel_labels": ["reference"]}),
+        json.dumps(
+            {
+                "layout_family": "mono",
+                "layout_hint": "pressure_reference",
+                "channel_labels": ["reference"],
+            }
+        ),
         encoding="utf-8",
     )
     manifest_path = tmp_path / "manifest.json"
@@ -584,14 +596,38 @@ def test_cli_shard_calendar_manifest_and_dataset_manifest(tmp_path: Path) -> Non
         == 0
     )
     dataset_path = tmp_path / "dataset_manifest.json"
-    assert main(["shard", "dataset", str(analysis_dir / "shard_analysis_report.json"), "--out", str(dataset_path)]) == 0
+    assert (
+        main(
+            [
+                "shard",
+                "dataset",
+                str(analysis_dir / "shard_analysis_report.json"),
+                "--out",
+                str(dataset_path),
+            ]
+        )
+        == 0
+    )
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     assert dataset["manifest_kind"] == "shard_analysis_report"
     assert dataset["calendar"]["timeline_mode"] == "absolute"
     assert dataset["samples"][0]["timeline"]["start_time_utc"] == "2026-01-01T00:00:00Z"
     assert dataset["samples"][0]["frame_table"]["csv"]
     plot_dir = tmp_path / "calendar_plot"
-    assert main(["shard", "plot", str(analysis_dir / "shard_analysis_report.json"), "--out", str(plot_dir), "--rollup", "day"]) == 0
+    assert (
+        main(
+            [
+                "shard",
+                "plot",
+                str(analysis_dir / "shard_analysis_report.json"),
+                "--out",
+                str(plot_dir),
+                "--rollup",
+                "day",
+            ]
+        )
+        == 0
+    )
     assert "period_start_utc" in (plot_dir / "archive_rollup_day.csv").read_text(encoding="utf-8")
 
 
@@ -607,8 +643,7 @@ def test_cli_shard_insights_summary_scene_calmness_and_report(tmp_path: Path) ->
 
     summary_dir = tmp_path / "summary"
     assert (
-        main(["shard", "insights", "summary", str(manifest_path), "--out", str(summary_dir)])
-        == 0
+        main(["shard", "insights", "summary", str(manifest_path), "--out", str(summary_dir)]) == 0
     )
     summary = json.loads((summary_dir / "shard_insights_summary.json").read_text(encoding="utf-8"))
     assert summary["insight_kind"] == "shard_manifest_summary"

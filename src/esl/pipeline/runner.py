@@ -17,7 +17,6 @@ from esl.core.utils import config_hash, library_versions, pipeline_hash
 from esl.io import save_json
 from esl.metrics.registry import create_registry
 
-
 SUPPORTED_PATTERNS = [
     "*.wav",
     "*.flac",
@@ -183,7 +182,11 @@ def _scan_results_from_index_or_tree(output_dir: Path) -> list[dict[str, Any]]:
 
     results: list[dict[str, Any]] = []
     for p in sorted(output_dir.rglob("*.json")):
-        if p.name in {"pipeline_manifest.json", "pipeline_analysis_index.json", "pipeline_digest.json"}:
+        if p.name in {
+            "pipeline_manifest.json",
+            "pipeline_analysis_index.json",
+            "pipeline_digest.json",
+        }:
             continue
         try:
             doc = json.loads(p.read_text(encoding="utf-8"))
@@ -192,15 +195,19 @@ def _scan_results_from_index_or_tree(output_dir: Path) -> list[dict[str, Any]]:
         if not isinstance(doc, dict):
             continue
         if "metadata" in doc and "metrics" in doc and "config_hash" in doc:
-            results.append({
-                "input": doc.get("metadata", {}).get("input_path"),
-                "json": str(p),
-                "config_hash": doc.get("config_hash"),
-            })
+            results.append(
+                {
+                    "input": doc.get("metadata", {}).get("input_path"),
+                    "json": str(p),
+                    "config_hash": doc.get("config_hash"),
+                }
+            )
     return results
 
 
-def _run_stage_analyze(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _run_stage_analyze(
+    cfg: PipelineRunConfig, manifest: dict[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     files = iter_supported_files(cfg.input_dir, patterns=SUPPORTED_PATTERNS, recursive=True)
     if not files:
         return [], {"input_files": 0, "processed": 0, "skipped": 0, "errors": 0}
@@ -257,7 +264,9 @@ def _run_stage_analyze(cfg: PipelineRunConfig, manifest: dict[str, Any]) -> tupl
             )
         except Exception as exc:
             errors += 1
-            results.append({"input": str(fp), "json": str(json_path), "status": "error", "error": str(exc)})
+            results.append(
+                {"input": str(fp), "json": str(json_path), "status": "error", "error": str(exc)}
+            )
 
     idx_payload = {"results": results, "generated_utc": _now_utc_iso()}
     _write_json(_analysis_index_path(cfg.output_dir), idx_payload)

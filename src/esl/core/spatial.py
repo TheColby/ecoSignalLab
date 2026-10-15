@@ -12,7 +12,6 @@ import numpy as np
 from esl.core import AnalysisConfig, analyze
 from esl.core.audio import read_audio
 
-
 SPEED_OF_SOUND_M_S = 343.0
 
 SPATIAL_DEFAULT_METRICS: list[str] = [

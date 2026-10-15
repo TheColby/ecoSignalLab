@@ -14,7 +14,6 @@ from esl.core.utils import set_seed
 from esl.metrics.registry import create_registry
 from esl.viz.feature_vectors import extract_feature_vectors
 
-
 SUPPORTED_PATTERNS = [
     "*.wav",
     "*.flac",
@@ -90,7 +89,9 @@ def _aggregate_feature_vector(matrix: np.ndarray) -> np.ndarray:
 
 
 def _collect_candidates(cfg: SimilaritySearchConfig) -> list[Path]:
-    files = iter_supported_files(cfg.corpus_dir, patterns=SUPPORTED_PATTERNS, recursive=cfg.recursive)
+    files = iter_supported_files(
+        cfg.corpus_dir, patterns=SUPPORTED_PATTERNS, recursive=cfg.recursive
+    )
     q = cfg.input_path.resolve()
     out: list[Path] = []
     for f in files:
@@ -184,7 +185,9 @@ def _metric_vector(result: dict[str, Any], metric_names: list[str]) -> np.ndarra
     return np.array(out, dtype=np.float64)
 
 
-def _metric_search(cfg: SimilaritySearchConfig, candidates: list[Path], multi: bool) -> dict[str, Any]:
+def _metric_search(
+    cfg: SimilaritySearchConfig, candidates: list[Path], multi: bool
+) -> dict[str, Any]:
     from esl.core.analyzer import analyze
 
     metric_names = list(cfg.metrics or [])
@@ -237,7 +240,9 @@ def _metric_search(cfg: SimilaritySearchConfig, candidates: list[Path], multi: b
             cand_rows.append(
                 {
                     "path": str(p),
-                    "metric_means": {name: float(v) for name, v in zip(metric_names, cvec.tolist())},
+                    "metric_means": {
+                        name: float(v) for name, v in zip(metric_names, cvec.tolist(), strict=False)
+                    },
                     "metadata": {
                         "duration_s": float(cres.get("metadata", {}).get("duration_s", 0.0)),
                         "channels": int(cres.get("metadata", {}).get("channels", 0)),
@@ -254,7 +259,12 @@ def _metric_search(cfg: SimilaritySearchConfig, candidates: list[Path], multi: b
             "metrics": metric_names,
             "distance": cfg.distance,
             "normalize": bool(cfg.normalize),
-            "query": {"path": str(cfg.input_path), "metric_means": {name: float(v) for name, v in zip(metric_names, qvec.tolist())}},
+            "query": {
+                "path": str(cfg.input_path),
+                "metric_means": {
+                    name: float(v) for name, v in zip(metric_names, qvec.tolist(), strict=False)
+                },
+            },
             "results": [],
             "skipped": skipped,
         }
@@ -271,7 +281,7 @@ def _metric_search(cfg: SimilaritySearchConfig, candidates: list[Path], multi: b
         c_work = (c_work - mu[None, :]) / sigma[None, :]
 
     rows: list[dict[str, Any]] = []
-    for row, cvec, cvec_work in zip(cand_rows, cand_mat, c_work):
+    for row, cvec, cvec_work in zip(cand_rows, cand_mat, c_work, strict=False):
         if multi:
             dist, sim = _distance(q_work, cvec_work, cfg.distance)
             dist_kind = cfg.distance
@@ -300,7 +310,12 @@ def _metric_search(cfg: SimilaritySearchConfig, candidates: list[Path], multi: b
         "metrics": metric_names,
         "distance": cfg.distance,
         "normalize": bool(cfg.normalize),
-        "query": {"path": str(cfg.input_path), "metric_means": {name: float(v) for name, v in zip(metric_names, qvec.tolist())}},
+        "query": {
+            "path": str(cfg.input_path),
+            "metric_means": {
+                name: float(v) for name, v in zip(metric_names, qvec.tolist(), strict=False)
+            },
+        },
         "results": rows,
         "skipped": skipped,
     }

@@ -12,7 +12,6 @@ import soundfile as sf
 
 from esl.core.config import IngestConfig
 
-
 REQUEST_TIMEOUT_S = 30
 
 
@@ -48,7 +47,9 @@ def ingest_http(query: str, limit: int, output_dir: Path) -> list[dict[str, Any]
     return rows
 
 
-def ingest_freesound(query: str, limit: int, output_dir: Path, api_key: str) -> list[dict[str, Any]]:
+def ingest_freesound(
+    query: str, limit: int, output_dir: Path, api_key: str
+) -> list[dict[str, Any]]:
     """Ingest Freesound previews using API token from env or parameter."""
     audio_dir, _ = _ensure_dirs(output_dir)
     headers = {"Authorization": f"Token {api_key}"}
@@ -115,7 +116,11 @@ def ingest_huggingface(dataset_name: str, limit: int, output_dir: Path) -> list[
         if i >= limit:
             break
         audio_obj = item[audio_col]
-        if not isinstance(audio_obj, dict) or "array" not in audio_obj or "sampling_rate" not in audio_obj:
+        if (
+            not isinstance(audio_obj, dict)
+            or "array" not in audio_obj
+            or "sampling_rate" not in audio_obj
+        ):
             continue
         arr = audio_obj["array"]
         sr = int(audio_obj["sampling_rate"])
@@ -159,7 +164,8 @@ def ingest(config: IngestConfig) -> dict[str, Any]:
         "num_items": len(items),
         "items": items,
         "terms_notice": (
-            "User is responsible for complying with source terms/licenses and attribution requirements."
+            "User is responsible for complying with source terms/licenses and "
+            "attribution requirements."
         ),
     }
     manifest_path = meta_dir / "manifest.json"

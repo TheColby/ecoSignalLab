@@ -14,13 +14,14 @@ from pathlib import Path
 
 from esl.docsgen import build_docs
 
-
 ROOT = Path(__file__).resolve().parent.parent
 GUIDE_SOURCE = ROOT / "docs" / "USERGUIDE.md"
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the ecoSignalLab user guide as HTML and PDF")
+    parser = argparse.ArgumentParser(
+        description="Build the ecoSignalLab user guide as HTML and PDF"
+    )
     parser.add_argument("--out", default=str(ROOT / "USERGUIDE.pdf"), help="Final PDF output path")
     parser.add_argument(
         "--build-dir",

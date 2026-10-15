@@ -17,12 +17,11 @@ import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import soundfile as sf
 from scipy.signal import find_peaks, resample, stft
-
 
 EPS = 1e-12
 
@@ -95,7 +94,9 @@ def _atempo_filter_for_stretch(stretch_factor: float) -> str:
     return ",".join(f"atempo={p:.6f}" for p in parts)
 
 
-def _render_ffmpeg_atempo(input_path: Path, output_path: Path, stretch_factor: float, sr: int | None = None) -> None:
+def _render_ffmpeg_atempo(
+    input_path: Path, output_path: Path, stretch_factor: float, sr: int | None = None
+) -> None:
     if shutil.which("ffmpeg") is None:
         raise RuntimeError("ffmpeg not found on PATH")
     filt = _atempo_filter_for_stretch(stretch_factor)
@@ -105,10 +106,14 @@ def _render_ffmpeg_atempo(input_path: Path, output_path: Path, stretch_factor: f
     cmd.append(str(output_path))
     proc = subprocess.run(cmd, capture_output=True, check=False)
     if proc.returncode != 0:
-        raise RuntimeError(proc.stderr.decode("utf-8", errors="replace").strip() or "ffmpeg atempo failed")
+        raise RuntimeError(
+            proc.stderr.decode("utf-8", errors="replace").strip() or "ffmpeg atempo failed"
+        )
 
 
-def _render_scipy_resample(x: np.ndarray, output_path: Path, sr: int, stretch_factor: float) -> None:
+def _render_scipy_resample(
+    x: np.ndarray, output_path: Path, sr: int, stretch_factor: float
+) -> None:
     out_len = max(1, int(round(x.shape[0] * float(stretch_factor))))
     out = np.zeros((out_len, x.shape[1]), dtype=np.float32)
     for ch in range(x.shape[1]):
@@ -116,7 +121,9 @@ def _render_scipy_resample(x: np.ndarray, output_path: Path, sr: int, stretch_fa
     _write_wav(output_path, out, sr)
 
 
-def _render_librosa_phase_vocoder(x: np.ndarray, output_path: Path, sr: int, stretch_factor: float) -> None:
+def _render_librosa_phase_vocoder(
+    x: np.ndarray, output_path: Path, sr: int, stretch_factor: float
+) -> None:
     try:
         import librosa
     except Exception as exc:  # pragma: no cover - optional dependency
@@ -135,10 +142,14 @@ def _render_librosa_phase_vocoder(x: np.ndarray, output_path: Path, sr: int, str
     _write_wav(output_path, out, sr)
 
 
-def _render_pvx_external(input_path: Path, output_path: Path, stretch_factor: float, template: str) -> None:
+def _render_pvx_external(
+    input_path: Path, output_path: Path, stretch_factor: float, template: str
+) -> None:
     if not template:
         raise RuntimeError("missing --pvx-cmd template")
-    cmd = template.format(input=str(input_path), output=str(output_path), factor=f"{stretch_factor:.8f}")
+    cmd = template.format(
+        input=str(input_path), output=str(output_path), factor=f"{stretch_factor:.8f}"
+    )
     proc = subprocess.run(cmd, shell=True, check=False, capture_output=True, text=True)
     if proc.returncode != 0:
         err = proc.stderr.strip() or proc.stdout.strip() or "pvx external command failed"
@@ -216,10 +227,14 @@ def _compute_result(
     trans_in = max(float(input_ref["transient_count"]), 1.0)
     trans_ratio = float(spec["transient_count"] / trans_in)
     centroid_delta = float(
-        100.0 * (spec["centroid_mean"] - input_ref["centroid_mean"]) / max(abs(input_ref["centroid_mean"]), EPS)
+        100.0
+        * (spec["centroid_mean"] - input_ref["centroid_mean"])
+        / max(abs(input_ref["centroid_mean"]), EPS)
     )
     flatness_delta = float(
-        100.0 * (spec["flatness_mean"] - input_ref["flatness_mean"]) / max(abs(input_ref["flatness_mean"]), EPS)
+        100.0
+        * (spec["flatness_mean"] - input_ref["flatness_mean"])
+        / max(abs(input_ref["flatness_mean"]), EPS)
     )
     score = _kpi_score(
         duration_error_ms=dur_err_ms,
@@ -256,7 +271,38 @@ def _compute_result(
 def _write_csv(path: Path, rows: list[MethodResult]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     records = [asdict(r) for r in rows]
-    fieldnames = list(records[0].keys()) if records else list(asdict(MethodResult("", "", None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)).keys())
+    fieldnames = (
+        list(records[0].keys())
+        if records
+        else list(
+            asdict(
+                MethodResult(
+                    "",
+                    "",
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+            ).keys()
+        )
+    )
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -277,14 +323,24 @@ def main() -> int:
     parser.add_argument(
         "--methods",
         default="ffmpeg_atempo,scipy_resample,librosa_phase_vocoder",
-        help="Comma-separated methods: ffmpeg_atempo,scipy_resample,librosa_phase_vocoder,pvx_external",
+        help=(
+            "Comma-separated methods: "
+            "ffmpeg_atempo,scipy_resample,librosa_phase_vocoder,pvx_external"
+        ),
     )
-    parser.add_argument("--factor", type=float, default=2.0, help="Stretch factor (>1 means longer/slower)")
-    parser.add_argument("--sample-rate", type=int, default=None, help="Optional analysis/render sample rate")
+    parser.add_argument(
+        "--factor", type=float, default=2.0, help="Stretch factor (>1 means longer/slower)"
+    )
+    parser.add_argument(
+        "--sample-rate", type=int, default=None, help="Optional analysis/render sample rate"
+    )
     parser.add_argument(
         "--pvx-cmd",
         default=None,
-        help="External pvx command template, e.g. 'pvx stretch --in {input} --out {output} --factor {factor}'",
+        help=(
+            "External pvx command template, e.g. 'pvx stretch --in {input} --out "
+            "{output} --factor {factor}'"
+        ),
     )
     args = parser.parse_args()
 
@@ -310,11 +366,20 @@ def main() -> int:
         t0 = time.perf_counter()
         try:
             if method == "ffmpeg_atempo":
-                _render_ffmpeg_atempo(input_path=input_path, output_path=out_wav, stretch_factor=float(args.factor), sr=args.sample_rate)
+                _render_ffmpeg_atempo(
+                    input_path=input_path,
+                    output_path=out_wav,
+                    stretch_factor=float(args.factor),
+                    sr=args.sample_rate,
+                )
             elif method == "scipy_resample":
-                _render_scipy_resample(x=x, output_path=out_wav, sr=sr, stretch_factor=float(args.factor))
+                _render_scipy_resample(
+                    x=x, output_path=out_wav, sr=sr, stretch_factor=float(args.factor)
+                )
             elif method == "librosa_phase_vocoder":
-                _render_librosa_phase_vocoder(x=x, output_path=out_wav, sr=sr, stretch_factor=float(args.factor))
+                _render_librosa_phase_vocoder(
+                    x=x, output_path=out_wav, sr=sr, stretch_factor=float(args.factor)
+                )
             elif method == "pvx_external":
                 _render_pvx_external(
                     input_path=input_path,
@@ -404,4 +469,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

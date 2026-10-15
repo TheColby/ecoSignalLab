@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from importlib.metadata import entry_points
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from esl.metrics.base import MetricPlugin, MetricResult, MetricSpec
 from esl.metrics.builtin import builtin_plugins
@@ -54,7 +55,9 @@ class MetricRegistry:
 def load_external_plugins(registry: MetricRegistry) -> None:
     """Load plugins from entry-point group `esl.plugins`."""
     eps = entry_points()
-    group = eps.select(group="esl.plugins") if hasattr(eps, "select") else eps.get("esl.plugins", [])
+    group = (
+        eps.select(group="esl.plugins") if hasattr(eps, "select") else eps.get("esl.plugins", [])
+    )
     for ep in group:
         plugin_factory = ep.load()
         plugin = plugin_factory() if callable(plugin_factory) else plugin_factory

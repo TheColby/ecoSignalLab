@@ -1,12 +1,13 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
-import os
 import pytest
 import soundfile as sf
-import subprocess
-import sys
 
+from esl import __version__
 from esl.cli.main import main
 from esl.schema import SCHEMA_VERSION
 
@@ -68,7 +69,13 @@ def test_cli_schema_reports_schema_version(capsys: pytest.CaptureFixture[str]) -
 def test_python_module_help_entrypoint() -> None:
     env = dict(os.environ)
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
-    proc = subprocess.run([sys.executable, "-m", "esl", "--help"], capture_output=True, text=True, env=env, check=False)
+    proc = subprocess.run(
+        [sys.executable, "-m", "esl", "--help"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
     assert proc.returncode == 0
     assert "doctor" in proc.stdout
     assert "ecoSignalLab CLI" in proc.stdout
@@ -80,7 +87,23 @@ def test_python_module_help_entrypoint() -> None:
     assert "quickstart" in proc.stdout
 
 
-def test_cli_moments_and_calibrate_help_include_new_flags(capsys: pytest.CaptureFixture[str]) -> None:
+def test_python_module_version_entrypoint() -> None:
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+    proc = subprocess.run(
+        [sys.executable, "-m", "esl", "--version"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert proc.stdout.strip() == f"esl {__version__}"
+
+
+def test_cli_moments_and_calibrate_help_include_new_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     with pytest.raises(SystemExit):
         main(["moments", "extract", "--help"])
     out = capsys.readouterr().out
@@ -123,7 +146,20 @@ def test_cli_quickstart_goal_long(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_cli_benchmark_device_smoke(capsys: pytest.CaptureFixture[str]) -> None:
-    code = main(["benchmark", "device", "--device", "cpu", "--frames", "128", "--features", "32", "--iters", "2"])
+    code = main(
+        [
+            "benchmark",
+            "device",
+            "--device",
+            "cpu",
+            "--frames",
+            "128",
+            "--features",
+            "32",
+            "--iters",
+            "2",
+        ]
+    )
     assert code == 0
     out = capsys.readouterr().out
     assert "summary:" in out

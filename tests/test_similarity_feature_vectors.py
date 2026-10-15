@@ -8,7 +8,11 @@ import pytest
 import soundfile as sf
 
 from esl.cli.main import main
-from esl.viz.feature_vectors import extract_feature_vectors, load_feature_vectors, save_feature_vectors
+from esl.viz.feature_vectors import (
+    extract_feature_vectors,
+    load_feature_vectors,
+    save_feature_vectors,
+)
 
 
 def _write_wav(path: Path, data: np.ndarray, sr: int = 16000) -> None:

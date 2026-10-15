@@ -42,7 +42,6 @@ from esl.metrics.helpers import (
     summarize,
 )
 
-
 EPS = 1e-12
 SPEED_OF_SOUND = 343.0
 
@@ -58,7 +57,13 @@ def _safe_summary(series: np.ndarray) -> dict[str, float]:
     return summarize(valid)
 
 
-def _scalar_result(name: str, units: str, value: float, confidence: float = 1.0, extra: dict[str, Any] | None = None) -> MetricResult:
+def _scalar_result(
+    name: str,
+    units: str,
+    value: float,
+    confidence: float = 1.0,
+    extra: dict[str, Any] | None = None,
+) -> MetricResult:
     return MetricResult(
         name=name,
         units=units,
@@ -73,11 +78,15 @@ def _scalar_result(name: str, units: str, value: float, confidence: float = 1.0,
 def _spectral_cache(ctx: AnalysisContext) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     key = "spectral_ext"
     if key not in ctx.cache:
-        ctx.cache[key] = spectral_features(ctx.mono(), ctx.sample_rate, ctx.frame_size, ctx.hop_size)
+        ctx.cache[key] = spectral_features(
+            ctx.mono(), ctx.sample_rate, ctx.frame_size, ctx.hop_size
+        )
     return ctx.cache[key]
 
 
-def _frame_weighted_level_db(ctx: AnalysisContext, weighting: str = "Z") -> tuple[np.ndarray, np.ndarray]:
+def _frame_weighted_level_db(
+    ctx: AnalysisContext, weighting: str = "Z"
+) -> tuple[np.ndarray, np.ndarray]:
     framed = frame_signal(ctx.signal, ctx.sample_rate, ctx.frame_size, ctx.hop_size)
     vals = np.zeros(framed.frames.shape[0], dtype=np.float64)
     for i in range(framed.frames.shape[0]):
@@ -180,7 +189,9 @@ def _k_weight_signal(x: np.ndarray, sr: int) -> tuple[np.ndarray, int]:
     return y, target_sr
 
 
-def _block_loudness(y: np.ndarray, sr: int, win_s: float, hop_s: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _block_loudness(
+    y: np.ndarray, sr: int, win_s: float, hop_s: float
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n = y.shape[0]
     win = max(1, int(round(win_s * sr)))
     hop = max(1, int(round(hop_s * sr)))
@@ -198,12 +209,16 @@ def _block_loudness(y: np.ndarray, sr: int, win_s: float, hop_s: float) -> tuple
         # Channel weights default to 1 for general N-channel workflows.
         e = float(np.sum(np.mean(np.square(block), axis=0)))
         # ITU-R BS.1770 loudness block equation constant.
-        l = float(-0.691 + 10.0 * np.log10(max(e, EPS)))
+        loudness_value = float(-0.691 + 10.0 * np.log10(max(e, EPS)))
         energies.append(e)
-        loudness.append(l)
+        loudness.append(loudness_value)
         times.append((start + 0.5 * win) / sr)
 
-    return np.array(times, dtype=np.float64), np.array(energies, dtype=np.float64), np.array(loudness, dtype=np.float64)
+    return (
+        np.array(times, dtype=np.float64),
+        np.array(energies, dtype=np.float64),
+        np.array(loudness, dtype=np.float64),
+    )
 
 
 def _loudness_cache(ctx: AnalysisContext) -> dict[str, Any]:
@@ -267,7 +282,9 @@ def _fractional_octave_centers(sr: int, fraction: int) -> np.ndarray:
     return np.array(centers, dtype=np.float64)
 
 
-def _fractional_octave_levels(ctx: AnalysisContext, fraction: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def _fractional_octave_levels(
+    ctx: AnalysisContext, fraction: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     f, t, mag = _spectral_cache(ctx)
     p = np.square(mag)
     centers = _fractional_octave_centers(ctx.sample_rate, fraction=fraction)
@@ -311,7 +328,7 @@ def _adi_aei(ctx: AnalysisContext) -> tuple[float, float]:
         return 0.0, 0.0
 
     vals = []
-    for lo, hi in zip(edges[:-1], edges[1:]):
+    for lo, hi in zip(edges[:-1], edges[1:], strict=False):
         m = (f >= lo) & (f < hi)
         vals.append(float(np.sum(p[m])) if np.any(m) else 0.0)
     arr = np.array(vals, dtype=np.float64)
@@ -369,11 +386,11 @@ def _gcc_phat_itd(a: np.ndarray, b: np.ndarray, sr: int, max_tau_s: float = 0.00
     target = len(a) + len(b)
     while n < target:
         n <<= 1
-    A = np.fft.rfft(a, n=n)
-    B = np.fft.rfft(b, n=n)
-    R = A * np.conj(B)
-    R /= np.maximum(np.abs(R), EPS)
-    cc = np.fft.irfft(R, n=n)
+    spectrum_a = np.fft.rfft(a, n=n)
+    spectrum_b = np.fft.rfft(b, n=n)
+    cross_power = spectrum_a * np.conj(spectrum_b)
+    cross_power /= np.maximum(np.abs(cross_power), EPS)
+    cc = np.fft.irfft(cross_power, n=n)
     cc = np.concatenate((cc[-(n // 2) :], cc[: n // 2 + 1]))
     max_shift = int(max_tau_s * sr)
     mid = len(cc) // 2
@@ -460,17 +477,17 @@ def _feature_matrix(ctx: AnalysisContext) -> tuple[np.ndarray, np.ndarray]:
     rolloff = f[idx]
     novelty = novelty_from_spectrum(mag)
 
-    X = np.stack([centroid, spread, flatness, rolloff, novelty], axis=1)
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-    return t, X
+    feature_matrix = np.stack([centroid, spread, flatness, rolloff, novelty], axis=1)
+    feature_matrix = np.nan_to_num(feature_matrix, nan=0.0, posinf=0.0, neginf=0.0)
+    return t, feature_matrix
 
 
-def _anomaly_fallback_score(X: np.ndarray) -> np.ndarray:
-    if X.size == 0:
+def _anomaly_fallback_score(features: np.ndarray) -> np.ndarray:
+    if features.size == 0:
         return np.zeros((0,), dtype=np.float64)
-    mu = np.mean(X, axis=0, keepdims=True)
-    sd = np.std(X, axis=0, keepdims=True) + EPS
-    z = (X - mu) / sd
+    mu = np.mean(features, axis=0, keepdims=True)
+    sd = np.std(features, axis=0, keepdims=True) + EPS
+    z = (features - mu) / sd
     return np.sqrt(np.sum(np.square(z), axis=1))
 
 
@@ -524,7 +541,9 @@ def _campaign_proxy_cache(ctx: AnalysisContext) -> dict[str, Any]:
     sr_score = 1.0 if ctx.sample_rate in {16000, 22050, 32000, 44100, 48000} else 0.7
     layout_score = 1.0 if ctx.layout in {"mono", "stereo", "ambisonic_b_format"} else 0.8
     clip_score = float(np.clip(1.0 - qc["clipping_ratio"], 0.0, 1.0))
-    site_comparability = float(np.clip(0.4 * has_cal + 0.2 * sr_score + 0.2 * layout_score + 0.2 * clip_score, 0.0, 1.0))
+    site_comparability = float(
+        np.clip(0.4 * has_cal + 0.2 * sr_score + 0.2 * layout_score + 0.2 * clip_score, 0.0, 1.0)
+    )
 
     cache = {
         "uptime_ratio": uptime_ratio,
@@ -706,8 +725,10 @@ class IntegratedLUFSMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l = _loudness_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(l["integrated_lufs"]), 0.85)
+        loudness_cache = _loudness_cache(ctx)
+        return _scalar_result(
+            self.spec.name, self.spec.units, float(loudness_cache["integrated_lufs"]), 0.85
+        )
 
 
 class ShortTermLUFSMetric:
@@ -725,9 +746,9 @@ class ShortTermLUFSMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l = _loudness_cache(ctx)
-        series = np.array(l["short_lufs"], dtype=np.float64)
-        t = np.array(l["short_time"], dtype=np.float64)
+        loudness_cache = _loudness_cache(ctx)
+        series = np.array(loudness_cache["short_lufs"], dtype=np.float64)
+        t = np.array(loudness_cache["short_time"], dtype=np.float64)
         return MetricResult(
             name=self.spec.name,
             units=self.spec.units,
@@ -753,9 +774,9 @@ class MomentaryLUFSMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l = _loudness_cache(ctx)
-        series = np.array(l["momentary_lufs"], dtype=np.float64)
-        t = np.array(l["momentary_time"], dtype=np.float64)
+        loudness_cache = _loudness_cache(ctx)
+        series = np.array(loudness_cache["momentary_lufs"], dtype=np.float64)
+        t = np.array(loudness_cache["momentary_time"], dtype=np.float64)
         return MetricResult(
             name=self.spec.name,
             units=self.spec.units,
@@ -781,8 +802,10 @@ class LoudnessRangeMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l = _loudness_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(l["lra_lu"]), 0.85)
+        loudness_cache = _loudness_cache(ctx)
+        return _scalar_result(
+            self.spec.name, self.spec.units, float(loudness_cache["lra_lu"]), 0.85
+        )
 
 
 class TruePeakMetric:
@@ -836,14 +859,22 @@ class STIProxyMetric:
         c50 = 10.0 * np.log10(e50 / late)
 
         levels, _ = _frame_dbfs(ctx)
-        snr = float(np.percentile(levels, 90.0) - np.percentile(levels, 10.0)) if levels.size else 0.0
+        snr = (
+            float(np.percentile(levels, 90.0) - np.percentile(levels, 10.0)) if levels.size else 0.0
+        )
         rt = float(ir["t30"]) if np.isfinite(ir["t30"]) else 1.0
 
         s1 = 1.0 / (1.0 + np.exp(-(c50 - 2.0) / 2.0))
         s2 = 1.0 / (1.0 + np.exp(-(snr - 6.0) / 4.0))
         s3 = np.exp(-max(rt - 0.6, 0.0) / 1.8)
         sti = float(np.clip(s1 * s2 * s3, 0.0, 1.0))
-        return _scalar_result(self.spec.name, self.spec.units, sti, 0.6, extra={"c50_db": c50, "snr_db": snr, "rt30_s": rt})
+        return _scalar_result(
+            self.spec.name,
+            self.spec.units,
+            sti,
+            0.6,
+            extra={"c50_db": c50, "snr_db": snr, "rt30_s": rt},
+        )
 
 
 class T20Metric:
@@ -952,7 +983,9 @@ class LFMetric:
 
         e_total = float(np.sum(np.square(early))) + EPS
         e_lat = float(np.sum(np.square(early[:, 1:])))
-        return _scalar_result(self.spec.name, self.spec.units, float(np.clip(e_lat / e_total, 0.0, 1.0)), 0.6)
+        return _scalar_result(
+            self.spec.name, self.spec.units, float(np.clip(e_lat / e_total, 0.0, 1.0)), 0.6
+        )
 
 
 class LFCMetric:
@@ -992,7 +1025,9 @@ class LFCMetric:
         e_total = float(np.sum(np.square(early))) + EPS
         e_lat = float(np.sum(np.square(early[:, 1:])))
         lf = float(np.clip(e_lat / e_total, 0.0, 1.0))
-        return _scalar_result(self.spec.name, self.spec.units, float(np.clip(lf * corr, 0.0, 1.0)), 0.6)
+        return _scalar_result(
+            self.spec.name, self.spec.units, float(np.clip(lf * corr, 0.0, 1.0)), 0.6
+        )
 
 
 class BassRatioMetric:
@@ -1185,9 +1220,15 @@ class IACCMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l, r, ts = _stereo_frames(ctx)
+        left_frames, right_frames, ts = _stereo_frames(ctx)
         max_lag = max(1, int(0.001 * ctx.sample_rate))
-        vals = np.array([_max_norm_xcorr(l[i], r[i], max_lag=max_lag) for i in range(l.shape[0])], dtype=np.float64)
+        vals = np.array(
+            [
+                _max_norm_xcorr(left_frames[i], right_frames[i], max_lag=max_lag)
+                for i in range(left_frames.shape[0])
+            ],
+            dtype=np.float64,
+        )
         conf = 1.0 if ctx.channels >= 2 else 0.3
         return MetricResult(
             name=self.spec.name,
@@ -1214,9 +1255,9 @@ class ILDMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l, r, ts = _stereo_frames(ctx)
-        lrms = np.sqrt(np.mean(np.square(l), axis=1))
-        rrms = np.sqrt(np.mean(np.square(r), axis=1))
+        left_frames, right_frames, ts = _stereo_frames(ctx)
+        lrms = np.sqrt(np.mean(np.square(left_frames), axis=1))
+        rrms = np.sqrt(np.mean(np.square(right_frames), axis=1))
         ild = 20.0 * np.log10(np.maximum(lrms, EPS) / np.maximum(rrms, EPS))
         conf = 1.0 if ctx.channels >= 2 else 0.3
         return MetricResult(
@@ -1244,12 +1285,12 @@ class IPDMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l, r, ts = _stereo_frames(ctx)
-        ipd = np.zeros(l.shape[0], dtype=np.float64)
-        for i in range(l.shape[0]):
-            L = np.fft.rfft(l[i])
-            R = np.fft.rfft(r[i])
-            cs = np.sum(L * np.conj(R))
+        left_frames, right_frames, ts = _stereo_frames(ctx)
+        ipd = np.zeros(left_frames.shape[0], dtype=np.float64)
+        for i in range(left_frames.shape[0]):
+            left_spectrum = np.fft.rfft(left_frames[i])
+            right_spectrum = np.fft.rfft(right_frames[i])
+            cs = np.sum(left_spectrum * np.conj(right_spectrum))
             ipd[i] = float(np.angle(cs))
         conf = 1.0 if ctx.channels >= 2 else 0.3
         return MetricResult(
@@ -1277,8 +1318,14 @@ class ITDMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l, r, ts = _stereo_frames(ctx)
-        itd = np.array([_gcc_phat_itd(l[i], r[i], ctx.sample_rate) for i in range(l.shape[0])], dtype=np.float64)
+        left_frames, right_frames, ts = _stereo_frames(ctx)
+        itd = np.array(
+            [
+                _gcc_phat_itd(left_frames[i], right_frames[i], ctx.sample_rate)
+                for i in range(left_frames.shape[0])
+            ],
+            dtype=np.float64,
+        )
         conf = 1.0 if ctx.channels >= 2 else 0.3
         return MetricResult(
             name=self.spec.name,
@@ -1388,14 +1435,26 @@ class DOAAzimuthProxyMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        l, r, _ = _stereo_frames(ctx)
-        if l.shape[0] == 0:
+        left_frames, right_frames, _ = _stereo_frames(ctx)
+        if left_frames.shape[0] == 0:
             return _scalar_result(self.spec.name, self.spec.units, float("nan"), 0.2)
-        itd = np.array([_gcc_phat_itd(l[i], r[i], ctx.sample_rate) for i in range(l.shape[0])], dtype=np.float64)
+        itd = np.array(
+            [
+                _gcc_phat_itd(left_frames[i], right_frames[i], ctx.sample_rate)
+                for i in range(left_frames.shape[0])
+            ],
+            dtype=np.float64,
+        )
         mean_itd = float(np.mean(itd))
         az = _doa_azimuth_from_itd(mean_itd, mic_spacing_m=0.2)
         conf = 0.7 if ctx.channels >= 2 else 0.2
-        return _scalar_result(self.spec.name, self.spec.units, az, conf, extra={"mean_itd_s": mean_itd, "mic_spacing_m": 0.2})
+        return _scalar_result(
+            self.spec.name,
+            self.spec.units,
+            az,
+            conf,
+            extra={"mean_itd_s": mean_itd, "mic_spacing_m": 0.2},
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -1441,7 +1500,9 @@ class ClippingEventCountMetric:
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         qc = _qc_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(qc["clipping_event_count"]), 1.0)
+        return _scalar_result(
+            self.spec.name, self.spec.units, float(qc["clipping_event_count"]), 1.0
+        )
 
 
 class DCOffsetMetric:
@@ -1549,19 +1610,21 @@ class IsolationForestScoreMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        t, X = _feature_matrix(ctx)
+        t, feature_matrix = _feature_matrix(ctx)
         score: np.ndarray
         conf = 0.6
         try:
             from sklearn.ensemble import IsolationForest
 
             # Isolation Forest: Liu, Ting, Zhou (ICDM 2008).
-            model = IsolationForest(random_state=ctx.config.seed, n_estimators=200, contamination="auto")
-            model.fit(X)
-            score = -model.decision_function(X)
+            model = IsolationForest(
+                random_state=ctx.config.seed, n_estimators=200, contamination="auto"
+            )
+            model.fit(feature_matrix)
+            score = -model.decision_function(feature_matrix)
             conf = 0.9
         except Exception:
-            score = _anomaly_fallback_score(X)
+            score = _anomaly_fallback_score(feature_matrix)
 
         return MetricResult(
             name=self.spec.name,
@@ -1588,7 +1651,7 @@ class OCSVMScoreMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        t, X = _feature_matrix(ctx)
+        t, feature_matrix = _feature_matrix(ctx)
         score: np.ndarray
         conf = 0.55
         try:
@@ -1596,11 +1659,11 @@ class OCSVMScoreMetric:
 
             # One-Class SVM: Schölkopf et al. (Neural Computation, 2001).
             model = OneClassSVM(kernel="rbf", gamma="scale", nu=0.05)
-            model.fit(X)
-            score = -model.decision_function(X)
+            model.fit(feature_matrix)
+            score = -model.decision_function(feature_matrix)
             conf = 0.85
         except Exception:
-            score = _anomaly_fallback_score(X)
+            score = _anomaly_fallback_score(feature_matrix)
 
         return MetricResult(
             name=self.spec.name,
@@ -1627,17 +1690,26 @@ class AutoencoderReconErrorMetric:
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
-        t, X = _feature_matrix(ctx)
-        if X.size == 0:
-            return MetricResult(name=self.spec.name, units=self.spec.units, summary=_safe_summary(np.array([])), confidence=0.2)
+        t, feature_matrix = _feature_matrix(ctx)
+        if feature_matrix.size == 0:
+            return MetricResult(
+                name=self.spec.name,
+                units=self.spec.units,
+                summary=_safe_summary(np.array([])),
+                confidence=0.2,
+            )
 
-        mu = np.mean(X, axis=0, keepdims=True)
-        sd = np.std(X, axis=0, keepdims=True) + EPS
-        Xn = (X - mu) / sd
-        U, S, Vt = np.linalg.svd(Xn, full_matrices=False)
-        k = min(3, max(1, Xn.shape[1] - 1), len(S))
-        Xr = (U[:, :k] * S[:k]) @ Vt[:k, :]
-        err = np.mean(np.square(Xn - Xr), axis=1)
+        mu = np.mean(feature_matrix, axis=0, keepdims=True)
+        sd = np.std(feature_matrix, axis=0, keepdims=True) + EPS
+        normalized_features = (feature_matrix - mu) / sd
+        left_singular_vectors, singular_values, right_singular_vectors = np.linalg.svd(
+            normalized_features, full_matrices=False
+        )
+        k = min(3, max(1, normalized_features.shape[1] - 1), len(singular_values))
+        reconstructed_features = (
+            left_singular_vectors[:, :k] * singular_values[:k]
+        ) @ right_singular_vectors[:k, :]
+        err = np.mean(np.square(normalized_features - reconstructed_features), axis=1)
 
         return MetricResult(
             name=self.spec.name,
@@ -1681,7 +1753,11 @@ class ChangePointConfidenceMetric:
             series=z.tolist(),
             timestamps_s=t.tolist(),
             confidence=0.9,
-            extra={"peak_indices": peaks.tolist(), "peak_count": int(peaks.size), "confidence": conf},
+            extra={
+                "peak_indices": peaks.tolist(),
+                "peak_count": int(peaks.size),
+                "confidence": conf,
+            },
         )
 
 
@@ -1807,7 +1883,12 @@ class DiurnalCoverageMetric:
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         c = _campaign_proxy_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(c["diurnal_coverage_ratio"]), float(c["diurnal_confidence"]))
+        return _scalar_result(
+            self.spec.name,
+            self.spec.units,
+            float(c["diurnal_coverage_ratio"]),
+            float(c["diurnal_confidence"]),
+        )
 
 
 class SiteComparabilityMetric:
@@ -1820,13 +1901,17 @@ class SiteComparabilityMetric:
         streaming_capable=False,
         calibration_dependency=True,
         ml_compatible=True,
-        confidence_logic="Composite of calibration availability, sampling convention, layout and clipping health",
+        confidence_logic=(
+            "Composite of calibration availability, sampling convention, layout and clipping health"
+        ),
         description="Single-score proxy for cross-site comparability.",
     )
 
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         c = _campaign_proxy_cache(ctx)
-        return _scalar_result(self.spec.name, self.spec.units, float(c["site_comparability_score"]), 0.7)
+        return _scalar_result(
+            self.spec.name, self.spec.units, float(c["site_comparability_score"]), 0.7
+        )
 
 
 def extended_plugins() -> list[object]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import importlib.util
+import json
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +18,9 @@ def _write_wav(path: Path, data: np.ndarray, sr: int = 16000) -> Path:
     return path
 
 
-def test_chunked_analyze_avoids_full_read_for_streamable_metrics(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_chunked_analyze_avoids_full_read_for_streamable_metrics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     sr = 16_000
     t = np.arange(sr, dtype=np.float64) / sr
     x = 0.1 * np.sin(2.0 * np.pi * 220.0 * t)
@@ -43,7 +45,9 @@ def test_chunked_analyze_avoids_full_read_for_streamable_metrics(tmp_path: Path,
     assert result["metrics"]["rms_dbfs"]["series"] == []
 
 
-def test_chunked_analyze_rejects_non_streaming_metrics_without_allow_full_read(tmp_path: Path) -> None:
+def test_chunked_analyze_rejects_non_streaming_metrics_without_allow_full_read(
+    tmp_path: Path,
+) -> None:
     sr = 16_000
     t = np.arange(sr, dtype=np.float64) / sr
     x = 0.1 * np.sin(2.0 * np.pi * 220.0 * t)
@@ -111,7 +115,10 @@ def test_chunked_analyze_writes_frame_table_parquet_and_hdf5(tmp_path: Path) -> 
     assert frame_parquet_dir.exists()
     assert frame_hdf5.exists()
     assert result["artifacts"]["frame_table_hdf5"] == str(frame_hdf5.resolve())
-    if importlib.util.find_spec("pyarrow") is not None or importlib.util.find_spec("fastparquet") is not None:
+    if (
+        importlib.util.find_spec("pyarrow") is not None
+        or importlib.util.find_spec("fastparquet") is not None
+    ):
         assert any(frame_parquet_dir.glob("part-*.parquet"))
         assert (frame_parquet_dir / "metadata.json").exists()
         assert result["artifacts"]["frame_table_parquet_dir"] == str(frame_parquet_dir.resolve())

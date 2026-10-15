@@ -19,7 +19,6 @@ from esl.core.context import AnalysisContext
 from esl.core.out_of_core import RunningStats, load_checkpoint, save_checkpoint
 from esl.metrics.registry import MetricRegistry, create_registry
 
-
 CHUNK_REPORT_FILENAME = "stream_chunks.jsonl"
 CHECKPOINT_FILENAME = "stream_state.json"
 
@@ -79,7 +78,9 @@ def _checkpoint_path(cfg: StreamRunConfig) -> Path | None:
     return Path(cfg.checkpoint_dir) / CHECKPOINT_FILENAME
 
 
-def _load_state(cfg: StreamRunConfig, metric_names: list[str]) -> tuple[int, int, int, dict[str, RunningStats]]:
+def _load_state(
+    cfg: StreamRunConfig, metric_names: list[str]
+) -> tuple[int, int, int, dict[str, RunningStats]]:
     checkpoint_path = _checkpoint_path(cfg)
     if checkpoint_path is None or not cfg.resume or not checkpoint_path.exists():
         return 0, 0, 0, {name: RunningStats() for name in metric_names}
@@ -144,7 +145,9 @@ def run_stream_analysis(
         reg.get(m)
 
     probe = probe_audio_metadata(cfg.input_path)
-    format_name = str(probe.get("format_name") or cfg.input_path.suffix.lstrip(".").upper() or "unknown")
+    format_name = str(
+        probe.get("format_name") or cfg.input_path.suffix.lstrip(".").upper() or "unknown"
+    )
     subtype = probe.get("subtype")
     source_backend = str(probe.get("backend") or "unknown")
     decoder_provenance = probe.get("decoder_provenance") or {
@@ -153,7 +156,9 @@ def run_stream_analysis(
         "ffprobe": None,
     }
 
-    chunks_jsonl = Path(cfg.chunks_jsonl) if cfg.chunks_jsonl else (cfg.output_dir / CHUNK_REPORT_FILENAME)
+    chunks_jsonl = (
+        Path(cfg.chunks_jsonl) if cfg.chunks_jsonl else (cfg.output_dir / CHUNK_REPORT_FILENAME)
+    )
     chunks_jsonl.parent.mkdir(parents=True, exist_ok=True)
     chunks_mode = "a" if cfg.resume and chunks_jsonl.exists() else "w"
     resume_from, chunks_processed, alert_count, metric_stats = _load_state(cfg, selected_metrics)
@@ -162,11 +167,14 @@ def run_stream_analysis(
     in_memory_preview: list[dict[str, Any]] = []
     chunk_preview_complete = True
 
-    with chunks_jsonl.open(chunks_mode, encoding="utf-8") as chunk_f, alerts_csv.open(
-        alerts_mode,
-        encoding="utf-8",
-        newline="",
-    ) as alerts_f:
+    with (
+        chunks_jsonl.open(chunks_mode, encoding="utf-8") as chunk_f,
+        alerts_csv.open(
+            alerts_mode,
+            encoding="utf-8",
+            newline="",
+        ) as alerts_f,
+    ):
         alerts_writer = csv.DictWriter(
             alerts_f,
             fieldnames=["chunk_index", "metric", "value", "condition", "threshold"],
@@ -309,7 +317,9 @@ def run_stream_analysis(
             "report_json": str((cfg.output_dir / "stream_report.json").resolve()),
             "alerts_csv": str(alerts_csv.resolve()),
             "chunks_jsonl": str(chunks_jsonl.resolve()),
-            "checkpoint_state_json": str(_checkpoint_path(cfg).resolve()) if _checkpoint_path(cfg) else None,
+            "checkpoint_state_json": str(_checkpoint_path(cfg).resolve())
+            if _checkpoint_path(cfg)
+            else None,
         },
     }
 

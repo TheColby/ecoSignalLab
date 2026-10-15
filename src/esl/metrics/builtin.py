@@ -51,7 +51,9 @@ def _spectral_cache(ctx: AnalysisContext) -> tuple[np.ndarray, np.ndarray, np.nd
     # Shared STFT cache for spectral descriptors and novelty features.
     key = "spectral"
     if key not in ctx.cache:
-        ctx.cache[key] = spectral_features(ctx.mono(), ctx.sample_rate, ctx.frame_size, ctx.hop_size)
+        ctx.cache[key] = spectral_features(
+            ctx.mono(), ctx.sample_rate, ctx.frame_size, ctx.hop_size
+        )
     return ctx.cache[key]
 
 
@@ -89,7 +91,9 @@ def _architectural_cache(ctx: AnalysisContext) -> dict[str, np.ndarray | float]:
 
     dynamic_range = float(np.nanmax(decay) - np.nanmin(decay))
     fit_r2 = float(rt60_fit["r2"]) if np.isfinite(float(rt60_fit["r2"])) else 0.0
-    rt_conf = float(np.clip(0.5 * min(dynamic_range / 35.0, 1.0) + 0.5 * max(fit_r2, 0.0), 0.2, 1.0))
+    rt_conf = float(
+        np.clip(0.5 * min(dynamic_range / 35.0, 1.0) + 0.5 * max(fit_r2, 0.0), 0.2, 1.0)
+    )
 
     cache = {
         "rt60": rt60,
@@ -301,7 +305,10 @@ class SNRMetric:
             confidence=0.8,
             extra={
                 "method": "percentile_90_minus_10",
-                "confidence_notes": "Percentile estimator; assumes representative noise floor in signal distribution.",
+                "confidence_notes": (
+                    "Percentile estimator; assumes representative "
+                    "noise floor in signal distribution."
+                ),
             },
         )
 
@@ -352,7 +359,10 @@ class SpectralBandwidthMetric:
     def compute(self, ctx: AnalysisContext) -> MetricResult:
         f, t, mag = _spectral_cache(ctx)
         centroid = np.sum(f[:, None] * mag, axis=0) / np.maximum(np.sum(mag, axis=0), 1e-12)
-        spread = np.sqrt(np.sum(((f[:, None] - centroid[None, :]) ** 2) * mag, axis=0) / np.maximum(np.sum(mag, axis=0), 1e-12))
+        spread = np.sqrt(
+            np.sum(((f[:, None] - centroid[None, :]) ** 2) * mag, axis=0)
+            / np.maximum(np.sum(mag, axis=0), 1e-12)
+        )
         return MetricResult(
             name=self.spec.name,
             units=self.spec.units,

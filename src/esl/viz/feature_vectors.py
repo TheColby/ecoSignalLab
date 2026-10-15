@@ -25,7 +25,6 @@ from scipy.signal import stft
 
 from esl.core.audio import read_audio
 
-
 EPS = 1e-12
 
 
@@ -58,7 +57,9 @@ def _mel_to_hz(m: np.ndarray) -> np.ndarray:
     return 700.0 * (10 ** (m / 2595.0) - 1.0)
 
 
-def _mel_filterbank(sr: int, n_fft: int, n_mels: int = 64, fmin: float = 20.0, fmax: float | None = None) -> np.ndarray:
+def _mel_filterbank(
+    sr: int, n_fft: int, n_mels: int = 64, fmin: float = 20.0, fmax: float | None = None
+) -> np.ndarray:
     if fmax is None:
         fmax = sr / 2.0
     m_min, m_max = _hz_to_mel(np.array([fmin, fmax], dtype=np.float64))
@@ -138,12 +139,20 @@ def _scipy_core_features(
         flux[1:] = np.sqrt(np.sum(np.square(np.diff(mag, axis=1)), axis=0))
 
     frames = _frame_signal(mono, frame_size=frame_size, hop_size=hop_size)
-    rms = np.sqrt(np.mean(np.square(frames), axis=1)) if frames.size else np.zeros((0,), dtype=np.float64)
+    rms = (
+        np.sqrt(np.mean(np.square(frames), axis=1))
+        if frames.size
+        else np.zeros((0,), dtype=np.float64)
+    )
     zcr = (
-        np.mean(np.abs(np.diff(np.signbit(frames).astype(np.int8), axis=1)), axis=1) if frames.size else np.zeros((0,), dtype=np.float64)
+        np.mean(np.abs(np.diff(np.signbit(frames).astype(np.int8), axis=1)), axis=1)
+        if frames.size
+        else np.zeros((0,), dtype=np.float64)
     )
 
-    frame_count = int(min(log_mel.shape[1], centroid.size, rms.size if rms.size else log_mel.shape[1]))
+    frame_count = int(
+        min(log_mel.shape[1], centroid.size, rms.size if rms.size else log_mel.shape[1])
+    )
     if frame_count <= 0:
         frame_count = int(log_mel.shape[1])
 
@@ -166,7 +175,11 @@ def _scipy_core_features(
         names.append(nm)
     feat = np.vstack(parts).T  # [frames, features]
     return FeatureVectors(
-        times_s=(times[:frame_count] if times.size >= frame_count else np.arange(frame_count) * (hop_size / sample_rate)),
+        times_s=(
+            times[:frame_count]
+            if times.size >= frame_count
+            else np.arange(frame_count) * (hop_size / sample_rate)
+        ),
         matrix=feat.astype(np.float64),
         feature_names=names,
         backend="scipy-core",
@@ -198,9 +211,13 @@ def _librosa_rich_features(
     )
     p = np.square(s)
 
-    mel = librosa.feature.melspectrogram(S=p, sr=sample_rate, n_mels=n_mels, fmin=20.0, fmax=sample_rate / 2.0)
+    mel = librosa.feature.melspectrogram(
+        S=p, sr=sample_rate, n_mels=n_mels, fmin=20.0, fmax=sample_rate / 2.0
+    )
     log_mel = np.log1p(np.maximum(mel, EPS))
-    mfcc = librosa.feature.mfcc(S=librosa.power_to_db(np.maximum(mel, EPS), ref=np.max), sr=sample_rate, n_mfcc=20)
+    mfcc = librosa.feature.mfcc(
+        S=librosa.power_to_db(np.maximum(mel, EPS), ref=np.max), sr=sample_rate, n_mfcc=20
+    )
     d1 = librosa.feature.delta(mfcc, order=1)
     d2 = librosa.feature.delta(mfcc, order=2)
     chroma = librosa.feature.chroma_stft(S=p, sr=sample_rate, n_fft=frame_size, hop_length=hop_size)
@@ -221,12 +238,16 @@ def _librosa_rich_features(
     except Exception:
         tonnetz = np.zeros((6, chroma.shape[1]), dtype=np.float64)
     rms = librosa.feature.rms(S=s, frame_length=frame_size)
-    zcr = librosa.feature.zero_crossing_rate(y, frame_length=frame_size, hop_length=hop_size, center=False)
+    zcr = librosa.feature.zero_crossing_rate(
+        y, frame_length=frame_size, hop_length=hop_size, center=False
+    )
     centroid = librosa.feature.spectral_centroid(S=s, sr=sample_rate)
     bandwidth = librosa.feature.spectral_bandwidth(S=s, sr=sample_rate)
     rolloff = librosa.feature.spectral_rolloff(S=s, sr=sample_rate, roll_percent=0.85)
     flatness = librosa.feature.spectral_flatness(S=p)
-    onset = librosa.onset.onset_strength(S=librosa.power_to_db(np.maximum(p, EPS), ref=np.max), sr=sample_rate, hop_length=hop_size)
+    onset = librosa.onset.onset_strength(
+        S=librosa.power_to_db(np.maximum(p, EPS), ref=np.max), sr=sample_rate, hop_length=hop_size
+    )
     onset = onset[None, :]
 
     blocks: list[tuple[str, np.ndarray]] = [
@@ -269,8 +290,17 @@ def _librosa_rich_features(
     )
 
 
-def _combine_feature_sets(primary: FeatureVectors, secondary: FeatureVectors, backend_name: str) -> FeatureVectors:
-    frame_count = int(min(primary.matrix.shape[0], secondary.matrix.shape[0], primary.times_s.size, secondary.times_s.size))
+def _combine_feature_sets(
+    primary: FeatureVectors, secondary: FeatureVectors, backend_name: str
+) -> FeatureVectors:
+    frame_count = int(
+        min(
+            primary.matrix.shape[0],
+            secondary.matrix.shape[0],
+            primary.times_s.size,
+            secondary.times_s.size,
+        )
+    )
     if frame_count <= 0:
         return primary
     mat = np.concatenate([primary.matrix[:frame_count], secondary.matrix[:frame_count]], axis=1)
@@ -410,7 +440,9 @@ def save_feature_vectors(features: FeatureVectors, out_path: str | Path) -> Path
             writer = csv.writer(f)
             writer.writerow(["time_s", *features.feature_names])
             for i in range(features.matrix.shape[0]):
-                writer.writerow([float(features.times_s[i]), *[float(x) for x in features.matrix[i]]])
+                writer.writerow(
+                    [float(features.times_s[i]), *[float(x) for x in features.matrix[i]]]
+                )
         return p
     raise ValueError(f"Unsupported feature output extension: {p.suffix}")
 
@@ -467,7 +499,9 @@ def load_feature_vectors(path: str | Path) -> FeatureVectors:
             raise RuntimeError("CSV feature file has no data rows.")
         numeric = np.array([[float(x) for x in row] for row in data_rows], dtype=np.float64)
         if numeric.shape[1] < 2:
-            raise RuntimeError("CSV feature file must contain time_s + at least one feature column.")
+            raise RuntimeError(
+                "CSV feature file must contain time_s + at least one feature column."
+            )
         return FeatureVectors(
             times_s=numeric[:, 0],
             matrix=numeric[:, 1:],

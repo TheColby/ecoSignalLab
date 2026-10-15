@@ -23,7 +23,6 @@ from esl.core.utils import canonicalize
 from esl.metrics.base import MetricResult
 from esl.ml.export import FRAMETABLE_VERSION
 
-
 RUNNING_SUMMARY_METHOD = "welford_mean_std + reservoir_quantiles"
 DEFAULT_QUANTILE_CAPACITY = 8192
 
@@ -190,7 +189,9 @@ class MetricAccumulator:
                 abs_ts = [float(chunk_offset_s + float(t)) for t in result.timestamps_s[:count]]
                 self.timestamps_s.extend(abs_ts)
 
-        frame_events = result.extra.get("event_frame_indices") if isinstance(result.extra, dict) else None
+        frame_events = (
+            result.extra.get("event_frame_indices") if isinstance(result.extra, dict) else None
+        )
         if isinstance(frame_events, list) and result.timestamps_s:
             for idx in frame_events:
                 if isinstance(idx, int) and 0 <= idx < len(result.timestamps_s):
@@ -211,7 +212,9 @@ class MetricAccumulator:
             summary=self.stats.summary(),
             series=list(self.series) if self.store_series else [],
             timestamps_s=list(self.timestamps_s) if self.store_series else [],
-            confidence=float(self.confidence_sum / self.confidence_count) if self.confidence_count else 0.0,
+            confidence=float(self.confidence_sum / self.confidence_count)
+            if self.confidence_count
+            else 0.0,
             extra=extra,
         )
 
@@ -334,9 +337,15 @@ class AudioAccumulator:
             "sample_rate": self.sample_rate,
             "channels": self.channels,
             "total_samples": int(self.total_samples),
-            "sum_per_channel": canonicalize(self.sum_per_channel if self.sum_per_channel is not None else []),
-            "sum_sq_per_channel": canonicalize(self.sum_sq_per_channel if self.sum_sq_per_channel is not None else []),
-            "peak_per_channel": canonicalize(self.peak_per_channel if self.peak_per_channel is not None else []),
+            "sum_per_channel": canonicalize(
+                self.sum_per_channel if self.sum_per_channel is not None else []
+            ),
+            "sum_sq_per_channel": canonicalize(
+                self.sum_sq_per_channel if self.sum_sq_per_channel is not None else []
+            ),
+            "peak_per_channel": canonicalize(
+                self.peak_per_channel if self.peak_per_channel is not None else []
+            ),
             "clip_count_per_channel": canonicalize(
                 self.clip_count_per_channel if self.clip_count_per_channel is not None else []
             ),
@@ -352,11 +361,15 @@ class AudioAccumulator:
         if payload.get("sum_per_channel") is not None:
             acc.sum_per_channel = np.asarray(payload.get("sum_per_channel", []), dtype=np.float64)
         if payload.get("sum_sq_per_channel") is not None:
-            acc.sum_sq_per_channel = np.asarray(payload.get("sum_sq_per_channel", []), dtype=np.float64)
+            acc.sum_sq_per_channel = np.asarray(
+                payload.get("sum_sq_per_channel", []), dtype=np.float64
+            )
         if payload.get("peak_per_channel") is not None:
             acc.peak_per_channel = np.asarray(payload.get("peak_per_channel", []), dtype=np.float64)
         if payload.get("clip_count_per_channel") is not None:
-            acc.clip_count_per_channel = np.asarray(payload.get("clip_count_per_channel", []), dtype=np.int64)
+            acc.clip_count_per_channel = np.asarray(
+                payload.get("clip_count_per_channel", []), dtype=np.int64
+            )
         return acc
 
 
@@ -375,7 +388,10 @@ class FrameTableCsvWriter:
         rows = self._rows(metric_results=metric_results, chunk_offset_s=chunk_offset_s)
         if not rows:
             return
-        fieldnames = ["timestamp_s", *sorted(name for name in metric_results.keys() if metric_results[name].series)]
+        fieldnames = [
+            "timestamp_s",
+            *sorted(name for name in metric_results.keys() if metric_results[name].series),
+        ]
         self._open(fieldnames)
         assert self._writer is not None
         for row in rows:
@@ -383,7 +399,9 @@ class FrameTableCsvWriter:
         assert self._file is not None
         self._file.flush()
 
-    def _rows(self, metric_results: dict[str, MetricResult], chunk_offset_s: float) -> list[dict[str, Any]]:
+    def _rows(
+        self, metric_results: dict[str, MetricResult], chunk_offset_s: float
+    ) -> list[dict[str, Any]]:
         feature_names = sorted(
             name for name, result in metric_results.items() if result.series and result.timestamps_s
         )
@@ -392,7 +410,7 @@ class FrameTableCsvWriter:
         time_rows: dict[float, dict[str, Any]] = {}
         for name in feature_names:
             result = metric_results[name]
-            for t, value in zip(result.timestamps_s, result.series):
+            for t, value in zip(result.timestamps_s, result.series, strict=False):
                 abs_t = float(chunk_offset_s + float(t))
                 row = time_rows.setdefault(abs_t, {"timestamp_s": abs_t})
                 row[name] = float(value)
@@ -422,7 +440,9 @@ class FrameTableCsvWriter:
             "frame_size": int(frame_size),
             "hop_size": int(hop_size),
             "source_channels": int(source_channels),
-            "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+            "channel_suffix_rule": (
+                "metric_id__chN for channel-specific columns; aggregate uses metric_id"
+            ),
             "tensor_layout": "[channels, frames, features]",
             "channel_feature_mode": "aggregate_mixdown",
             "esl_version": esl_version,
@@ -437,7 +457,9 @@ class FrameTableCsvWriter:
 
 
 class _FrameTableChunkRowsMixin:
-    def _rows(self, metric_results: dict[str, MetricResult], chunk_offset_s: float) -> list[dict[str, Any]]:
+    def _rows(
+        self, metric_results: dict[str, MetricResult], chunk_offset_s: float
+    ) -> list[dict[str, Any]]:
         feature_names = sorted(
             name for name, result in metric_results.items() if result.series and result.timestamps_s
         )
@@ -446,7 +468,7 @@ class _FrameTableChunkRowsMixin:
         time_rows: dict[float, dict[str, Any]] = {}
         for name in feature_names:
             result = metric_results[name]
-            for t, value in zip(result.timestamps_s, result.series):
+            for t, value in zip(result.timestamps_s, result.series, strict=False):
                 abs_t = float(chunk_offset_s + float(t))
                 row = time_rows.setdefault(abs_t, {"timestamp_s": abs_t})
                 row[name] = float(value)
@@ -474,13 +496,18 @@ class FrameTableParquetDatasetWriter(_FrameTableChunkRowsMixin):
         rows = self._rows(metric_results=metric_results, chunk_offset_s=chunk_offset_s)
         if not rows:
             return
-        fieldnames = ["timestamp_s", *sorted(name for name in metric_results.keys() if metric_results[name].series)]
+        fieldnames = [
+            "timestamp_s",
+            *sorted(name for name in metric_results.keys() if metric_results[name].series),
+        ]
         self._fieldnames = fieldnames
         try:
             import pandas as pd
         except Exception as exc:
             self._available = False
-            self._error = f"Parquet FrameTable export requires pandas and pyarrow/fastparquet: {exc}"
+            self._error = (
+                f"Parquet FrameTable export requires pandas and pyarrow/fastparquet: {exc}"
+            )
             return
 
         part_path = self.path / f"part-{self._part_index:08d}.parquet"
@@ -507,7 +534,9 @@ class FrameTableParquetDatasetWriter(_FrameTableChunkRowsMixin):
             "frame_size": int(frame_size),
             "hop_size": int(hop_size),
             "source_channels": int(source_channels),
-            "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+            "channel_suffix_rule": (
+                "metric_id__chN for channel-specific columns; aggregate uses metric_id"
+            ),
             "tensor_layout": "[channels, frames, features]",
             "channel_feature_mode": "aggregate_mixdown",
             "esl_version": esl_version,
@@ -515,7 +544,9 @@ class FrameTableParquetDatasetWriter(_FrameTableChunkRowsMixin):
             "available": bool(self._available),
             "error": self._error,
         }
-        (self.path / "metadata.json").write_text(json.dumps(canonicalize(payload), indent=2), encoding="utf-8")
+        (self.path / "metadata.json").write_text(
+            json.dumps(canonicalize(payload), indent=2), encoding="utf-8"
+        )
         return payload
 
     def close(self) -> None:
@@ -547,7 +578,10 @@ class FrameTableHdf5Writer(_FrameTableChunkRowsMixin):
         rows = self._rows(metric_results=metric_results, chunk_offset_s=chunk_offset_s)
         if not rows:
             return
-        fieldnames = ["timestamp_s", *sorted(name for name in metric_results.keys() if metric_results[name].series)]
+        fieldnames = [
+            "timestamp_s",
+            *sorted(name for name in metric_results.keys() if metric_results[name].series),
+        ]
         h5 = self._open()
         data_rows = np.array(
             [[float(row.get(name, np.nan)) for name in fieldnames[1:]] for row in rows],
@@ -596,7 +630,9 @@ class FrameTableHdf5Writer(_FrameTableChunkRowsMixin):
             "frame_size": int(frame_size),
             "hop_size": int(hop_size),
             "source_channels": int(source_channels),
-            "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+            "channel_suffix_rule": (
+                "metric_id__chN for channel-specific columns; aggregate uses metric_id"
+            ),
             "tensor_layout": "[channels, frames, features]",
             "channel_feature_mode": "aggregate_mixdown",
             "esl_version": esl_version,

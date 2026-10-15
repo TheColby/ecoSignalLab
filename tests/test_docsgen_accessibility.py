@@ -26,6 +26,6 @@ def test_docsgen_accessibility_features(tmp_path: Path) -> None:
     assert 'href="docs/OTHER.html"' in content
     assert 'href="docs/OTHER.html" aria-current="page"' not in content
     assert 'nav a[aria-current="page"]' in content
-    assert 'font-weight: 700;' in content
+    assert "font-weight: 700;" in content
     assert "copy-btn" in content
     assert "Copy code to clipboard" in content

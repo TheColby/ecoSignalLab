@@ -16,6 +16,33 @@ This runbook describes how to cut an `esl` release and publish build artifacts (
 .venv/bin/pytest -q
 ```
 
+## v0.3.0 Preparation
+
+`main` is now prepared with package/runtime version `0.3.0`. The
+analysis-output JSON schema remains version `0.2.0`: schema versioning is
+independent of package versioning, and its contract has not changed for this
+release. Do not rename or regenerate a `0.3.0` schema artifact unless the
+schema itself changes.
+
+Before cutting the tag:
+
+- Confirm `CHANGELOG.md` no longer says `Unreleased` for `0.3.0` and accurately
+  reflects the final commit range.
+- Run `pytest -q`, `ruff check .`, and the documentation/textbook rebuild.
+- Verify `python -m esl --version` reports `0.3.0` and `esl schema` still
+  reports schema version `0.2.0`.
+- Confirm the release commit is on `main` and the working tree is clean.
+- Review the GitHub Actions release workflow before pushing the tag; a tag
+  triggers publication of distributions, documentation bundles, and the current
+  schema artifact.
+
+### Current Verification Status
+
+The v0.3.0 package/runtime bump, repository-wide `ruff check .`, full test suite,
+textbook rebuild, and source/wheel build have been verified. The remaining tag
+decision is release governance: finalize the changelog date and commit range,
+confirm the release commit is on `main`, then create the annotated tag.
+
 ## Release Flow
 
 ```mermaid
@@ -46,8 +73,8 @@ PY
 2. Create and push a tag:
 
 ```bash
-git tag -a v0.2.0 -m "ecoSignalLab v0.2.0"
-git push origin v0.2.0
+git tag -a v0.3.0 -m "ecoSignalLab v0.3.0"
+git push origin v0.3.0
 ```
 
 3. Monitor GitHub workflow:

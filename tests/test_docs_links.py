@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 DOC_FILES = (
     Path("README.md"),
     Path("DESIGN.md"),
@@ -71,4 +70,6 @@ def test_core_docs_do_not_put_tex_math_in_markdown_tables() -> None:
                 continue
             if not in_code and line.startswith("|") and "$" in line:
                 offenders.append(f"{doc}:{line_no}: table row contains TeX delimiter")
-    assert not offenders, "TeX math in Markdown tables may not render reliably:\n" + "\n".join(offenders)
+    assert not offenders, "TeX math in Markdown tables may not render reliably:\n" + "\n".join(
+        offenders
+    )

@@ -83,7 +83,7 @@ def _rewrite_links(raw_html: str, repo_root: Path) -> str:
 
     out = out.replace(f'href="{root_str}/', 'href="../')
     out = out.replace(f'href="/{root_str}/', 'href="../')
-    out = out.replace(".md\"", '.html"')
+    out = out.replace('.md"', '.html"')
     return out
 
 
@@ -168,7 +168,9 @@ def _build_auto_visual_block(markdown_text: str, fallback_title: str, max_nodes:
 def _ensure_visual_outline(markdown_text: str, page_title: str) -> str:
     if "```mermaid" in markdown_text:
         return markdown_text
-    return markdown_text.rstrip() + _build_auto_visual_block(markdown_text, fallback_title=page_title)
+    return markdown_text.rstrip() + _build_auto_visual_block(
+        markdown_text, fallback_title=page_title
+    )
 
 
 def _equation_preview(latex: str) -> str:
@@ -369,18 +371,77 @@ def _render_page_template(
         "Liberation Mono", monospace;
     }}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: var(--book-font); font-size: 17px; background: var(--bg); color: var(--ink); }}
-    .layout {{ display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }}
-    nav {{ border-right: 1px solid var(--line); background: #f6f3eb; padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }}
-    nav h1 {{ font-size: 1.05rem; margin: 0 0 14px 0; letter-spacing: 0.01em; }}
-    nav a {{ display: block; color: var(--link); text-decoration: none; padding: 6px 0 6px 10px; word-break: break-word; border-left: 2px solid transparent; margin-left: -10px; }}
-    nav a:hover {{ text-decoration: underline; background: #eeeadf; }}
-    nav a[aria-current="page"] {{ font-weight: 700; background: #eeeadf; border-left-color: var(--link); }}
-    .skip-link {{ position: absolute; top: -40px; left: 10px; background: var(--link); color: #fff; padding: 10px 14px; z-index: 100; transition: top 0.2s ease; border-radius: 0 0 5px 5px; text-decoration: none; font-weight: 700; }}
+    body {{
+      margin: 0;
+      font-family: var(--book-font);
+      font-size: 17px;
+      background: var(--bg);
+      color: var(--ink);
+    }}
+    .layout {{
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }}
+    nav {{
+      border-right: 1px solid var(--line);
+      background: #f6f3eb;
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }}
+    nav h1 {{
+      font-size: 1.05rem;
+      margin: 0 0 14px 0;
+      letter-spacing: 0.01em;
+    }}
+    nav a {{
+      display: block;
+      color: var(--link);
+      text-decoration: none;
+      padding: 6px 0 6px 10px;
+      word-break: break-word;
+      border-left: 2px solid transparent;
+      margin-left: -10px;
+    }}
+    nav a:hover {{
+      text-decoration: underline;
+      background: #eeeadf;
+    }}
+    nav a[aria-current="page"] {{
+      font-weight: 700;
+      background: #eeeadf;
+      border-left-color: var(--link);
+    }}
+    .skip-link {{
+      position: absolute;
+      top: -40px;
+      left: 10px;
+      background: var(--link);
+      color: #fff;
+      padding: 10px 14px;
+      z-index: 100;
+      transition: top 0.2s ease;
+      border-radius: 0 0 5px 5px;
+      text-decoration: none;
+      font-weight: 700;
+    }}
     .skip-link:focus {{ top: 0; }}
     main {{ padding: 28px 32px 48px; }}
-    article {{ max-width: 900px; margin: 0 auto; background: var(--panel); padding: 34px 48px 48px; }}
-    h1, h2, h3, h4 {{ color: var(--ink); font-family: var(--book-font); font-weight: 700; line-height: 1.18; }}
+    article {{
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--panel);
+      padding: 34px 48px 48px;
+    }}
+    h1, h2, h3, h4 {{
+      color: var(--ink);
+      font-family: var(--book-font);
+      font-weight: 700;
+      line-height: 1.18;
+    }}
     h1 {{ font-size: 2.15rem; margin: 1.7em 0 0.55em; }}
     h2 {{ font-size: 1.55rem; margin: 1.55em 0 0.5em; }}
     h3 {{ font-size: 1.22rem; margin: 1.4em 0 0.45em; }}
@@ -390,36 +451,138 @@ def _render_page_template(
     p, li, blockquote {{ orphans: 3; widows: 3; }}
     a {{ color: var(--link); }}
     button {{ font: inherit; }}
-    pre {{ position: relative; font-family: var(--code-font); background: var(--terminal-bg); color: var(--terminal-green); border: 1px solid var(--terminal-border); box-shadow: inset 0 0 0 1px rgba(141, 255, 169, 0.08); padding: 14px; border-radius: 2px; overflow: auto; }}
-    .copy-btn {{ position: absolute; top: 8px; right: 8px; padding: 4px 8px; font-size: 0.7rem; background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }}
+    pre {{
+      position: relative;
+      font-family: var(--code-font);
+      background: var(--terminal-bg);
+      color: var(--terminal-green);
+      border: 1px solid var(--terminal-border);
+      box-shadow: inset 0 0 0 1px rgba(141, 255, 169, 0.08);
+      padding: 14px;
+      border-radius: 2px;
+      overflow: auto;
+    }}
+    .copy-btn {{
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }}
     pre:hover .copy-btn, .copy-btn:focus {{ opacity: 1; }}
     .copy-btn:hover {{ background: rgba(255, 255, 255, 0.2); }}
-    code {{ font-family: var(--code-font); background: var(--code); border-radius: 2px; padding: 0.1rem 0.3rem; }}
-    pre code {{ background: transparent; color: inherit; font-family: var(--code-font); padding: 0; }}
-    table {{ width: 100%; border-collapse: collapse; margin: 16px 0 24px; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }}
-    th, td {{ border: 0; border-bottom: 1px solid #c8c3b9; padding: 8px 10px; text-align: left; vertical-align: top; }}
+    code {{
+      font-family: var(--code-font);
+      background: var(--code);
+      border-radius: 2px;
+      padding: 0.1rem 0.3rem;
+    }}
+    pre code {{
+      background: transparent;
+      color: inherit;
+      font-family: var(--code-font);
+      padding: 0;
+    }}
+    table {{
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      border-top: 1.5px solid var(--ink);
+      border-bottom: 1.5px solid var(--ink);
+    }}
+    th, td {{
+      border: 0;
+      border-bottom: 1px solid #c8c3b9;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }}
     tr:last-child td {{ border-bottom: 0; }}
     th {{ background: transparent; font-weight: 700; }}
     .assignment-start, .textbook-page-start {{ height: 0; }}
-    hr.assignment-title-rule {{ border: 0; border-top: 1px solid var(--ink); margin: 0.45rem 0 1.25rem; }}
-    .mermaid {{ background: #faf8f1; border: 1px solid #c8c3b9; border-radius: 0; padding: 12px; margin: 18px 0; }}
-    .textbook-title-page {{ min-height: 235mm; display: flex; flex-direction: column; justify-content: center; text-align: center; padding: 24mm 16mm; background: var(--panel); border-top: 3px double var(--ink); border-bottom: 3px double var(--ink); }}
+    hr.assignment-title-rule {{
+      border: 0;
+      border-top: 1px solid var(--ink);
+      margin: 0.45rem 0 1.25rem;
+    }}
+    .mermaid {{
+      background: #faf8f1;
+      border: 1px solid #c8c3b9;
+      border-radius: 0;
+      padding: 12px;
+      margin: 18px 0;
+    }}
+    .textbook-title-page {{
+      min-height: 235mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      padding: 24mm 16mm;
+      background: var(--panel);
+      border-top: 3px double var(--ink);
+      border-bottom: 3px double var(--ink);
+    }}
     .textbook-title-logo {{ display: block; width: 118px; height: auto; margin: 0 auto 20px; }}
     .textbook-title-page h1 {{ font-size: 3.2rem; letter-spacing: 0.02em; margin: 0; }}
     .textbook-title-page h2 {{ font-size: 1.8rem; max-width: 760px; margin: 1.2rem auto; }}
-    .textbook-title-page h3 {{ color: var(--muted); font-size: 1.05rem; font-weight: 500; margin: 0.4rem auto 2rem; }}
+    .textbook-title-page h3 {{
+      color: var(--muted);
+      font-size: 1.05rem;
+      font-weight: 500;
+      margin: 0.4rem auto 2rem;
+    }}
     .textbook-title-page p {{ max-width: 620px; margin: 0.5rem auto; }}
-    figure.textbook-figure {{ margin: 22px auto; max-width: 100%; text-align: center; break-inside: avoid; page-break-inside: avoid; }}
-    figure.textbook-figure img {{ display: block; max-width: 100%; max-height: 168mm; margin: 0 auto 8px; border: 1px solid var(--line); border-radius: 0; }}
-    figure.textbook-figure figcaption {{ color: var(--muted); font-size: 0.9rem; line-height: 1.45; }}
-    p.equation-preview {{ background: #f4f1e9; border-left: 3px solid var(--line); margin: 1.2rem 0 0.45rem; padding: 0.6rem 0.85rem; text-align: left; }}
+    figure.textbook-figure {{
+      margin: 22px auto;
+      max-width: 100%;
+      text-align: center;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }}
+    figure.textbook-figure img {{
+      display: block;
+      max-width: 100%;
+      max-height: 168mm;
+      margin: 0 auto 8px;
+      border: 1px solid var(--line);
+      border-radius: 0;
+    }}
+    figure.textbook-figure figcaption {{
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }}
+    p.equation-preview {{
+      background: #f4f1e9;
+      border-left: 3px solid var(--line);
+      margin: 1.2rem 0 0.45rem;
+      padding: 0.6rem 0.85rem;
+      text-align: left;
+    }}
     .math-block {{ overflow-x: auto; }}
-    mjx-container[jax="SVG"][display="true"] {{ margin: 1rem 0; overflow-x: auto; overflow-y: hidden; }}
+    mjx-container[jax="SVG"][display="true"] {{
+      margin: 1rem 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }}
     mjx-container[jax="SVG"] svg {{ max-width: 100%; }}
     mjx-container {{ font-size: 100% !important; }}
     @media (max-width: 960px) {{
       .layout {{ grid-template-columns: 1fr; }}
-      nav {{ position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }}
+      nav {{
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }}
       main {{ padding: 16px; }}
       article {{ padding: 16px; }}
     }}
@@ -476,7 +639,14 @@ def _render_page_template(
       startOnLoad: true,
       securityLevel: \"loose\",
       theme: \"neutral\",
-      fontFamily: 'TeX Gyre Schola, New Century Schoolbook, New Century Schoolbook Std, Century Schoolbook, URW Bookman, serif'
+      fontFamily: [
+        'TeX Gyre Schola',
+        'New Century Schoolbook',
+        'New Century Schoolbook Std',
+        'Century Schoolbook',
+        'URW Bookman',
+        'serif'
+      ].join(', ')
     }});
     window.__esl_mermaid_ready = (async () => {{
       try {{
@@ -526,7 +696,7 @@ def _render_page_template(
     }});
   </script>
 </head>
-<body class="{'textbook-edition' if 'Textbook' in title else ''}">
+<body class="{"textbook-edition" if "Textbook" in title else ""}">
   <a href="#main-content" class="skip-link">Skip to content</a>
   <div class=\"layout\">
     <nav aria-label=\"Main Documentation\">
@@ -555,7 +725,9 @@ def _build_nav(rendered_pages: list[_RenderedPage], current_html: Path) -> str:
     return "\n".join(items)
 
 
-def _write_html_pages(root: Path, docs: list[Path], html_dir: Path, title: str) -> list[_RenderedPage]:
+def _write_html_pages(
+    root: Path, docs: list[Path], html_dir: Path, title: str
+) -> list[_RenderedPage]:
     pages: list[_RenderedPage] = []
     html_dir.mkdir(parents=True, exist_ok=True)
     font_dir = _copy_font_assets(html_dir)
@@ -570,7 +742,9 @@ def _write_html_pages(root: Path, docs: list[Path], html_dir: Path, title: str) 
         enriched_markdown = _ensure_visual_outline(markdown_text, page_title=page_title)
         body_html = _render_markdown(enriched_markdown, root)
 
-        pages.append(_RenderedPage(source=doc, title=page_title, body_html=body_html, out_html=out_html))
+        pages.append(
+            _RenderedPage(source=doc, title=page_title, body_html=body_html, out_html=out_html)
+        )
 
     for page in pages:
         nav_html = _build_nav(pages, page.out_html)
@@ -674,16 +848,18 @@ async def _render_pdf_pages(html_paths: list[Path], pdf_dir: Path) -> list[Path]
                     display_header_footer=True,
                     header_template=(
                         '<div style="width:100%; font-size:8px; color:#111; '
-                        'font-family:New Century Schoolbook,Century Schoolbook,TeX Gyre Schola,serif; '
-                        'letter-spacing:0.04em; padding:0 0.9in; display:flex; '
+                        "font-family:New Century Schoolbook,Century Schoolbook,TeX "
+                        "Gyre Schola,serif; "
+                        "letter-spacing:0.04em; padding:0 0.9in; display:flex; "
                         'justify-content:space-between;">'
-                        '<span>ecoSignalLab</span><span>Acoustic Analysis Textbook</span></div>'
+                        "<span>ecoSignalLab</span><span>Acoustic Analysis Textbook</span></div>"
                     ),
                     footer_template=(
                         '<div style="width:100%; font-size:8px; color:#111; '
-                        'font-family:New Century Schoolbook,Century Schoolbook,TeX Gyre Schola,serif; '
+                        "font-family:New Century Schoolbook,Century Schoolbook,TeX "
+                        "Gyre Schola,serif; "
                         'padding:0 0.9in; text-align:center;">'
-                        'Colby Leider and ecoSignalLab contributors | '
+                        "Colby Leider and ecoSignalLab contributors | "
                         '<span class="pageNumber"></span></div>'
                     ),
                     margin={"top": "0.62in", "bottom": "0.72in", "left": "0.9in", "right": "0.9in"},
@@ -698,7 +874,8 @@ async def _render_pdf_pages(html_paths: list[Path], pdf_dir: Path) -> list[Path]
                     display_header_footer=True,
                     footer_template=(
                         '<div style="width:100%; font-size:8px; color:#475569; '
-                        'font-family:New Century Schoolbook,Century Schoolbook,TeX Gyre Schola,serif; '
+                        "font-family:New Century Schoolbook,Century Schoolbook,TeX "
+                        "Gyre Schola,serif; "
                         'padding:0 10mm; text-align:center;">'
                         'ecoSignalLab documentation | page <span class="pageNumber"></span> '
                         'of <span class="totalPages"></span></div>'
@@ -727,7 +904,9 @@ def _merge_pdf_parts(parts: tuple[Path, ...], output: Path) -> None:
 
         from pypdf import PdfReader, PdfWriter
     except ImportError as exc:  # pragma: no cover - optional docs dependency
-        raise RuntimeError("Textbook print assembly requires pypdf. Install with: pip install -e '.[docs]'.") from exc
+        raise RuntimeError(
+            "Textbook print assembly requires pypdf. Install with: pip install -e '.[docs]'."
+        ) from exc
 
     writer = PdfWriter()
     prior_logging_disable = logging.root.manager.disable

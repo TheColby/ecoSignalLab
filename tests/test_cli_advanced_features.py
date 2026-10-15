@@ -23,8 +23,18 @@ def test_analyze_profile_mode_writes_profile_index_and_runs(tmp_path: Path) -> N
 
     profile = {
         "profiles": [
-            {"name": "short", "frame_size": 1024, "hop_size": 256, "metrics": ["rms_dbfs", "snr_db"]},
-            {"name": "long", "frame_size": 4096, "hop_size": 1024, "metrics": ["rms_dbfs", "snr_db"]},
+            {
+                "name": "short",
+                "frame_size": 1024,
+                "hop_size": 256,
+                "metrics": ["rms_dbfs", "snr_db"],
+            },
+            {
+                "name": "long",
+                "frame_size": 4096,
+                "hop_size": 1024,
+                "metrics": ["rms_dbfs", "snr_db"],
+            },
         ]
     }
     profile_path = tmp_path / "profile.json"

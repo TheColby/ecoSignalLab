@@ -37,8 +37,10 @@ def _series_rows(result: dict[str, Any]) -> list[dict[str, Any]]:
     for name, payload in result["metrics"].items():
         ts = payload.get("timestamps_s", [])
         vals = payload.get("series", [])
-        for t, v in zip(ts, vals):
-            rows.append({"metric": name, "timestamp_s": t, "value": v, "units": payload.get("units")})
+        for t, v in zip(ts, vals, strict=False):
+            rows.append(
+                {"metric": name, "timestamp_s": t, "value": v, "units": payload.get("units")}
+            )
     return rows
 
 
@@ -119,7 +121,9 @@ def save_hdf5(result: dict[str, Any], path: str | Path) -> Path:
             for stat, val in summary.items():
                 g.attrs[f"summary_{stat}"] = float(val)
             g.create_dataset("series", data=np.array(payload.get("series", []), dtype=np.float64))
-            g.create_dataset("timestamps_s", data=np.array(payload.get("timestamps_s", []), dtype=np.float64))
+            g.create_dataset(
+                "timestamps_s", data=np.array(payload.get("timestamps_s", []), dtype=np.float64)
+            )
     return p
 
 
@@ -159,7 +163,10 @@ def _industrial_rows(result: dict[str, Any], system: str) -> list[dict[str, Any]
                 "units": payload.get("units"),
                 "confidence": payload.get("confidence"),
                 "weighting": "A/C/Z or unweighted per metric definition",
-                "windowing": f"{result['metadata'].get('frame_size')}@hop{result['metadata'].get('hop_size')}",
+                "windowing": (
+                    f"{result['metadata'].get('frame_size')}"
+                    f"@hop{result['metadata'].get('hop_size')}"
+                ),
             }
         )
     return rows
@@ -172,7 +179,16 @@ def save_head_csv(result: dict[str, Any], path: str | Path) -> Path:
     _write_rows_csv(
         p,
         _industrial_rows(result, "HEAD Acoustics"),
-        ["system", "metric", "value_mean", "value_p95", "units", "confidence", "weighting", "windowing"],
+        [
+            "system",
+            "metric",
+            "value_mean",
+            "value_p95",
+            "units",
+            "confidence",
+            "weighting",
+            "windowing",
+        ],
     )
     return p
 
@@ -184,7 +200,16 @@ def save_apx_csv(result: dict[str, Any], path: str | Path) -> Path:
     _write_rows_csv(
         p,
         _industrial_rows(result, "Audio Precision APx"),
-        ["system", "metric", "value_mean", "value_p95", "units", "confidence", "weighting", "windowing"],
+        [
+            "system",
+            "metric",
+            "value_mean",
+            "value_p95",
+            "units",
+            "confidence",
+            "weighting",
+            "windowing",
+        ],
     )
     return p
 
@@ -196,6 +221,15 @@ def save_soundcheck_csv(result: dict[str, Any], path: str | Path) -> Path:
     _write_rows_csv(
         p,
         _industrial_rows(result, "Listen SoundCheck"),
-        ["system", "metric", "value_mean", "value_p95", "units", "confidence", "weighting", "windowing"],
+        [
+            "system",
+            "metric",
+            "value_mean",
+            "value_p95",
+            "units",
+            "confidence",
+            "weighting",
+            "windowing",
+        ],
     )
     return p

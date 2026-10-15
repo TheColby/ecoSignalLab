@@ -11,17 +11,17 @@ from __future__ import annotations
 
 import json
 import subprocess
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass, field
 from math import gcd
 from pathlib import Path
-from typing import Any, Generator, Iterable
+from typing import Any
 
 import numpy as np
 import soundfile as sf
 from scipy.signal import resample_poly
 
 from esl.core.spatial_metadata import infer_spatial_metadata
-
 
 SUPPORTED_NATIVE_EXT = {".wav", ".flac", ".aiff", ".aif", ".rf64", ".caf"}
 SUPPORTED_COMPRESSED_EXT = {".mp3", ".aac", ".ogg", ".opus", ".wma", ".alac", ".m4a"}
@@ -72,14 +72,18 @@ class SofaIR:
     source_path: str
 
 
-def _resample_if_needed(samples: np.ndarray, src_sr: int, dst_sr: int | None) -> tuple[np.ndarray, int]:
+def _resample_if_needed(
+    samples: np.ndarray, src_sr: int, dst_sr: int | None
+) -> tuple[np.ndarray, int]:
     if dst_sr is None or dst_sr == src_sr:
         return samples, src_sr
     g = gcd(src_sr, dst_sr)
     up = dst_sr // g
     down = src_sr // g
     # Polyphase resampling (multirate DSP standard approach).
-    out = np.zeros((int(np.ceil(samples.shape[0] * dst_sr / src_sr)), samples.shape[1]), dtype=np.float32)
+    out = np.zeros(
+        (int(np.ceil(samples.shape[0] * dst_sr / src_sr)), samples.shape[1]), dtype=np.float32
+    )
     for c in range(samples.shape[1]):
         out[:, c] = resample_poly(samples[:, c], up, down).astype(np.float32)
     return out, dst_sr
@@ -139,7 +143,9 @@ def _ffprobe_summary(path: Path) -> dict[str, Any]:
     streams = payload.get("streams") or []
     if not streams:
         raise RuntimeError(f"ffprobe found no streams for {path}")
-    stream0 = next((s for s in streams if str(s.get("codec_type", "")).lower() == "audio"), streams[0])
+    stream0 = next(
+        (s for s in streams if str(s.get("codec_type", "")).lower() == "audio"), streams[0]
+    )
     sr = int(stream0.get("sample_rate", 48000))
     ch = int(stream0.get("channels", 1))
     return {
@@ -353,7 +359,11 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
         spatial = infer_spatial_metadata(
             int(probe["channels"]),
             p,
-            source_channel_layout=(str(probe.get("channel_layout")) if probe.get("channel_layout") is not None else None),
+            source_channel_layout=(
+                str(probe.get("channel_layout"))
+                if probe.get("channel_layout") is not None
+                else None
+            ),
         ).to_dict()
         payload.update(
             {
@@ -364,7 +374,9 @@ def probe_audio_metadata(path: str | Path) -> dict[str, Any]:
                     if probe.get("duration_s") is not None
                     else None
                 ),
-                "duration_s": float(probe["duration_s"]) if probe.get("duration_s") is not None else None,
+                "duration_s": float(probe["duration_s"])
+                if probe.get("duration_s") is not None
+                else None,
                 "format_name": ext.lstrip(".").upper() or "unknown",
                 "subtype": None,
                 "backend": "ffprobe",
@@ -459,7 +471,12 @@ def stream_audio(
         idx = 0
         while start < buf.num_samples:
             end = min(start + chunk_size, buf.num_samples)
-            yield AudioChunk(index=idx, start_sample=start, sample_rate=buf.sample_rate, samples=buf.samples[start:end])
+            yield AudioChunk(
+                index=idx,
+                start_sample=start,
+                sample_rate=buf.sample_rate,
+                samples=buf.samples[start:end],
+            )
             start = end
             idx += 1
         return
@@ -489,16 +506,23 @@ def stream_audio(
     idx = 0
     for start in range(0, buf.num_samples, chunk_size):
         end = min(start + chunk_size, buf.num_samples)
-        yield AudioChunk(index=idx, start_sample=start, sample_rate=buf.sample_rate, samples=buf.samples[start:end])
+        yield AudioChunk(
+            index=idx,
+            start_sample=start,
+            sample_rate=buf.sample_rate,
+            samples=buf.samples[start:end],
+        )
         idx += 1
 
 
 def detect_signal_layout(channels: int, source_path: str | Path) -> str:
     """Classify high-level channel layout hints."""
-    return infer_spatial_metadata(channels, source_path).layout_hint
+    return str(infer_spatial_metadata(channels, source_path).layout_hint)
 
 
-def iter_supported_files(root: str | Path, patterns: Iterable[str], recursive: bool = True) -> list[Path]:
+def iter_supported_files(
+    root: str | Path, patterns: Iterable[str], recursive: bool = True
+) -> list[Path]:
     """Collect supported input files from a directory."""
     r = Path(root)
     if not r.exists():

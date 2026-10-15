@@ -25,8 +25,10 @@ def test_textbook_front_matter_figures_and_assignments_are_generated() -> None:
     markdown = generator.build_textbook_markdown()
 
     assert '<section class="textbook-title-page">' in markdown
+    assert f"Edition {generator.PACKAGE_VERSION}" in markdown
+    assert f"edition {generator.PACKAGE_VERSION}" in markdown
     assert 'class="textbook-title-logo"' in markdown
-    assert 'assets/logos/esl/minimal/esl_logo_04_circle_wave.png' in markdown
+    assert "assets/logos/esl/minimal/esl_logo_04_circle_wave.png" in markdown
     assert markdown.count("## How to Use This Book") == 1
     assert markdown.count("# Introduction") == 1
     assert markdown.index("- [Introduction](#introduction)") < markdown.index("- [Part I:")
@@ -47,7 +49,7 @@ def test_textbook_front_matter_figures_and_assignments_are_generated() -> None:
     assert markdown.count('class="textbook-page-start"') == 3
     assert "- [Colophon](#colophon)" in markdown
     assert "[Figure 2-1](#figure-2-1)" in markdown
-    assert '<figcaption><strong>Figure 2-1.</strong>' in markdown
+    assert "<figcaption><strong>Figure 2-1.</strong>" in markdown
     assert "# Homework and Laboratory Assignments" in markdown
     assert "## Assignment 15: Musical analysis: form, timbre, and harmonic color" in markdown
     assert "Do not claim chord, key, beat, or transcription labels." in markdown

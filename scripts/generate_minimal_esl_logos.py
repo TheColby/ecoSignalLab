@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -45,7 +45,9 @@ def centered_text(draw: ImageDraw.ImageDraw, text: str, y: float, size: int) -> 
     draw.text((x, yy), text, fill=BLACK, font=font)
 
 
-def caption_text(draw: ImageDraw.ImageDraw, text: str = "ecoSignalLab", y: float = 956, size: int = 52) -> None:
+def caption_text(
+    draw: ImageDraw.ImageDraw, text: str = "ecoSignalLab", y: float = 956, size: int = 52
+) -> None:
     centered_text(draw, text, y=y, size=size)
 
 
@@ -109,7 +111,7 @@ def logo_05_equalizer() -> Image.Image:
     img, d = new_canvas()
     xs = [270, 360, 450, 540, 630, 720]
     tops = [470, 360, 290, 390, 500, 430]
-    for x, top in zip(xs, tops):
+    for x, top in zip(xs, tops, strict=False):
         d.line((x, 730, x, top), fill=BLACK, width=38)
     centered_text(d, "esl", y=826, size=150)
     caption_text(d)

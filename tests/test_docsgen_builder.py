@@ -45,7 +45,7 @@ graph TD
     assert 'class="mermaid"' in rendered
     assert 'href="docs/REF.html"' in rendered
     assert '"TeX Gyre Schola"' in rendered
-    assert 'assets/fonts/texgyreschola-regular.otf' in rendered
+    assert "assets/fonts/texgyreschola-regular.otf" in rendered
     assert "--code-font" in rendered
     assert "orphans: 3" in rendered
     assert "widows: 3" in rendered
@@ -84,7 +84,9 @@ $$
         encoding="utf-8",
     )
 
-    report = build_docs(root=root, output_root=root / "build", formats={"html"}, docs_files=[readme])
+    report = build_docs(
+        root=root, output_root=root / "build", formats={"html"}, docs_files=[readme]
+    )
     assert report.html_pages
 
     rendered = (root / "build" / "html" / "README.html").read_text(encoding="utf-8")

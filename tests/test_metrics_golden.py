@@ -8,7 +8,6 @@ import soundfile as sf
 
 from esl.core import AnalysisConfig, analyze
 
-
 GOLDEN_PATH = Path(__file__).parent / "golden" / "metric_expectations.json"
 
 
@@ -47,9 +46,15 @@ def test_basic_metric_golden_sine(tmp_path: Path) -> None:
     )
 
     assert abs(_metric_mean(result, "rms_dbfs") - float(g["rms_dbfs"])) <= float(g["tolerance_db"])
-    assert abs(_metric_mean(result, "peak_dbfs") - float(g["peak_dbfs"])) <= float(g["tolerance_db"])
-    assert abs(_metric_mean(result, "crest_factor_db") - float(g["crest_factor_db"])) <= float(g["tolerance_db"])
-    assert abs(_metric_mean(result, "dc_offset") - float(g["dc_offset"])) <= float(g["tolerance_dc"])
+    assert abs(_metric_mean(result, "peak_dbfs") - float(g["peak_dbfs"])) <= float(
+        g["tolerance_db"]
+    )
+    assert abs(_metric_mean(result, "crest_factor_db") - float(g["crest_factor_db"])) <= float(
+        g["tolerance_db"]
+    )
+    assert abs(_metric_mean(result, "dc_offset") - float(g["dc_offset"])) <= float(
+        g["tolerance_dc"]
+    )
 
     flags = result["metadata"]["validity_flags"]  # type: ignore[index]
     assert flags["clipping"] is False  # type: ignore[index]
@@ -164,7 +169,9 @@ def test_ndsi_band_sanity_sign_and_scale(tmp_path: Path) -> None:
         bio = bio_amp * np.sin(2.0 * np.pi * 4000.0 * t)  # biophony band [2,11] kHz
         wav = tmp_path / f"{name}.wav"
         _write_wav(wav, anthro + bio, sr)
-        result = analyze(AnalysisConfig(input_path=wav, output_dir=tmp_path, metrics=["ndsi"], verbosity=0))
+        result = analyze(
+            AnalysisConfig(input_path=wav, output_dir=tmp_path, metrics=["ndsi"], verbosity=0)
+        )
         return _metric_mean(result, "ndsi")
 
     ndsi_bio = _run(anthro_amp=0.05, bio_amp=0.25, name="ndsi_bio")

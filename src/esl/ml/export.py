@@ -63,7 +63,9 @@ def build_frame_table(result: dict[str, Any]) -> FrameTable:
             "frame_size": result.get("metadata", {}).get("frame_size"),
             "hop_size": result.get("metadata", {}).get("hop_size"),
             "source_channels": int(result.get("metadata", {}).get("channels", 1)),
-            "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+            "channel_suffix_rule": (
+                "metric_id__chN for channel-specific columns; aggregate uses metric_id"
+            ),
             "tensor_layout": "[channels, frames, features]",
             "channel_feature_mode": "aggregate_mixdown",
         }
@@ -82,7 +84,7 @@ def build_frame_table(result: dict[str, Any]) -> FrameTable:
         payload = metrics.get(metric_name, {})
         ts = payload.get("timestamps_s", [])
         series = payload.get("series", [])
-        for t, v in zip(ts, series):
+        for t, v in zip(ts, series, strict=False):
             t_float = float(t)
             if t_float not in time_to_row:
                 time_to_row[t_float] = np.full((len(feature_names),), np.nan, dtype=np.float64)
@@ -100,7 +102,9 @@ def build_frame_table(result: dict[str, Any]) -> FrameTable:
         "frame_size": result.get("metadata", {}).get("frame_size"),
         "hop_size": result.get("metadata", {}).get("hop_size"),
         "source_channels": int(result.get("metadata", {}).get("channels", 1)),
-        "channel_suffix_rule": "metric_id__chN for channel-specific columns; aggregate uses metric_id",
+        "channel_suffix_rule": (
+            "metric_id__chN for channel-specific columns; aggregate uses metric_id"
+        ),
         "tensor_layout": "[channels, frames, features]",
         "channel_feature_mode": "aggregate_mixdown",
         "source_config_hash": result.get("config_hash"),
@@ -156,8 +160,10 @@ def frame_long_table(result: dict[str, Any]) -> list[dict[str, Any]]:
         series = payload.get("series", [])
         times = payload.get("timestamps_s", [])
         units = payload.get("units", "")
-        for t, v in zip(times, series):
-            rows.append({"timestamp_s": float(t), "metric": metric, "value": float(v), "units": units})
+        for t, v in zip(times, series, strict=False):
+            rows.append(
+                {"timestamp_s": float(t), "metric": metric, "value": float(v), "units": units}
+            )
     return rows
 
 
@@ -316,7 +322,13 @@ def build_dataset_manifest_from_shard_report(
     samples: list[dict[str, Any]] = []
     for idx, row in enumerate(rows):
         position = idx / max(len(rows), 1)
-        split = "train" if position < train_ratio else "val" if position < train_ratio + val_ratio else "test"
+        split = (
+            "train"
+            if position < train_ratio
+            else "val"
+            if position < train_ratio + val_ratio
+            else "test"
+        )
         result: dict[str, Any] = {}
         json_path = Path(str(row.get("json", "")))
         if json_path.exists():
@@ -332,7 +344,9 @@ def build_dataset_manifest_from_shard_report(
                 "shard_index": int(row.get("shard_index", -1)),
                 "relative_path": row.get("relative_path"),
                 "input_path": row.get("input"),
-                "analysis_json": str(json_path.resolve()) if json_path.exists() else row.get("json"),
+                "analysis_json": str(json_path.resolve())
+                if json_path.exists()
+                else row.get("json"),
                 "timeline": {
                     "start_s": row.get("timeline_start_s"),
                     "end_s": row.get("timeline_end_s"),
@@ -343,7 +357,9 @@ def build_dataset_manifest_from_shard_report(
                 },
                 "frame_table": {
                     "csv": artifacts.get("frame_table_csv", row.get("frame_table_csv")),
-                    "parquet_dir": artifacts.get("frame_table_parquet_dir", row.get("frame_table_parquet_dir")),
+                    "parquet_dir": artifacts.get(
+                        "frame_table_parquet_dir", row.get("frame_table_parquet_dir")
+                    ),
                     "hdf5": artifacts.get("frame_table_hdf5", row.get("frame_table_hdf5")),
                     "metadata_json": artifacts.get("frame_table_metadata_json"),
                     "version": FRAMETABLE_VERSION,
@@ -355,7 +371,10 @@ def build_dataset_manifest_from_shard_report(
                 "esl_version": result.get("esl_version"),
             }
         )
-    split_counts = {name: sum(1 for sample in samples if sample["split"] == name) for name in ("train", "val", "test")}
+    split_counts = {
+        name: sum(1 for sample in samples if sample["split"] == name)
+        for name in ("train", "val", "test")
+    }
     manifest = {
         "dataset_manifest_version": DATASET_MANIFEST_VERSION,
         "manifest_kind": "shard_analysis_report",
@@ -521,7 +540,7 @@ def export_ml_features(
     if scores is not None and timestamps.size:
         rows = [
             {"timestamp_s": float(ts), "anomaly_score": float(sc)}
-            for ts, sc in zip(timestamps.tolist(), scores.tolist())
+            for ts, sc in zip(timestamps.tolist(), scores.tolist(), strict=False)
         ]
         score_path = out / f"{prefix}_anomaly_scores.csv"
         _write_csv(score_path, ["timestamp_s", "anomaly_score"], rows)

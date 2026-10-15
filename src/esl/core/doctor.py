@@ -7,13 +7,13 @@ References:
 
 from __future__ import annotations
 
+import platform
+import shutil
+import subprocess
 from dataclasses import dataclass
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-import platform
-import shutil
-import subprocess
 from typing import Any
 
 from esl import __version__
@@ -89,12 +89,20 @@ def _input_recommendations(meta: dict[str, Any], compressed_ready: bool) -> list
     sample_rate = int(meta.get("sample_rate", 48_000))
     size_gb = float(meta.get("size_gb", 0.0))
 
-    recs = [f'esl simple "{path}"', f'esl analyze "{path}" --out-dir out --plot --json out/{Path(path).stem}.json']
-    if duration_s is not None and (duration_s >= 3600.0 or size_gb >= 4.0 or channels > 2 or sample_rate >= 96_000):
+    recs = [
+        f'esl simple "{path}"',
+        f'esl analyze "{path}" --out-dir out --plot --json out/{Path(path).stem}.json',
+    ]
+    if duration_s is not None and (
+        duration_s >= 3600.0 or size_gb >= 4.0 or channels > 2 or sample_rate >= 96_000
+    ):
         recs = [
             f'esl doctor "{path}"',
-            f'esl analyze "{path}" --out-dir out --chunk-minutes 10 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume',
-            f'esl moments extract "{path}" --out out/moments --single --rank-metric novelty_curve --chunk-minutes 10 --event-window 8',
+            f'esl analyze "{path}" --out-dir out --chunk-minutes 10 --streamable-only '
+            "--summary-only --frame-table-csv out/frame_table.csv "
+            "--checkpoint-dir out/checkpoints --resume",
+            f'esl moments extract "{path}" --out out/moments --single '
+            "--rank-metric novelty_curve --chunk-minutes 10 --event-window 8",
         ]
     if channels > 2:
         recs.append(f'esl spatial analyze "{path}" --out-dir spatial_out')
@@ -122,7 +130,9 @@ def run_doctor(cfg: DoctorConfig) -> dict[str, Any]:
     ]
 
     if not ffmpeg["available"] or not ffprobe["available"]:
-        warnings.append("FFmpeg/ffprobe not fully available; compressed formats may fail to decode.")
+        warnings.append(
+            "FFmpeg/ffprobe not fully available; compressed formats may fail to decode."
+        )
         recommendations.append("Install FFmpeg, then rerun `esl doctor`.")
 
     input_payload: dict[str, Any] | None = None
@@ -145,14 +155,21 @@ def run_doctor(cfg: DoctorConfig) -> dict[str, Any]:
             warnings.append(f"Could not fully probe input metadata: {exc}")
             meta = input_payload
 
-        if ext in SUPPORTED_COMPRESSED_EXT and (not ffmpeg["available"] or not ffprobe["available"]):
+        if ext in SUPPORTED_COMPRESSED_EXT and (
+            not ffmpeg["available"] or not ffprobe["available"]
+        ):
             blockers.append("Compressed input requires both ffmpeg and ffprobe on PATH.")
         if ext == ".wav" and float(meta.get("size_gb", size_gb)) >= 4.0:
             warnings.append("Large WAV is near or beyond the classic 4 GB limit; RF64 is safer.")
         if meta.get("duration_s") is not None and float(meta["duration_s"]) >= 3600.0:
-            warnings.append("Long-duration input detected; prefer `stream` or `moments extract` before full sweeps.")
+            warnings.append(
+                "Long-duration input detected; prefer `stream` or `moments extract` "
+                "before full sweeps."
+            )
         recommendations.extend(
-            _input_recommendations(meta, compressed_ready=bool(ffmpeg["available"] and ffprobe["available"]))
+            _input_recommendations(
+                meta, compressed_ready=bool(ffmpeg["available"] and ffprobe["available"])
+            )
         )
 
     status = "ok"

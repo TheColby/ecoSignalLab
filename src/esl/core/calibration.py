@@ -34,13 +34,13 @@ def load_calibration(path: str | Path) -> CalibrationProfile:
         spl_reference_db=float(raw.get("spl_reference_db", raw.get("spl_ref_db", 94.0))),
         weighting=str(raw.get("weighting", "Z")).upper(),
         mic_sensitivity_mv_pa=(
-            None if raw.get("mic_sensitivity_mv_pa") is None else float(raw["mic_sensitivity_mv_pa"])
+            None
+            if raw.get("mic_sensitivity_mv_pa") is None
+            else float(raw["mic_sensitivity_mv_pa"])
         ),
         preamp_gain_db=None if raw.get("preamp_gain_db") is None else float(raw["preamp_gain_db"]),
         adc_full_scale_vrms=(
-            None
-            if raw.get("adc_full_scale_vrms") is None
-            else float(raw["adc_full_scale_vrms"])
+            None if raw.get("adc_full_scale_vrms") is None else float(raw["adc_full_scale_vrms"])
         ),
         calibration_tone_file=raw.get("calibration_tone_file"),
     )
@@ -98,7 +98,8 @@ def _precision_chain_params(profile: CalibrationProfile | None) -> tuple[float, 
     """Validate and return (mic_sens_v_pa, preamp_gain_lin, adc_fs_vrms)."""
     if not precision_chain_available(profile):
         raise ValueError(
-            "Precision Pa<->dBFS conversion requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms."
+            "Precision Pa<->dBFS conversion requires mic_sensitivity_mv_pa, "
+            "preamp_gain_db, and adc_full_scale_vrms."
         )
     assert profile is not None
     sens_mv_pa = float(profile.mic_sensitivity_mv_pa)  # type: ignore[arg-type]
@@ -113,7 +114,9 @@ def _precision_chain_params(profile: CalibrationProfile | None) -> tuple[float, 
     return mic_sens_v_pa, preamp_gain_lin, adc_fs_vrms
 
 
-def pa_to_dbfs(pa_rms: float | np.ndarray, profile: CalibrationProfile | None, floor: float = 1e-18) -> float | np.ndarray:
+def pa_to_dbfs(
+    pa_rms: float | np.ndarray, profile: CalibrationProfile | None, floor: float = 1e-18
+) -> float | np.ndarray:
     """Convert RMS pressure in Pa to dBFS using mic sensitivity + gain + ADC full-scale."""
     mic_sens_v_pa, preamp_gain_lin, adc_fs_vrms = _precision_chain_params(profile)
     if isinstance(pa_rms, np.ndarray):
@@ -125,7 +128,9 @@ def pa_to_dbfs(pa_rms: float | np.ndarray, profile: CalibrationProfile | None, f
     return float(20.0 * np.log10(max(v_rms / adc_fs_vrms, floor)))
 
 
-def dbfs_to_pa(dbfs: float | np.ndarray, profile: CalibrationProfile | None, floor: float = 1e-18) -> float | np.ndarray:
+def dbfs_to_pa(
+    dbfs: float | np.ndarray, profile: CalibrationProfile | None, floor: float = 1e-18
+) -> float | np.ndarray:
     """Convert dBFS to RMS pressure in Pa using mic sensitivity + gain + ADC full-scale."""
     mic_sens_v_pa, preamp_gain_lin, adc_fs_vrms = _precision_chain_params(profile)
     denom = max(mic_sens_v_pa * preamp_gain_lin, floor)

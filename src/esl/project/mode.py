@@ -42,8 +42,7 @@ def record_project_variant(
         for metric, payload in result.get("metrics", {}).items()
     }
     confidence = {
-        metric: payload.get("confidence")
-        for metric, payload in result.get("metrics", {}).items()
+        metric: payload.get("confidence") for metric, payload in result.get("metrics", {}).items()
     }
     metadata = result.get("metadata", {})
     rows.append(
@@ -86,7 +85,9 @@ def record_project_variant(
             )
 
     with compare_path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["variant", "metric", "value_mean", "analysis_time_utc"])
+        writer = csv.DictWriter(
+            f, fieldnames=["variant", "metric", "value_mean", "analysis_time_utc"]
+        )
         writer.writeheader()
         for item in flat_rows:
             writer.writerow(item)
@@ -162,7 +163,9 @@ def compare_project_variants(
         for metric in metric_list:
             value = _coerce_float(summary.get(metric))
             baseline_value = _coerce_float(baseline_summary.get(metric))
-            delta = None if value is None or baseline_value is None else float(value - baseline_value)
+            delta = (
+                None if value is None or baseline_value is None else float(value - baseline_value)
+            )
             delta_pct = None
             if delta is not None and baseline_value is not None and abs(baseline_value) > 1e-12:
                 delta_pct = float(100.0 * delta / abs(baseline_value))

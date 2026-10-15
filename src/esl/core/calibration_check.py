@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import csv
 import json
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-import tempfile
 from typing import Any
 
 import numpy as np
@@ -94,7 +94,9 @@ class CalibrationVerifyConfig:
     write_tone_path: Path | None = None
 
 
-def _fixture_signal(dbfs_rms: float, frequency_hz: float, duration_s: float, sample_rate: int) -> np.ndarray:
+def _fixture_signal(
+    dbfs_rms: float, frequency_hz: float, duration_s: float, sample_rate: int
+) -> np.ndarray:
     n = max(int(round(duration_s * sample_rate)), 1)
     t = np.arange(n, dtype=np.float64) / float(sample_rate)
     rms_lin = float(np.power(10.0, float(dbfs_rms) / 20.0))
@@ -133,7 +135,10 @@ def _calibration_audit_equations() -> list[str]:
         "drift_db = measured_dbfs - dbfs_reference",
         "spl_estimate_db = measured_dbfs + (spl_reference_db - dbfs_reference)",
         "within_tolerance = abs(drift_db) <= max_abs_error_db",
-        "precision Pa<->dBFS requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms",
+        (
+            "precision Pa<->dBFS requires mic_sensitivity_mv_pa, preamp_gain_db, and "
+            "adc_full_scale_vrms"
+        ),
     ]
 
 
@@ -178,7 +183,9 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
             None if cfg.mic_sensitivity_mv_pa is None else float(cfg.mic_sensitivity_mv_pa)
         ),
         "preamp_gain_db": None if cfg.preamp_gain_db is None else float(cfg.preamp_gain_db),
-        "adc_full_scale_vrms": None if cfg.adc_full_scale_vrms is None else float(cfg.adc_full_scale_vrms),
+        "adc_full_scale_vrms": None
+        if cfg.adc_full_scale_vrms is None
+        else float(cfg.adc_full_scale_vrms),
         "measured_rms": rms,
         "measured_dbfs": measured_dbfs,
         "drift_db": drift_db,
@@ -191,7 +198,10 @@ def run_calibration_check(cfg: CalibrationCheckConfig) -> tuple[Path, dict[str, 
         "assumptions": [
             "Drift compares measured tone RMS (dBFS) against configured dbfs_reference.",
             "SPL estimate is a reference offset mapping, not a compliance measurement.",
-            "Precision Pa<->dBFS conversion requires mic_sensitivity_mv_pa, preamp_gain_db, and adc_full_scale_vrms.",
+            (
+                "Precision Pa<->dBFS conversion requires mic_sensitivity_mv_pa, "
+                "preamp_gain_db, and adc_full_scale_vrms."
+            ),
         ],
         "profile": (
             {
@@ -295,7 +305,10 @@ def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str
             "audit_equations": _calibration_audit_equations(),
             "assumptions": [
                 "Suite mode runs every built-in deterministic calibration verification fixture.",
-                "Per-fixture reports are written beside the suite report for CI and onboarding review.",
+                (
+                    "Per-fixture reports are written beside the suite report for CI and "
+                    "onboarding review."
+                ),
             ],
         }
         cfg.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -329,11 +342,17 @@ def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str
         spl_reference_db=float(fixture.get("spl_reference_db", 94.0)),
         weighting=str(fixture.get("weighting", "Z")).upper(),
         mic_sensitivity_mv_pa=(
-            float(fixture["mic_sensitivity_mv_pa"]) if fixture.get("mic_sensitivity_mv_pa") is not None else None
+            float(fixture["mic_sensitivity_mv_pa"])
+            if fixture.get("mic_sensitivity_mv_pa") is not None
+            else None
         ),
-        preamp_gain_db=(float(fixture["preamp_gain_db"]) if fixture.get("preamp_gain_db") is not None else None),
+        preamp_gain_db=(
+            float(fixture["preamp_gain_db"]) if fixture.get("preamp_gain_db") is not None else None
+        ),
         adc_full_scale_vrms=(
-            float(fixture["adc_full_scale_vrms"]) if fixture.get("adc_full_scale_vrms") is not None else None
+            float(fixture["adc_full_scale_vrms"])
+            if fixture.get("adc_full_scale_vrms") is not None
+            else None
         ),
     )
     check_report_path = cfg.output_path.with_name(cfg.output_path.stem + ".check.json")
@@ -386,7 +405,10 @@ def run_calibration_verify(cfg: CalibrationVerifyConfig) -> tuple[Path, dict[str
         "assumptions": [
             "Reference tone is synthesized deterministically as a floating-point sine wave.",
             "Verification compares measured RMS dBFS against the fixture's expected RMS dBFS.",
-            "This is a software-path verification, not a replacement for traceable hardware calibration.",
+            (
+                "This is a software-path verification, not a replacement for traceable "
+                "hardware calibration."
+            ),
         ],
     }
     cfg.output_path.write_text(json.dumps(verify_report, indent=2), encoding="utf-8")

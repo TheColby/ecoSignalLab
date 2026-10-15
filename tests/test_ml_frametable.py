@@ -40,7 +40,9 @@ def test_frametable_contract_and_tensor_layout(tmp_path: Path) -> None:
     assert frame_table.values.shape[1] == len(frame_table.feature_names)
     assert frame_table.metadata["tensor_layout"] == "[channels, frames, features]"
 
-    tensor, labels, mode = frame_table_tensor(frame_table, source_channels=2, replicate_aggregate=False)
+    tensor, labels, mode = frame_table_tensor(
+        frame_table, source_channels=2, replicate_aggregate=False
+    )
     assert tensor.ndim == 3
     assert tensor.shape[0] == 1
     assert tensor.shape[1] == frame_table.values.shape[0]
@@ -71,7 +73,13 @@ def test_export_ml_features_writes_frametable_artifacts(tmp_path: Path) -> None:
     )
     artifacts = export_ml_features(result, output_dir=tmp_path / "ml", prefix="demo", seed=123)
 
-    for key in ["frame_csv", "frame_npy", "frame_table_csv", "frame_tensor_npy", "ml_metadata_json"]:
+    for key in [
+        "frame_csv",
+        "frame_npy",
+        "frame_table_csv",
+        "frame_tensor_npy",
+        "ml_metadata_json",
+    ]:
         assert key in artifacts
         assert Path(artifacts[key]).exists()
 

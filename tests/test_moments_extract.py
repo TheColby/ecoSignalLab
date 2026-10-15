@@ -164,21 +164,27 @@ def test_moments_extract_single_selects_highest_novelty_and_window(tmp_path: Pat
             "start_s": 0.0,
             "end_s": 1.0,
             "metric_means": {"novelty_curve": 0.2},
-            "alerts": [{"metric": "novelty_curve", "value": 0.2, "condition": "min", "threshold": 0.0}],
+            "alerts": [
+                {"metric": "novelty_curve", "value": 0.2, "condition": "min", "threshold": 0.0}
+            ],
         },
         {
             "index": 1,
             "start_s": 1.0,
             "end_s": 2.0,
             "metric_means": {"novelty_curve": 0.9},
-            "alerts": [{"metric": "novelty_curve", "value": 0.9, "condition": "min", "threshold": 0.0}],
+            "alerts": [
+                {"metric": "novelty_curve", "value": 0.9, "condition": "min", "threshold": 0.0}
+            ],
         },
         {
             "index": 2,
             "start_s": 2.0,
             "end_s": 3.0,
             "metric_means": {"novelty_curve": 0.4},
-            "alerts": [{"metric": "novelty_curve", "value": 0.4, "condition": "min", "threshold": 0.0}],
+            "alerts": [
+                {"metric": "novelty_curve", "value": 0.4, "condition": "min", "threshold": 0.0}
+            ],
         },
     ]
     stream_report = tmp_path / "stream_report.json"
@@ -229,21 +235,27 @@ def test_moments_extract_top_k_and_all_modes(tmp_path: Path) -> None:
             "start_s": 0.0,
             "end_s": 1.0,
             "metric_means": {"novelty_curve": 0.1},
-            "alerts": [{"metric": "novelty_curve", "value": 0.1, "condition": "min", "threshold": 0.0}],
+            "alerts": [
+                {"metric": "novelty_curve", "value": 0.1, "condition": "min", "threshold": 0.0}
+            ],
         },
         {
             "index": 1,
             "start_s": 1.0,
             "end_s": 2.0,
             "metric_means": {"novelty_curve": 0.7},
-            "alerts": [{"metric": "novelty_curve", "value": 0.7, "condition": "min", "threshold": 0.0}],
+            "alerts": [
+                {"metric": "novelty_curve", "value": 0.7, "condition": "min", "threshold": 0.0}
+            ],
         },
         {
             "index": 2,
             "start_s": 2.0,
             "end_s": 3.0,
             "metric_means": {"novelty_curve": 0.4},
-            "alerts": [{"metric": "novelty_curve", "value": 0.4, "condition": "min", "threshold": 0.0}],
+            "alerts": [
+                {"metric": "novelty_curve", "value": 0.4, "condition": "min", "threshold": 0.0}
+            ],
         },
     ]
     stream_report = tmp_path / "stream_report.json"
@@ -303,7 +315,9 @@ def test_moments_extract_top_k_and_all_modes(tmp_path: Path) -> None:
     assert len(all_rows) == 3
 
 
-def test_moments_extract_top_k_without_rules_uses_rank_metric_only_for_multichannel(tmp_path: Path) -> None:
+def test_moments_extract_top_k_without_rules_uses_rank_metric_only_for_multichannel(
+    tmp_path: Path,
+) -> None:
     sr = 16_000
     t = np.arange(6 * sr, dtype=np.float64) / sr
     channels = []
@@ -314,11 +328,41 @@ def test_moments_extract_top_k_without_rules_uses_rank_metric_only_for_multichan
     _write_wav(wav, x, sr)
 
     chunks: list[dict[str, object]] = [
-        {"index": 0, "start_s": 0.0, "end_s": 1.0, "metric_means": {"novelty_curve": 0.10}, "alerts": []},
-        {"index": 1, "start_s": 1.0, "end_s": 2.0, "metric_means": {"novelty_curve": 0.90}, "alerts": []},
-        {"index": 2, "start_s": 2.0, "end_s": 3.0, "metric_means": {"novelty_curve": 0.25}, "alerts": []},
-        {"index": 3, "start_s": 3.0, "end_s": 4.0, "metric_means": {"novelty_curve": 0.80}, "alerts": []},
-        {"index": 4, "start_s": 4.0, "end_s": 5.0, "metric_means": {"novelty_curve": 0.05}, "alerts": []},
+        {
+            "index": 0,
+            "start_s": 0.0,
+            "end_s": 1.0,
+            "metric_means": {"novelty_curve": 0.10},
+            "alerts": [],
+        },
+        {
+            "index": 1,
+            "start_s": 1.0,
+            "end_s": 2.0,
+            "metric_means": {"novelty_curve": 0.90},
+            "alerts": [],
+        },
+        {
+            "index": 2,
+            "start_s": 2.0,
+            "end_s": 3.0,
+            "metric_means": {"novelty_curve": 0.25},
+            "alerts": [],
+        },
+        {
+            "index": 3,
+            "start_s": 3.0,
+            "end_s": 4.0,
+            "metric_means": {"novelty_curve": 0.80},
+            "alerts": [],
+        },
+        {
+            "index": 4,
+            "start_s": 4.0,
+            "end_s": 5.0,
+            "metric_means": {"novelty_curve": 0.05},
+            "alerts": [],
+        },
     ]
     stream_report = tmp_path / "stream_report.json"
     _write_stream_report(stream_report, wav=wav, chunks=chunks, sr=sr, channels=8)
@@ -372,8 +416,20 @@ def test_moments_extract_per_channel_rank_scope_records_channel(tmp_path: Path) 
     _write_wav(wav, np.stack([left, right], axis=1), sr)
 
     chunks: list[dict[str, object]] = [
-        {"index": 0, "start_s": 0.0, "end_s": 1.0, "metric_means": {"novelty_curve": 0.1}, "alerts": []},
-        {"index": 1, "start_s": 1.0, "end_s": 2.0, "metric_means": {"novelty_curve": 0.2}, "alerts": []},
+        {
+            "index": 0,
+            "start_s": 0.0,
+            "end_s": 1.0,
+            "metric_means": {"novelty_curve": 0.1},
+            "alerts": [],
+        },
+        {
+            "index": 1,
+            "start_s": 1.0,
+            "end_s": 2.0,
+            "metric_means": {"novelty_curve": 0.2},
+            "alerts": [],
+        },
     ]
     stream_report = tmp_path / "stream_report.json"
     _write_stream_report(stream_report, wav=wav, chunks=chunks, sr=sr, channels=2)

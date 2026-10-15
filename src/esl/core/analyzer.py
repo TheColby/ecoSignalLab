@@ -7,12 +7,12 @@ context such as impulse-response decay fitting.
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import platform
 import socket
+from dataclasses import asdict
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -23,12 +23,12 @@ from esl.core.calibration import calibration_to_dict
 from esl.core.config import AnalysisConfig
 from esl.core.context import AnalysisContext
 from esl.core.out_of_core import (
+    RUNNING_SUMMARY_METHOD,
     AudioAccumulator,
     FrameTableCsvWriter,
     FrameTableHdf5Writer,
     FrameTableParquetDatasetWriter,
     MetricAccumulator,
-    RUNNING_SUMMARY_METHOD,
     load_checkpoint,
     save_checkpoint,
 )
@@ -38,11 +38,12 @@ from esl.metrics.base import MetricResult
 from esl.metrics.registry import METRIC_CATALOG_VERSION, MetricRegistry, create_registry
 from esl.schema import SCHEMA_VERSION
 
-
 CHECKPOINT_FILENAME = "analysis_state.json"
 
 
-def _spatial_metadata(config: AnalysisConfig, channels: int, source_channel_layout: str | None) -> dict[str, Any]:
+def _spatial_metadata(
+    config: AnalysisConfig, channels: int, source_channel_layout: str | None
+) -> dict[str, Any]:
     """Resolve inferred spatial metadata plus an optional explicit sidecar."""
     metadata = infer_spatial_metadata(
         channels,
@@ -51,7 +52,7 @@ def _spatial_metadata(config: AnalysisConfig, channels: int, source_channel_layo
     )
     if config.spatial_metadata_sidecar is not None:
         metadata = apply_spatial_metadata_sidecar(metadata, config.spatial_metadata_sidecar)
-    return metadata.to_dict()
+    return dict(metadata.to_dict())
 
 
 def _serialize_metric(result: MetricResult, spec: dict[str, Any]) -> dict[str, Any]:
@@ -141,7 +142,9 @@ def _validity_flags_from_audio(
         rt_metric = metrics.get("rt60_s")
         rt_extra = rt_metric.extra if isinstance(rt_metric, MetricResult) else {}
         fit = rt_extra.get("fit", {}) if isinstance(rt_extra, dict) else {}
-        ir_fit_r2 = float(fit["r2"]) if isinstance(fit, dict) and fit.get("r2") is not None else None
+        ir_fit_r2 = (
+            float(fit["r2"]) if isinstance(fit, dict) and fit.get("r2") is not None else None
+        )
         ir_dynamic_range_db = (
             float(rt_extra["dynamic_range_db"])
             if isinstance(rt_extra, dict) and rt_extra.get("dynamic_range_db") is not None
@@ -191,7 +194,9 @@ def _validity_flags_from_summary(
     }
 
 
-def _resolve_metric_names(config: AnalysisConfig, registry: MetricRegistry) -> tuple[list[str], list[str]]:
+def _resolve_metric_names(
+    config: AnalysisConfig, registry: MetricRegistry
+) -> tuple[list[str], list[str]]:
     requested = config.metrics or registry.names()
     if not config.streamable_only:
         return list(requested), []
@@ -252,7 +257,7 @@ def _assemble_result(
             calibration_applied=config.calibration is not None,
             metrics=metrics,
         )
-        resolved_meta = {
+        resolved_meta: dict[str, Any] = {
             "input_path": str(Path(audio.source_path).resolve()),
             "sample_rate": audio.sample_rate,
             "num_samples": audio.num_samples,
@@ -292,7 +297,11 @@ def _assemble_result(
         )
         resolved_meta["channel_layout_hint"] = str(resolved_meta["spatial_metadata"]["layout_hint"])
         resolved_meta.setdefault("decoder", resolved_meta.pop("decoder_provenance", None))
-        channel_summary = channel_summary or {"channels": [], "aggregate": {}, "aggregation_rules": {}}
+        channel_summary = channel_summary or {
+            "channels": [],
+            "aggregate": {},
+            "aggregation_rules": {},
+        }
         validity_flags = validity_flags or _validity_flags_from_summary(
             channel_summary=channel_summary,
             calibration_applied=config.calibration is not None,
@@ -337,7 +346,9 @@ def _assemble_result(
             "warnings": warnings or [],
             "analysis_strategy": {
                 "out_of_core": bool(mode == "streaming"),
-                "summary_statistics": RUNNING_SUMMARY_METHOD if mode == "streaming" else "exact_from_materialized_signal",
+                "summary_statistics": RUNNING_SUMMARY_METHOD
+                if mode == "streaming"
+                else "exact_from_materialized_signal",
                 "store_series_in_json": bool(not config.summary_only),
                 "max_series_points": config.max_series_points,
                 "frame_table_csv": str(config.frame_table_csv) if config.frame_table_csv else None,
@@ -351,7 +362,9 @@ def _assemble_result(
     return result
 
 
-def _analyze_full(config: AnalysisConfig, registry: MetricRegistry, metric_names: list[str]) -> dict[str, Any]:
+def _analyze_full(
+    config: AnalysisConfig, registry: MetricRegistry, metric_names: list[str]
+) -> dict[str, Any]:
     audio = read_audio(config.input_path, target_sr=config.sample_rate)
     ctx = AnalysisContext(audio=audio, config=config, calibration=config.calibration)
     metric_results = registry.compute(ctx, metric_names)
@@ -423,12 +436,16 @@ def _save_stream_state(
         "metric_accumulators": {name: acc.to_dict() for name, acc in metric_acc.items()},
         "frame_table_csv": str(frame_table_csv) if frame_table_csv else None,
     }
-    return save_checkpoint(checkpoint_path, payload)
+    return Path(save_checkpoint(checkpoint_path, payload))
 
 
-def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_names: list[str]) -> dict[str, Any]:
+def _analyze_streaming(
+    config: AnalysisConfig, registry: MetricRegistry, metric_names: list[str]
+) -> dict[str, Any]:
     probe = probe_audio_metadata(config.input_path)
-    format_name = str(probe.get("format_name") or Path(config.input_path).suffix.lstrip(".").upper() or "unknown")
+    format_name = str(
+        probe.get("format_name") or Path(config.input_path).suffix.lstrip(".").upper() or "unknown"
+    )
     subtype = probe.get("subtype")
     source_backend = str(probe.get("backend") or "unknown")
     decoder_provenance = probe.get("decoder_provenance") or {
@@ -443,11 +460,17 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
     if config.frame_table_csv is not None:
         frame_writer = FrameTableCsvWriter(config.frame_table_csv, append=bool(config.resume))
     if config.frame_table_parquet_dir is not None:
-        frame_parquet_writer = FrameTableParquetDatasetWriter(config.frame_table_parquet_dir, append=bool(config.resume))
+        frame_parquet_writer = FrameTableParquetDatasetWriter(
+            config.frame_table_parquet_dir, append=bool(config.resume)
+        )
     if config.frame_table_hdf5 is not None:
-        frame_hdf5_writer = FrameTableHdf5Writer(config.frame_table_hdf5, append=bool(config.resume))
+        frame_hdf5_writer = FrameTableHdf5Writer(
+            config.frame_table_hdf5, append=bool(config.resume)
+        )
 
-    resume_from, audio_acc, metric_acc = _load_stream_state(config=config, metric_names=metric_names)
+    resume_from, audio_acc, metric_acc = _load_stream_state(
+        config=config, metric_names=metric_names
+    )
     processed_chunks = 0
     for chunk in stream_audio(
         config.input_path,
@@ -520,34 +543,48 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
 
     metric_results = {name: acc.finalize() for name, acc in metric_acc.items()}
     channel_summary = audio_acc.channel_summary()
-    resolved_sample_rate = int(audio_acc.sample_rate or config.sample_rate or probe.get("sample_rate") or 0)
+    resolved_sample_rate = int(
+        audio_acc.sample_rate or config.sample_rate or probe.get("sample_rate") or 0
+    )
     resolved_num_samples = int(audio_acc.total_samples)
-    resolved_duration = float(resolved_num_samples / resolved_sample_rate) if resolved_sample_rate > 0 else 0.0
+    resolved_duration = (
+        float(resolved_num_samples / resolved_sample_rate) if resolved_sample_rate > 0 else 0.0
+    )
 
     artifacts: dict[str, Any] = {}
-    warnings = ["Streaming mode merged chunk-local frame metrics without full-file materialization."]
+    warnings = [
+        "Streaming mode merged chunk-local frame metrics without full-file materialization."
+    ]
     if config.summary_only:
-        warnings.append("Series payloads were omitted from JSON; use frame table artifacts for long-form rows.")
+        warnings.append(
+            "Series payloads were omitted from JSON; use frame table artifacts for long-form rows."
+        )
     if config.frame_table_csv is not None:
         artifacts["frame_table_csv"] = str(Path(config.frame_table_csv).resolve())
         artifacts["frame_table_metadata_json"] = str(
-            Path(config.frame_table_csv).with_suffix(Path(config.frame_table_csv).suffix + ".meta.json").resolve()
+            Path(config.frame_table_csv)
+            .with_suffix(Path(config.frame_table_csv).suffix + ".meta.json")
+            .resolve()
         )
-        meta_payload = frame_writer.metadata_payload(
-            frame_size=config.frame_size,
-            hop_size=config.hop_size,
-            source_channels=int(probe.get("channels") or audio_acc.channels or 1),
-            esl_version=__version__,
-        ) if frame_writer is not None else {
-            "frame_table_version": "1.0.0",
-            "frame_size": int(config.frame_size),
-            "hop_size": int(config.hop_size),
-            "source_channels": int(probe.get("channels") or audio_acc.channels or 1),
-            "tensor_layout": "[channels, frames, features]",
-            "channel_feature_mode": "aggregate_mixdown",
-            "esl_version": __version__,
-            "columns": ["timestamp_s"],
-        }
+        meta_payload = (
+            frame_writer.metadata_payload(
+                frame_size=config.frame_size,
+                hop_size=config.hop_size,
+                source_channels=int(probe.get("channels") or audio_acc.channels or 1),
+                esl_version=__version__,
+            )
+            if frame_writer is not None
+            else {
+                "frame_table_version": "1.0.0",
+                "frame_size": int(config.frame_size),
+                "hop_size": int(config.hop_size),
+                "source_channels": int(probe.get("channels") or audio_acc.channels or 1),
+                "tensor_layout": "[channels, frames, features]",
+                "channel_feature_mode": "aggregate_mixdown",
+                "esl_version": __version__,
+                "columns": ["timestamp_s"],
+            }
+        )
         Path(artifacts["frame_table_metadata_json"]).write_text(
             json.dumps(canonicalize(meta_payload), indent=2),
             encoding="utf-8",
@@ -601,7 +638,9 @@ def _analyze_streaming(config: AnalysisConfig, registry: MetricRegistry, metric_
         metrics=metric_results,
     )
     if checkpoint_path is not None and checkpoint_path.exists():
-        warnings.append("Checkpoint state was written during analysis and can be reused with --resume.")
+        warnings.append(
+            "Checkpoint state was written during analysis and can be reused with --resume."
+        )
     return _assemble_result(
         config,
         audio=None,
@@ -638,18 +677,25 @@ def analyze(config: AnalysisConfig, registry: MetricRegistry | None = None) -> d
             joined = ", ".join(non_streaming)
             raise RuntimeError(
                 "Chunked analysis requested, but these metrics require full-file context: "
-                f"{joined}. Use --streamable-only, choose streamable metrics explicitly, or pass --allow-full-read."
+                f"{joined}. Use --streamable-only, choose streamable metrics explicitly, "
+                "or pass --allow-full-read."
             )
         result = _analyze_streaming(config, reg, metric_names)
         warnings = list(result.get("metadata", {}).get("warnings", []))
         if dropped:
-            warnings.append("Dropped non-streaming metrics because --streamable-only was enabled: " + ", ".join(dropped))
+            warnings.append(
+                "Dropped non-streaming metrics because --streamable-only was enabled: "
+                + ", ".join(dropped)
+            )
             result["metadata"]["warnings"] = warnings
         return result
 
     result = _analyze_full(config, reg, metric_names)
     if dropped:
         warnings = list(result.get("metadata", {}).get("warnings", []))
-        warnings.append("Dropped non-streaming metrics because --streamable-only was enabled: " + ", ".join(dropped))
+        warnings.append(
+            "Dropped non-streaming metrics because --streamable-only was enabled: "
+            + ", ".join(dropped)
+        )
         result["metadata"]["warnings"] = warnings
     return result

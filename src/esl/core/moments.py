@@ -5,18 +5,18 @@ from __future__ import annotations
 import csv
 import json
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 import soundfile as sf
 
-from esl.core.audio import AudioBuffer
-from esl.core.context import AnalysisContext
-from esl.core.audio import read_audio
+from esl.core.audio import AudioBuffer, read_audio
 from esl.core.config import AnalysisConfig, CalibrationProfile
+from esl.core.context import AnalysisContext
 from esl.core.streaming import StreamRunConfig, run_stream_analysis
 from esl.metrics.registry import create_registry
 
@@ -112,7 +112,9 @@ def _clip_with_soundfile(
         sf.write(str(output_path), data, src_sr, subtype=f.subtype)
 
 
-def _read_segment(input_path: Path, start_s: float, end_s: float, target_sr: int | None = None) -> tuple[np.ndarray, int]:
+def _read_segment(
+    input_path: Path, start_s: float, end_s: float, target_sr: int | None = None
+) -> tuple[np.ndarray, int]:
     with sf.SoundFile(str(input_path), mode="r") as f:
         src_sr = int(f.samplerate)
         start = max(0, int(round(start_s * src_sr)))
@@ -170,7 +172,9 @@ def _load_stream_report(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _iter_stream_chunks(stream_report: dict[str, Any], report_path: Path | None = None) -> Iterable[dict[str, Any]]:
+def _iter_stream_chunks(
+    stream_report: dict[str, Any], report_path: Path | None = None
+) -> Iterable[dict[str, Any]]:
     artifacts = stream_report.get("artifacts", {})
     if isinstance(artifacts, dict):
         jsonl_path = artifacts.get("chunks_jsonl")
@@ -213,7 +217,9 @@ def _collect_windows(
             return float(value)
         return None
 
-    def _chunk_metric_value(chunk: dict[str, Any], metric_name: str, alerts: list[dict[str, Any]]) -> tuple[float, bool]:
+    def _chunk_metric_value(
+        chunk: dict[str, Any], metric_name: str, alerts: list[dict[str, Any]]
+    ) -> tuple[float, bool]:
         if metric_name in {"alerts", "alert_count"}:
             return float(len(alerts)), True
         metric_means = chunk.get("metric_means")
@@ -265,7 +271,9 @@ def _collect_windows(
         score, has_rank_metric = _chunk_metric_value(ch, rank_metric, alerts)
         # If no threshold rules were configured upstream, ranking by the chosen
         # metric alone is still useful for coarse novelty mining over long files.
-        if len(alerts) < int(min_alerts_per_chunk) and not (allow_metric_only_candidates and has_rank_metric):
+        if len(alerts) < int(min_alerts_per_chunk) and not (
+            allow_metric_only_candidates and has_rank_metric
+        ):
             continue
         start = float(ch.get("start_s", 0.0))
         end = float(ch.get("end_s", start))
@@ -305,7 +313,9 @@ def _collect_windows(
     return merged
 
 
-def _select_windows(windows: list[dict[str, Any]], selection_mode: str, top_k: int | None) -> list[dict[str, Any]]:
+def _select_windows(
+    windows: list[dict[str, Any]], selection_mode: str, top_k: int | None
+) -> list[dict[str, Any]]:
     if selection_mode == "all":
         return windows
 
@@ -336,7 +346,9 @@ def _rerank_windows(
     if rank_scope == "downmix" or not windows:
         return windows
     if rank_metric in {"alerts", "alert_count"}:
-        raise ValueError(f"--rank-scope {rank_scope} is not supported for rank metric {rank_metric!r}")
+        raise ValueError(
+            f"--rank-scope {rank_scope} is not supported for rank metric {rank_metric!r}"
+        )
 
     registry = create_registry(with_external=True)
     registry.get(rank_metric)
@@ -358,7 +370,11 @@ def _rerank_windows(
                 format_name=input_path.suffix.lstrip(".").upper() or "unknown",
                 subtype=None,
                 source_backend="soundfile",
-                decoder_provenance={"decoder_used": "soundfile", "ffmpeg_version": None, "ffprobe": None},
+                decoder_provenance={
+                    "decoder_used": "soundfile",
+                    "ffmpeg_version": None,
+                    "ffprobe": None,
+                },
             )
             ctx = AnalysisContext(
                 audio=audio,
@@ -400,7 +416,9 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
     clips_dir = Path(cfg.clips_dir) if cfg.clips_dir else (cfg.output_dir / "clips")
     clips_dir.mkdir(parents=True, exist_ok=True)
     csv_path = Path(cfg.csv_out) if cfg.csv_out else (cfg.output_dir / "moments.csv")
-    report_path = Path(cfg.report_out) if cfg.report_out else (cfg.output_dir / "moments_report.json")
+    report_path = (
+        Path(cfg.report_out) if cfg.report_out else (cfg.output_dir / "moments_report.json")
+    )
 
     if cfg.stream_report_path:
         stream_report_file = Path(cfg.stream_report_path)
@@ -425,7 +443,9 @@ def run_moments_extract(cfg: MomentsExtractConfig) -> tuple[Path, dict[str, Any]
     if duration_s <= 0.0:
         duration_s = float("inf")
     rules_payload = stream_report.get("rules", {})
-    has_threshold_rules = isinstance(rules_payload, dict) and bool(rules_payload.get("metric_thresholds"))
+    has_threshold_rules = isinstance(rules_payload, dict) and bool(
+        rules_payload.get("metric_thresholds")
+    )
 
     windows = _collect_windows(
         chunks=_iter_stream_chunks(stream_report, report_path=stream_report_file),

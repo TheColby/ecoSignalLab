@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from esl import __version__
 from esl.core import AnalysisConfig, IngestConfig, analyze, load_calibration
 from esl.core.audio import iter_supported_files, probe_sample_rate
 from esl.docsgen import build_docs
@@ -52,7 +53,10 @@ def _mkdir(path: Path) -> None:
 
 
 def _safe_name(text: str) -> str:
-    return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in text).strip("_") or "profile"
+    return (
+        "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in text).strip("_")
+        or "profile"
+    )
 
 
 def _to_samples(seconds: float, sample_rate: int, flag_name: str) -> int:
@@ -61,7 +65,8 @@ def _to_samples(seconds: float, sample_rate: int, flag_name: str) -> int:
     samples = int(round(seconds * float(sample_rate)))
     if samples < 1:
         raise ValueError(
-            f"{flag_name}={seconds} is too small for sample_rate={sample_rate}; resolved sample count is < 1."
+            f"{flag_name}={seconds} is too small for sample_rate={sample_rate}; "
+            "resolved sample count is < 1."
         )
     return samples
 
@@ -77,7 +82,11 @@ def _resolve_chunk_duration_seconds(args: argparse.Namespace) -> float | None:
     for name, scale in choices:
         raw = getattr(args, name, None)
         if raw is not None:
-            if not isinstance(raw, (int, float)) or not math.isfinite(float(raw)) or float(raw) <= 0.0:
+            if (
+                not isinstance(raw, (int, float))
+                or not math.isfinite(float(raw))
+                or float(raw) <= 0.0
+            ):
                 raise ValueError(f"--{name.replace('_', '-')} must be a positive finite number.")
             specified.append((name, float(raw) * scale))
     if not specified:
@@ -96,8 +105,16 @@ def _resolve_window_samples(
     default_hop_size: int | None = None,
     default_chunk_size: int | None = None,
 ) -> tuple[int | None, int | None, int | None, int | None]:
-    frame_size = int(getattr(args, "frame_size", default_frame_size) or 0) if default_frame_size is not None or hasattr(args, "frame_size") else None
-    hop_size = int(getattr(args, "hop_size", default_hop_size) or 0) if default_hop_size is not None or hasattr(args, "hop_size") else None
+    frame_size = (
+        int(getattr(args, "frame_size", default_frame_size) or 0)
+        if default_frame_size is not None or hasattr(args, "frame_size")
+        else None
+    )
+    hop_size = (
+        int(getattr(args, "hop_size", default_hop_size) or 0)
+        if default_hop_size is not None or hasattr(args, "hop_size")
+        else None
+    )
     chunk_size_raw = getattr(args, "chunk_size", default_chunk_size)
     chunk_size = int(chunk_size_raw) if chunk_size_raw is not None else None
     sample_rate_raw = getattr(args, "sample_rate", None)
@@ -111,7 +128,8 @@ def _resolve_window_samples(
     if needs_sr and resolved_sr is None:
         if input_path is None:
             raise ValueError(
-                "Duration-based window flags require --sample-rate when input path metadata is unavailable."
+                "Duration-based window flags require --sample-rate when input path "
+                "metadata is unavailable."
             )
         try:
             resolved_sr = probe_sample_rate(input_path)
@@ -138,7 +156,9 @@ def _resolve_window_samples(
     return frame_size, hop_size, chunk_size, resolved_sr
 
 
-def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: Path) -> AnalysisConfig:
+def _build_analysis_config(
+    args: argparse.Namespace, input_path: Path, out_dir: Path
+) -> AnalysisConfig:
     calibration = load_calibration(args.calibration) if args.calibration else None
     frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
         args,
@@ -168,15 +188,25 @@ def _build_analysis_config(args: argparse.Namespace, input_path: Path, out_dir: 
         streamable_only=bool(getattr(args, "streamable_only", False)),
         allow_full_read=bool(getattr(args, "allow_full_read", False)),
         max_series_points=getattr(args, "max_series_points", None),
-        frame_table_csv=(Path(args.frame_table_csv) if getattr(args, "frame_table_csv", None) else None),
-        frame_table_parquet_dir=(
-            Path(args.frame_table_parquet_dir) if getattr(args, "frame_table_parquet_dir", None) else None
+        frame_table_csv=(
+            Path(args.frame_table_csv) if getattr(args, "frame_table_csv", None) else None
         ),
-        frame_table_hdf5=(Path(args.frame_table_hdf5) if getattr(args, "frame_table_hdf5", None) else None),
-        checkpoint_dir=(Path(args.checkpoint_dir) if getattr(args, "checkpoint_dir", None) else None),
+        frame_table_parquet_dir=(
+            Path(args.frame_table_parquet_dir)
+            if getattr(args, "frame_table_parquet_dir", None)
+            else None
+        ),
+        frame_table_hdf5=(
+            Path(args.frame_table_hdf5) if getattr(args, "frame_table_hdf5", None) else None
+        ),
+        checkpoint_dir=(
+            Path(args.checkpoint_dir) if getattr(args, "checkpoint_dir", None) else None
+        ),
         resume=bool(getattr(args, "resume", False)),
         spatial_metadata_sidecar=(
-            Path(args.spatial_metadata_sidecar) if getattr(args, "spatial_metadata_sidecar", None) else None
+            Path(args.spatial_metadata_sidecar)
+            if getattr(args, "spatial_metadata_sidecar", None)
+            else None
         ),
     )
 
@@ -224,10 +254,12 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
             )
 
         if run_cfg.project and run_cfg.variant:
-            record_project_variant(result, project=run_cfg.project, variant=run_cfg.variant, root=out_dir)
+            record_project_variant(
+                result, project=run_cfg.project, variant=run_cfg.variant, root=out_dir
+            )
 
-        def _mean(name: str) -> float | None:
-            payload = result.get("metrics", {}).get(name)
+        def _mean(name: str, analysis_result: dict[str, Any] = result) -> float | None:
+            payload = analysis_result.get("metrics", {}).get(name)
             if not isinstance(payload, dict):
                 return None
             summary = payload.get("summary")
@@ -249,7 +281,9 @@ def _run_profile_analyze(args: argparse.Namespace, base_cfg: AnalysisConfig, out
                     "duration_s": round(float(result["metadata"]["duration_s"]), 6),
                     "channels": int(result["metadata"]["channels"]),
                     "sample_rate": int(result["metadata"]["sample_rate"]),
-                    "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
+                    "compute_device": result.get("metadata", {})
+                    .get("compute_device", {})
+                    .get("resolved"),
                     "spl_a_mean": _mean("spl_a_db"),
                     "snr_mean": _mean("snr_db"),
                     "rt60": _mean("rt60_s"),
@@ -418,7 +452,9 @@ def _run_analyze(args: argparse.Namespace) -> int:
                 "duration_s": round(float(result["metadata"]["duration_s"]), 3),
                 "channels": int(result["metadata"]["channels"]),
                 "sample_rate": int(result["metadata"]["sample_rate"]),
-                "compute_device": result.get("metadata", {}).get("compute_device", {}).get("resolved"),
+                "compute_device": result.get("metadata", {})
+                .get("compute_device", {})
+                .get("resolved"),
                 "spl_a_mean": _mean("spl_a_db"),
                 "snr_mean": _mean("snr_db"),
                 "rt60": _mean("rt60_s"),
@@ -439,7 +475,26 @@ def _run_batch(args: argparse.Namespace) -> int:
     _mkdir(out_dir)
     in_root = in_dir.resolve()
 
-    files = iter_supported_files(in_dir, patterns=["*.wav", "*.flac", "*.aiff", "*.aif", "*.rf64", "*.caf", "*.mp3", "*.aac", "*.ogg", "*.opus", "*.wma", "*.alac", "*.m4a", "*.sofa"], recursive=not args.no_recursive)
+    files = iter_supported_files(
+        in_dir,
+        patterns=[
+            "*.wav",
+            "*.flac",
+            "*.aiff",
+            "*.aif",
+            "*.rf64",
+            "*.caf",
+            "*.mp3",
+            "*.aac",
+            "*.ogg",
+            "*.opus",
+            "*.wma",
+            "*.alac",
+            "*.m4a",
+            "*.sofa",
+        ],
+        recursive=not args.no_recursive,
+    )
     if not files:
         print("No supported files found.")
         return 0
@@ -449,10 +504,10 @@ def _run_batch(args: argparse.Namespace) -> int:
     col_counts: dict[str, int] = {}
     report_metric_col: dict[str, str] = {}
     for metric_name in report_metrics:
-        base = f"{_safe_name(metric_name)}_mean"
-        idx = col_counts.get(base, 0)
-        col_counts[base] = idx + 1
-        col = base if idx == 0 else f"{base}_{idx + 1}"
+        column_base = f"{_safe_name(metric_name)}_mean"
+        idx = col_counts.get(column_base, 0)
+        col_counts[column_base] = idx + 1
+        col = column_base if idx == 0 else f"{column_base}_{idx + 1}"
         report_cols.append(col)
         report_metric_col[metric_name] = col
 
@@ -529,8 +584,8 @@ def _run_batch(args: argparse.Namespace) -> int:
                 strict_device=False,
             )
 
-    idx = out_dir / "batch_index.csv"
-    with idx.open("w", encoding="utf-8", newline="") as f:
+    batch_index_path = out_dir / "batch_index.csv"
+    with batch_index_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(
             f,
             fieldnames=[
@@ -547,7 +602,7 @@ def _run_batch(args: argparse.Namespace) -> int:
         for row in rows:
             writer.writerow(row)
     print(f"batch complete: {len(rows)} files -> {out_dir}")
-    print(f"index: {idx}")
+    print(f"index: {batch_index_path}")
     if args.plot and args.show:
         from esl.viz import spawn_plot_paths
 
@@ -632,7 +687,17 @@ def _run_similar(args: argparse.Namespace) -> int:
         with csv_path.open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(
                 f,
-                fieldnames=["rank", "path", "distance", "similarity", "distance_kind", "duration_s", "channels", "sample_rate", "metric_means_json"],
+                fieldnames=[
+                    "rank",
+                    "path",
+                    "distance",
+                    "similarity",
+                    "distance_kind",
+                    "duration_s",
+                    "channels",
+                    "sample_rate",
+                    "metric_means_json",
+                ],
             )
             writer.writeheader()
             for row in report.get("results", []):
@@ -647,7 +712,9 @@ def _run_similar(args: argparse.Namespace) -> int:
                         "duration_s": row.get("duration_s"),
                         "channels": row.get("channels"),
                         "sample_rate": row.get("sample_rate"),
-                        "metric_means_json": json.dumps(metric_map, sort_keys=True) if isinstance(metric_map, dict) else "",
+                        "metric_means_json": json.dumps(metric_map, sort_keys=True)
+                        if isinstance(metric_map, dict)
+                        else "",
                     }
                 )
 
@@ -803,7 +870,9 @@ def _run_shard_index(args: argparse.Namespace) -> int:
             order_by=args.order_by,
             calendar_start=args.calendar_start,
             calendar_timezone=args.calendar_timezone,
-            spatial_sidecar_dir=(Path(args.spatial_sidecar_dir) if args.spatial_sidecar_dir else None),
+            spatial_sidecar_dir=(
+                Path(args.spatial_sidecar_dir) if args.spatial_sidecar_dir else None
+            ),
         )
     )
     print(f"manifest: {manifest_path}")
@@ -830,7 +899,14 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
     manifest = load_shard_manifest(manifest_path)
     duration_flags_used = any(
         getattr(args, name, None) is not None
-        for name in ("frame_seconds", "hop_seconds", "chunk_seconds", "chunk_minutes", "chunk_hours", "chunk_days")
+        for name in (
+            "frame_seconds",
+            "hop_seconds",
+            "chunk_seconds",
+            "chunk_minutes",
+            "chunk_hours",
+            "chunk_days",
+        )
     )
     if args.sample_rate is None and duration_flags_used:
         rates = {
@@ -842,7 +918,8 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
             args.sample_rate = rates.pop()
         elif len(rates) > 1:
             raise ValueError(
-                "Duration-based window flags on a shard manifest with mixed sample rates require --sample-rate explicitly."
+                "Duration-based window flags on a shard manifest with mixed sample "
+                "rates require --sample-rate explicitly."
             )
     frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
         args,
@@ -869,8 +946,12 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
             allow_full_read=bool(args.allow_full_read),
             max_series_points=args.max_series_points,
             frame_table_dir=(Path(args.frame_table_dir) if args.frame_table_dir else None),
-            frame_table_parquet_root=(Path(args.frame_table_parquet_dir) if args.frame_table_parquet_dir else None),
-            frame_table_hdf5_root=(Path(args.frame_table_hdf5_dir) if args.frame_table_hdf5_dir else None),
+            frame_table_parquet_root=(
+                Path(args.frame_table_parquet_dir) if args.frame_table_parquet_dir else None
+            ),
+            frame_table_hdf5_root=(
+                Path(args.frame_table_hdf5_dir) if args.frame_table_hdf5_dir else None
+            ),
             checkpoint_root=(Path(args.checkpoint_dir) if args.checkpoint_dir else None),
             resume=bool(args.resume),
             force=bool(args.force),
@@ -896,14 +977,23 @@ def _run_shard_analyze(args: argparse.Namespace) -> int:
 def _run_shard_dataset(args: argparse.Namespace) -> int:
     from esl.ml import build_dataset_manifest_from_shard_report
 
-    ratios = tuple(float(value) for value in _csv_list(args.split_ratios)) if args.split_ratios else (0.8, 0.1, 0.1)
+    ratios = (
+        tuple(float(value) for value in _csv_list(args.split_ratios))
+        if args.split_ratios
+        else (0.8, 0.1, 0.1)
+    )
     if len(ratios) != 3:
-        raise ValueError("--split-ratios must contain exactly three comma-separated values: train,val,test")
+        raise ValueError(
+            "--split-ratios must contain exactly three comma-separated values: train,val,test"
+        )
     out_path, manifest = build_dataset_manifest_from_shard_report(
         Path(args.report), Path(args.out), split_ratios=(ratios[0], ratios[1], ratios[2])
     )
     print(f"dataset_manifest: {out_path}")
-    print("summary:", {"num_samples": manifest.get("num_samples"), "split_counts": manifest.get("split_counts")})
+    print(
+        "summary:",
+        {"num_samples": manifest.get("num_samples"), "split_counts": manifest.get("split_counts")},
+    )
     return 0
 
 
@@ -916,7 +1006,14 @@ def _run_shard_moments(args: argparse.Namespace) -> int:
     manifest = load_shard_manifest(manifest_path)
     duration_flags_used = any(
         getattr(args, name, None) is not None
-        for name in ("frame_seconds", "hop_seconds", "chunk_seconds", "chunk_minutes", "chunk_hours", "chunk_days")
+        for name in (
+            "frame_seconds",
+            "hop_seconds",
+            "chunk_seconds",
+            "chunk_minutes",
+            "chunk_hours",
+            "chunk_days",
+        )
     )
     if args.sample_rate is None and duration_flags_used:
         rates = {
@@ -928,7 +1025,8 @@ def _run_shard_moments(args: argparse.Namespace) -> int:
             args.sample_rate = rates.pop()
         elif len(rates) > 1:
             raise ValueError(
-                "Duration-based window flags on a shard manifest with mixed sample rates require --sample-rate explicitly."
+                "Duration-based window flags on a shard manifest with mixed sample "
+                "rates require --sample-rate explicitly."
             )
     frame_size, hop_size, chunk_size, resolved_sr = _resolve_window_samples(
         args,
@@ -1016,7 +1114,8 @@ def _run_shard_similar(args: argparse.Namespace) -> int:
             args.sample_rate = rates.pop()
         elif len(rates) > 1:
             raise ValueError(
-                "Duration-based window flags on a shard manifest with mixed sample rates require --sample-rate explicitly."
+                "Duration-based window flags on a shard manifest with mixed sample "
+                "rates require --sample-rate explicitly."
             )
 
     frame_size, hop_size, _, resolved_sr = _resolve_window_samples(
@@ -1093,7 +1192,9 @@ def _run_shard_similar(args: argparse.Namespace) -> int:
                         "duration_s": row.get("duration_s"),
                         "channels": row.get("channels"),
                         "sample_rate": row.get("sample_rate"),
-                        "metric_means_json": json.dumps(row.get("metric_means", {}), sort_keys=True),
+                        "metric_means_json": json.dumps(
+                            row.get("metric_means", {}), sort_keys=True
+                        ),
                     }
                 )
     if int(args.verbosity) >= 1:
@@ -1103,7 +1204,8 @@ def _run_shard_similar(args: argparse.Namespace) -> int:
         for row in report.get("results", []):
             print(
                 f"#{row.get('rank')} shard={row.get('relative_path')} "
-                f"dist={float(row.get('distance', 0.0)):.6f} sim={float(row.get('similarity', 0.0)):.6f}"
+                f"dist={float(row.get('distance', 0.0)):.6f} "
+                f"sim={float(row.get('similarity', 0.0)):.6f}"
             )
     return 0
 
@@ -1189,7 +1291,10 @@ def _run_shard_retrieve(args: argparse.Namespace) -> int:
 
 
 def _run_shard_profile_retrieve(args: argparse.Namespace) -> int:
-    from esl.core.shards import ShardSpatialRetrieveProfileConfig, run_shard_spatial_retrieval_profile
+    from esl.core.shards import (
+        ShardSpatialRetrieveProfileConfig,
+        run_shard_spatial_retrieval_profile,
+    )
 
     manifest_path = Path(args.manifest)
     query_path = Path(args.query)
@@ -1286,7 +1391,9 @@ def _run_shard_insights_calmness(args: argparse.Namespace) -> int:
 def _run_shard_insights_drift(args: argparse.Namespace) -> int:
     from esl.core.shard_insights import run_shard_report_drift
 
-    result = run_shard_report_drift(Path(args.baseline_report), Path(args.candidate_report), Path(args.out))
+    result = run_shard_report_drift(
+        Path(args.baseline_report), Path(args.candidate_report), Path(args.out)
+    )
     print(f"shard_drift_json: {result.primary}")
     print("summary:", {"drift_score": result.report.get("drift_score")})
     return 0
@@ -1354,7 +1461,9 @@ def _run_spatial_analyze(args: argparse.Namespace) -> int:
     beam_map_csv: Path | None = None
     if args.beam_map:
         spacing = 0.2
-        if isinstance(array_config, dict) and isinstance(array_config.get("mic_spacing_m"), (int, float)):
+        if isinstance(array_config, dict) and isinstance(
+            array_config.get("mic_spacing_m"), (int, float)
+        ):
             spacing = float(array_config["mic_spacing_m"])
         rows = stereo_beam_map(
             input_path,
@@ -1539,9 +1648,15 @@ def _run_features_extract(args: argparse.Namespace) -> int:
 def _run_features_manifest(args: argparse.Namespace) -> int:
     from esl.ml import build_dataset_manifest_from_ml_metadata
 
-    split_values = tuple(float(x) for x in _csv_list(args.split_ratios)) if args.split_ratios else (0.8, 0.1, 0.1)
+    split_values = (
+        tuple(float(x) for x in _csv_list(args.split_ratios))
+        if args.split_ratios
+        else (0.8, 0.1, 0.1)
+    )
     if len(split_values) != 3:
-        raise ValueError("--split-ratios must contain exactly three comma-separated values: train,val,test")
+        raise ValueError(
+            "--split-ratios must contain exactly three comma-separated values: train,val,test"
+        )
     out_path, manifest = build_dataset_manifest_from_ml_metadata(
         input_dir=Path(args.input_dir),
         output_path=Path(args.out),
@@ -1549,7 +1664,10 @@ def _run_features_manifest(args: argparse.Namespace) -> int:
         split_ratios=(split_values[0], split_values[1], split_values[2]),
     )
     print(f"dataset_manifest: {out_path}")
-    print("summary:", {"num_samples": manifest.get("num_samples"), "split_counts": manifest.get("split_counts")})
+    print(
+        "summary:",
+        {"num_samples": manifest.get("num_samples"), "split_counts": manifest.get("split_counts")},
+    )
     return 0
 
 
@@ -1705,7 +1823,9 @@ def _run_insights_occupancy(args: argparse.Namespace) -> int:
 def _run_insights_drift(args: argparse.Namespace) -> int:
     from esl.core.insights import run_archive_drift
 
-    result = run_archive_drift(Path(args.baseline_report), Path(args.candidate_report), Path(args.out))
+    result = run_archive_drift(
+        Path(args.baseline_report), Path(args.candidate_report), Path(args.out)
+    )
     print(f"archive_drift_json: {result.primary}")
     print("summary:", {"drift_score": result.report.get("drift_score")})
     return 0
@@ -1765,7 +1885,9 @@ def _run_insights_report(args: argparse.Namespace) -> int:
 def _run_insights_simulation_compare(args: argparse.Namespace) -> int:
     from esl.core.insights import run_simulation_compare
 
-    result = run_simulation_compare(Path(args.simulated_json), Path(args.measured_json), Path(args.out))
+    result = run_simulation_compare(
+        Path(args.simulated_json), Path(args.measured_json), Path(args.out)
+    )
     print(f"simulation_compare_json: {result.primary}")
     return 0
 
@@ -2095,15 +2217,18 @@ def _run_quickstart(args: argparse.Namespace) -> int:
         ],
         "moments": [
             "1) Extract interesting moments as clips + CSV:",
-            f"   esl moments extract {in_arg} --out out/moments --single --rank-metric novelty_curve --event-window 8",
+            f"   esl moments extract {in_arg} --out out/moments --single "
+            "--rank-metric novelty_curve --event-window 8",
         ],
         "features": [
             "1) Extract ML-ready feature vectors:",
-            f"   esl features extract {in_arg} --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
+            f"   esl features extract {in_arg} --out out/vectors.npz "
+            "--feature-set all --meta-json out/vectors_meta.json",
         ],
         "similar": [
             "1) Find the most similar files in a folder:",
-            f"   esl similar {in_arg} corpus_dir --top-k 5 --json out/similarity.json --csv out/similarity.csv",
+            f"   esl similar {in_arg} corpus_dir --top-k 5 "
+            "--json out/similarity.json --csv out/similarity.csv",
         ],
         "batch": [
             "1) Batch analyze a folder:",
@@ -2114,10 +2239,13 @@ def _run_quickstart(args: argparse.Namespace) -> int:
             f"   esl doctor {long_arg}",
             "",
             "2) Run out-of-core chunked analysis:",
-            f"   esl analyze {long_arg} --out-dir out --chunk-minutes 10 --streamable-only --summary-only --frame-table-csv out/frame_table.csv --checkpoint-dir out/checkpoints --resume",
+            f"   esl analyze {long_arg} --out-dir out --chunk-minutes 10 "
+            "--streamable-only --summary-only --frame-table-csv out/frame_table.csv "
+            "--checkpoint-dir out/checkpoints --resume",
             "",
             "3) Extract the most novel event safely:",
-            f"   esl moments extract {long_arg} --out out/moments --single --rank-metric novelty_curve --chunk-minutes 10 --event-window 8",
+            f"   esl moments extract {long_arg} --out out/moments --single "
+            "--rank-metric novelty_curve --chunk-minutes 10 --event-window 8",
         ],
     }
     lines = ["ecoSignalLab Quickstart", ""]
@@ -2130,13 +2258,16 @@ def _run_quickstart(args: argparse.Namespace) -> int:
                 f"   esl doctor {in_arg}",
                 "",
                 "2) Analyze one file (JSON + plots):",
-                f"   esl analyze {in_arg} --out-dir out --plot --json out/{Path(in_file).stem}.json",
+                f"   esl analyze {in_arg} --out-dir out --plot "
+                f"--json out/{Path(in_file).stem}.json",
                 "",
                 "3) Extract interesting moments as clips + CSV:",
-                f"   esl moments extract {in_arg} --out out/moments --single --rank-metric novelty_curve --event-window 8",
+                f"   esl moments extract {in_arg} --out out/moments --single "
+                "--rank-metric novelty_curve --event-window 8",
                 "",
                 "4) Extract ML-ready feature vectors:",
-                f"   esl features extract {in_arg} --out out/vectors.npz --feature-set all --meta-json out/vectors_meta.json",
+                f"   esl features extract {in_arg} --out out/vectors.npz "
+                "--feature-set all --meta-json out/vectors_meta.json",
                 "",
                 "5) If the file is huge, use long-file mode:",
                 f"   esl quickstart --goal long --input {long_arg}",
@@ -2167,20 +2298,32 @@ def _run_quickstart(args: argparse.Namespace) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="esl",
-        description="ecoSignalLab CLI for acoustic analysis, ML export, and reproducible reporting.",
+        description=(
+            "ecoSignalLab CLI for acoustic analysis, ML export, and reproducible reporting."
+        ),
         epilog=(
             "First time here? Run: esl doctor or esl quickstart\n"
-            "Decode behavior: native formats use soundfile first; compressed formats fall back to ffmpeg/ffprobe.\n"
-            "Compute device: use --device auto|cpu|cuda|mps on analyze/batch/spatial/pipeline run.\n"
+            "Decode behavior: native formats use soundfile first; compressed formats "
+            "fall back to ffmpeg/ffprobe.\n"
+            "Compute device: use --device auto|cpu|cuda|mps on "
+            "analyze/batch/spatial/pipeline run.\n"
             "Calibration file keys: dbfs_reference, spl_reference_db, weighting (A|C|Z), "
             "mic_sensitivity_mv_pa, preamp_gain_db, adc_full_scale_vrms, calibration_tone_file."
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Print the installed ecoSignalLab version and exit.",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     # doctor
-    pdoc = sub.add_parser("doctor", help="Check environment, dependencies, and optional input readiness")
+    pdoc = sub.add_parser(
+        "doctor", help="Check environment, dependencies, and optional input readiness"
+    )
     pdoc.add_argument("input", nargs="?", default=None, help="Optional input audio file to inspect")
     pdoc.add_argument("--json-out", default=None, help="Optional doctor report JSON path")
     pdoc.add_argument(
@@ -2201,16 +2344,42 @@ def _build_parser() -> argparse.ArgumentParser:
     psimple.add_argument("input", help="Input audio file path")
     psimple.add_argument("--json-out", default=None, help="Optional full analysis JSON output path")
     psimple.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
-    psimple.add_argument("--sample-rate", type=int, default=None, help="Optional target sample rate")
+    psimple.add_argument(
+        "--sample-rate", type=int, default=None, help="Optional target sample rate"
+    )
     psimple.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     psimple.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    psimple.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    psimple.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psimple.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    psimple.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     psimple.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples")
-    psimple.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
-    psimple.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
-    psimple.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
-    psimple.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    psimple.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Chunk size in seconds (overrides --chunk-size)",
+    )
+    psimple.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Chunk size in minutes (overrides --chunk-size)",
+    )
+    psimple.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Chunk size in hours (overrides --chunk-size)",
+    )
+    psimple.add_argument(
+        "--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)"
+    )
     psimple.add_argument(
         "--device",
         default="auto",
@@ -2228,15 +2397,27 @@ def _build_parser() -> argparse.ArgumentParser:
             "Decoding: soundfile for native formats; ffmpeg fallback for compressed formats."
         ),
     )
-    pa.add_argument("--json", dest="json", default=None, help="JSON output path (default: <out-dir>/<stem>.json)")
+    pa.add_argument(
+        "--json",
+        dest="json",
+        default=None,
+        help="JSON output path (default: <out-dir>/<stem>.json)",
+    )
     pa.add_argument("--csv", dest="csv", default=None, help="Summary CSV output path")
-    pa.add_argument("--series-csv", dest="series_csv", default=None, help="Frame/series CSV output path")
+    pa.add_argument(
+        "--series-csv", dest="series_csv", default=None, help="Frame/series CSV output path"
+    )
     pa.add_argument("--parquet", dest="parquet", default=None, help="Summary Parquet output path")
     pa.add_argument("--hdf5", dest="hdf5", default=None, help="HDF5 output path")
     pa.add_argument("--mat", dest="mat", default=None, help="MATLAB .mat output path")
     pa.add_argument("--head-csv", dest="head_csv", default=None, help="HEAD-compatible CSV path")
     pa.add_argument("--apx-csv", dest="apx_csv", default=None, help="APx-compatible CSV path")
-    pa.add_argument("--soundcheck-csv", dest="soundcheck_csv", default=None, help="SoundCheck-compatible CSV path")
+    pa.add_argument(
+        "--soundcheck-csv",
+        dest="soundcheck_csv",
+        default=None,
+        help="SoundCheck-compatible CSV path",
+    )
     pa.add_argument(
         "--calibration",
         dest="calibration",
@@ -2269,9 +2450,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     pa.add_argument("--plot", action="store_true", help="Generate plots")
     pa.add_argument("--interactive", action="store_true", help="Generate Plotly interactive plots")
-    pa.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
-    pa.add_argument("--no-spectral", action="store_true", help="Skip spectrogram/mel/log/waterfall/LTSA plots")
-    pa.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
+    pa.add_argument(
+        "--plot-metrics", default=None, help="Comma-separated metrics to include in plots"
+    )
+    pa.add_argument(
+        "--no-spectral", action="store_true", help="Skip spectrogram/mel/log/waterfall/LTSA plots"
+    )
+    pa.add_argument(
+        "--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot"
+    )
     pa.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plot")
     pa.add_argument(
         "--sim-feature-set",
@@ -2284,21 +2471,51 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional feature vectors (.npz/.npy/.csv) for similarity/novelty matrix plots",
     )
-    pa.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
-    pa.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
+    pa.add_argument(
+        "--show", action="store_true", help="Open generated plots with the system default viewer"
+    )
+    pa.add_argument(
+        "--show-limit", type=int, default=12, help="Maximum number of plots to open with --show"
+    )
     pa.add_argument("--ml-export", action="store_true", help="Export ML-ready features")
     pa.add_argument("--project", default=None, help="Project name")
     pa.add_argument("--variant", default=None, help="Variant name")
     pa.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     pa.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    pa.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    pa.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    pa.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    pa.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     pa.add_argument("--sample-rate", type=int, default=None)
-    pa.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples (enables chunked mode)")
-    pa.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
-    pa.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
-    pa.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
-    pa.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    pa.add_argument(
+        "--chunk-size", type=int, default=None, help="Chunk size in samples (enables chunked mode)"
+    )
+    pa.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Chunk size in seconds (overrides --chunk-size)",
+    )
+    pa.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Chunk size in minutes (overrides --chunk-size)",
+    )
+    pa.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Chunk size in hours (overrides --chunk-size)",
+    )
+    pa.add_argument(
+        "--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)"
+    )
     pa.add_argument(
         "--summary-only",
         action="store_true",
@@ -2307,7 +2524,9 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument(
         "--streamable-only",
         action="store_true",
-        help="Keep only streaming-capable metrics; useful with --chunk-* for long-duration analysis",
+        help=(
+            "Keep only streaming-capable metrics; useful with --chunk-* for long-duration analysis"
+        ),
     )
     pa.add_argument(
         "--allow-full-read",
@@ -2328,7 +2547,10 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument(
         "--frame-table-parquet-dir",
         default=None,
-        help="Write canonical FrameTable as an appendable Parquet dataset directory during chunked analysis",
+        help=(
+            "Write canonical FrameTable as an appendable Parquet dataset directory "
+            "during chunked analysis"
+        ),
     )
     pa.add_argument(
         "--frame-table-hdf5",
@@ -2348,7 +2570,10 @@ def _build_parser() -> argparse.ArgumentParser:
     pa.add_argument(
         "--spatial-metadata-sidecar",
         default=None,
-        help="JSON/YAML override for spatial or Ambisonics metadata; cannot change decoded channel count",
+        help=(
+            "JSON/YAML override for spatial or Ambisonics metadata; cannot change "
+            "decoded channel count"
+        ),
     )
     pa.add_argument("--metrics", default=None, help="Comma-separated metric list")
     pa.add_argument(
@@ -2390,9 +2615,13 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     pb.add_argument("--plot", action="store_true")
     pb.add_argument("--interactive", action="store_true")
-    pb.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in plots")
+    pb.add_argument(
+        "--plot-metrics", default=None, help="Comma-separated metrics to include in plots"
+    )
     pb.add_argument("--no-spectral", action="store_true", help="Skip spectral plots in batch mode")
-    pb.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plots")
+    pb.add_argument(
+        "--similarity-matrix", action="store_true", help="Generate self-similarity matrix plots"
+    )
     pb.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plots")
     pb.add_argument(
         "--sim-feature-set",
@@ -2405,21 +2634,51 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional feature vectors (.npz/.npy/.csv) for similarity/novelty matrix plots",
     )
-    pb.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
-    pb.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
+    pb.add_argument(
+        "--show", action="store_true", help="Open generated plots with the system default viewer"
+    )
+    pb.add_argument(
+        "--show-limit", type=int, default=12, help="Maximum number of plots to open with --show"
+    )
     pb.add_argument("--ml-export", action="store_true")
     pb.add_argument("--project", default=None)
     pb.add_argument("--variant", default=None)
     pb.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     pb.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    pb.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    pb.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    pb.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    pb.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     pb.add_argument("--sample-rate", type=int, default=None)
-    pb.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples (enables chunked mode)")
-    pb.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
-    pb.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
-    pb.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
-    pb.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    pb.add_argument(
+        "--chunk-size", type=int, default=None, help="Chunk size in samples (enables chunked mode)"
+    )
+    pb.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Chunk size in seconds (overrides --chunk-size)",
+    )
+    pb.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Chunk size in minutes (overrides --chunk-size)",
+    )
+    pb.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Chunk size in hours (overrides --chunk-size)",
+    )
+    pb.add_argument(
+        "--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)"
+    )
     pb.add_argument("--metrics", default=None)
     pb.add_argument(
         "--report-metrics",
@@ -2446,7 +2705,9 @@ def _build_parser() -> argparse.ArgumentParser:
     pp.add_argument("--audio", default=None, help="Optional source audio path")
     pp.add_argument("--metrics", default=None, help="Comma-separated metric filter for plotting")
     pp.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite")
-    pp.add_argument("--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot")
+    pp.add_argument(
+        "--similarity-matrix", action="store_true", help="Generate self-similarity matrix plot"
+    )
     pp.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix plot")
     pp.add_argument(
         "--sim-feature-set",
@@ -2459,12 +2720,18 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional feature vectors (.npz/.npy/.csv) for similarity/novelty matrix plots",
     )
-    pp.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
-    pp.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
+    pp.add_argument(
+        "--show", action="store_true", help="Open generated plots with the system default viewer"
+    )
+    pp.add_argument(
+        "--show-limit", type=int, default=12, help="Maximum number of plots to open with --show"
+    )
     pp.set_defaults(func=_run_plot)
 
     # similar
-    psim = sub.add_parser("similar", help="Find the N most similar files in a folder to an input file")
+    psim = sub.add_parser(
+        "similar", help="Find the N most similar files in a folder to an input file"
+    )
     psim.add_argument("input", help="Query input audio file")
     psim.add_argument("corpus_dir", help="Folder of candidate files to compare against")
     psim.add_argument("--top-k", type=int, default=5, help="Number of most-similar files to report")
@@ -2474,8 +2741,12 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["auto", "feature", "metric", "metrics"],
         help="Similarity mode: auto(feature), feature, metric(single), or metrics(multi)",
     )
-    psim.add_argument("--metric", default="novelty_curve", help="Single metric ID for --mode metric")
-    psim.add_argument("--metrics", default=None, help="Comma-separated metric IDs for --mode metrics")
+    psim.add_argument(
+        "--metric", default="novelty_curve", help="Single metric ID for --mode metric"
+    )
+    psim.add_argument(
+        "--metrics", default=None, help="Comma-separated metric IDs for --mode metrics"
+    )
     psim.add_argument(
         "--distance",
         default="cosine",
@@ -2491,13 +2762,40 @@ def _build_parser() -> argparse.ArgumentParser:
     psim.add_argument("--frame-size", type=int, default=1024)
     psim.add_argument("--hop-size", type=int, default=256)
     psim.add_argument("--sample-rate", type=int, default=None)
-    psim.add_argument("--normalize", dest="normalize", action="store_true", default=True, help="Normalize multi-metric vectors before distance")
-    psim.add_argument("--no-normalize", dest="normalize", action="store_false", help="Disable multi-metric normalization")
-    psim.add_argument("--include-self", action="store_true", help="Allow query file to appear in results if inside corpus")
-    psim.add_argument("--no-recursive", action="store_true", help="Scan corpus directory non-recursively")
-    psim.add_argument("--max-files", type=int, default=None, help="Optional cap on scanned candidate files")
-    psim.add_argument("--calibration", default=None, help="Calibration YAML/JSON path (used for metric-based modes)")
-    psim.add_argument("--json", default=None, help="Output JSON path (default: <out-dir>/<input_stem>_similarity.json)")
+    psim.add_argument(
+        "--normalize",
+        dest="normalize",
+        action="store_true",
+        default=True,
+        help="Normalize multi-metric vectors before distance",
+    )
+    psim.add_argument(
+        "--no-normalize",
+        dest="normalize",
+        action="store_false",
+        help="Disable multi-metric normalization",
+    )
+    psim.add_argument(
+        "--include-self",
+        action="store_true",
+        help="Allow query file to appear in results if inside corpus",
+    )
+    psim.add_argument(
+        "--no-recursive", action="store_true", help="Scan corpus directory non-recursively"
+    )
+    psim.add_argument(
+        "--max-files", type=int, default=None, help="Optional cap on scanned candidate files"
+    )
+    psim.add_argument(
+        "--calibration",
+        default=None,
+        help="Calibration YAML/JSON path (used for metric-based modes)",
+    )
+    psim.add_argument(
+        "--json",
+        default=None,
+        help="Output JSON path (default: <out-dir>/<input_stem>_similarity.json)",
+    )
     psim.add_argument("--csv", default=None, help="Optional CSV output path")
     psim.add_argument("--seed", type=int, default=42)
     psim.add_argument(
@@ -2546,27 +2844,59 @@ def _build_parser() -> argparse.ArgumentParser:
     pst.add_argument("input", help="Input audio file for chunked streaming analysis")
     pst.add_argument("--out", default="stream_out", help="Output directory")
     pst.add_argument("--rules", default=None, help="Alert rules JSON/YAML path")
-    pst.add_argument("--metrics", default="spl_a_db,ndsi,novelty_curve", help="Comma-separated metric list")
+    pst.add_argument(
+        "--metrics", default="spl_a_db,ndsi,novelty_curve", help="Comma-separated metric list"
+    )
     pst.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
     pst.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     pst.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    pst.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    pst.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    pst.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    pst.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     pst.add_argument("--sample-rate", type=int, default=None)
     pst.add_argument("--chunk-size", type=int, default=131072, help="Chunk size in samples")
-    pst.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
-    pst.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
-    pst.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
-    pst.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
-    pst.add_argument("--checkpoint-dir", default=None, help="Directory for resumable stream checkpoints")
-    pst.add_argument("--resume", action="store_true", help="Resume stream analysis from --checkpoint-dir")
+    pst.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Chunk size in seconds (overrides --chunk-size)",
+    )
+    pst.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Chunk size in minutes (overrides --chunk-size)",
+    )
+    pst.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Chunk size in hours (overrides --chunk-size)",
+    )
+    pst.add_argument(
+        "--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)"
+    )
+    pst.add_argument(
+        "--checkpoint-dir", default=None, help="Directory for resumable stream checkpoints"
+    )
+    pst.add_argument(
+        "--resume", action="store_true", help="Resume stream analysis from --checkpoint-dir"
+    )
     pst.add_argument(
         "--chunks-jsonl",
         default=None,
         help="Path for disk-backed chunk summaries (default: <out>/stream_chunks.jsonl)",
     )
     pst.add_argument("--seed", type=int, default=42)
-    pst.add_argument("--max-chunks", type=int, default=None, help="Optional cap on processed chunks")
+    pst.add_argument(
+        "--max-chunks", type=int, default=None, help="Optional cap on processed chunks"
+    )
     pst.add_argument(
         "--verbosity",
         type=int,
@@ -2589,26 +2919,56 @@ def _build_parser() -> argparse.ArgumentParser:
 
     psp_an = psp_sub.add_parser("analyze", help="Analyze spatial metrics and optional beam map")
     psp_an.add_argument("input", help="Input audio file path")
-    psp_an.add_argument("--json", default=None, help="JSON output path (default: <out-dir>/<stem>_spatial.json)")
+    psp_an.add_argument(
+        "--json", default=None, help="JSON output path (default: <out-dir>/<stem>_spatial.json)"
+    )
     psp_an.add_argument("--array-config", default=None, help="Array config JSON/YAML path")
     psp_an.add_argument("--metrics", default=None, help="Comma-separated spatial metric list")
     psp_an.add_argument("--doa", action="store_true", help="Force inclusion of DOA/ITD metrics")
-    psp_an.add_argument("--beam-map", action="store_true", help="Generate stereo delay-and-sum beam map CSV")
+    psp_an.add_argument(
+        "--beam-map", action="store_true", help="Generate stereo delay-and-sum beam map CSV"
+    )
     psp_an.add_argument("--beam-map-csv", default=None, help="Beam map CSV output path")
-    psp_an.add_argument("--azimuth-step-deg", type=int, default=5, help="Beam map azimuth step in degrees")
+    psp_an.add_argument(
+        "--azimuth-step-deg", type=int, default=5, help="Beam map azimuth step in degrees"
+    )
     psp_an.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
     psp_an.add_argument("--project", default=None, help="Project name")
     psp_an.add_argument("--variant", default=None, help="Variant name")
     psp_an.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     psp_an.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    psp_an.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    psp_an.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psp_an.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    psp_an.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     psp_an.add_argument("--sample-rate", type=int, default=None)
     psp_an.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples")
-    psp_an.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
-    psp_an.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
-    psp_an.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
-    psp_an.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
+    psp_an.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Chunk size in seconds (overrides --chunk-size)",
+    )
+    psp_an.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Chunk size in minutes (overrides --chunk-size)",
+    )
+    psp_an.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Chunk size in hours (overrides --chunk-size)",
+    )
+    psp_an.add_argument(
+        "--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)"
+    )
     psp_an.add_argument("--seed", type=int, default=42)
     psp_an.add_argument(
         "--verbosity",
@@ -2640,30 +3000,52 @@ def _build_parser() -> argparse.ArgumentParser:
     pcal_check = pcal_sub.add_parser("check", help="Check calibration drift from a tone recording")
     pcal_check.add_argument("--tone", required=True, help="Calibration tone audio file")
     pcal_check.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
-    pcal_check.add_argument("--dbfs-reference", type=float, default=None, help="Expected tone level in dBFS")
-    pcal_check.add_argument("--spl-reference-db", type=float, default=None, help="Reference SPL for dbfs mapping")
+    pcal_check.add_argument(
+        "--dbfs-reference", type=float, default=None, help="Expected tone level in dBFS"
+    )
+    pcal_check.add_argument(
+        "--spl-reference-db", type=float, default=None, help="Reference SPL for dbfs mapping"
+    )
     pcal_check.add_argument("--weighting", default=None, help="Weighting hint (A/C/Z)")
-    pcal_check.add_argument("--mic-sensitivity-mv-pa", type=float, default=None, help="Mic sensitivity metadata")
+    pcal_check.add_argument(
+        "--mic-sensitivity-mv-pa", type=float, default=None, help="Mic sensitivity metadata"
+    )
     pcal_check.add_argument(
         "--preamp-gain-db",
         type=float,
         default=None,
-        help="Analog preamp gain in dB (required with mic sensitivity + ADC FS for Pa<->dBFS conversion)",
+        help=(
+            "Analog preamp gain in dB (required with mic sensitivity + ADC FS for "
+            "Pa<->dBFS conversion)"
+        ),
     )
     pcal_check.add_argument(
         "--adc-full-scale-vrms",
         type=float,
         default=None,
-        help="ADC full-scale RMS voltage in volts (required with mic sensitivity + gain for Pa<->dBFS conversion)",
+        help=(
+            "ADC full-scale RMS voltage in volts (required with mic sensitivity + "
+            "gain for Pa<->dBFS conversion)"
+        ),
     )
-    pcal_check.add_argument("--sample-rate", type=int, default=None, help="Optional resample rate for tone read")
-    pcal_check.add_argument("--max-drift-db", type=float, default=1.0, help="Pass/fail absolute drift threshold")
-    pcal_check.add_argument("--device-id", default=None, help="Device identifier for history tracking")
+    pcal_check.add_argument(
+        "--sample-rate", type=int, default=None, help="Optional resample rate for tone read"
+    )
+    pcal_check.add_argument(
+        "--max-drift-db", type=float, default=1.0, help="Pass/fail absolute drift threshold"
+    )
+    pcal_check.add_argument(
+        "--device-id", default=None, help="Device identifier for history tracking"
+    )
     pcal_check.add_argument("--history", default=None, help="History CSV path to append checks")
-    pcal_check.add_argument("--out", default="calibration_check.json", help="Calibration report JSON path")
+    pcal_check.add_argument(
+        "--out", default="calibration_check.json", help="Calibration report JSON path"
+    )
     pcal_check.set_defaults(func=_run_calibrate_check)
 
-    pcal_verify = pcal_sub.add_parser("verify", help="Verify calibration math/check path with deterministic reference fixtures")
+    pcal_verify = pcal_sub.add_parser(
+        "verify", help="Verify calibration math/check path with deterministic reference fixtures"
+    )
     pcal_verify.add_argument(
         "--fixture",
         default="sine_1khz_minus20dbfs",
@@ -2678,10 +3060,20 @@ def _build_parser() -> argparse.ArgumentParser:
         ],
         help="Built-in deterministic reference fixture",
     )
-    pcal_verify.add_argument("--calibration", default=None, help="Optional calibration YAML/JSON path")
-    pcal_verify.add_argument("--max-abs-error-db", type=float, default=0.25, help="Maximum allowed absolute dBFS error")
-    pcal_verify.add_argument("--write-tone", default=None, help="Optional path to keep the synthesized reference tone WAV")
-    pcal_verify.add_argument("--out", default="calibration_verify.json", help="Calibration verification report JSON path")
+    pcal_verify.add_argument(
+        "--calibration", default=None, help="Optional calibration YAML/JSON path"
+    )
+    pcal_verify.add_argument(
+        "--max-abs-error-db", type=float, default=0.25, help="Maximum allowed absolute dBFS error"
+    )
+    pcal_verify.add_argument(
+        "--write-tone",
+        default=None,
+        help="Optional path to keep the synthesized reference tone WAV",
+    )
+    pcal_verify.add_argument(
+        "--out", default="calibration_verify.json", help="Calibration verification report JSON path"
+    )
     pcal_verify.set_defaults(func=_run_calibrate_verify)
 
     # features
@@ -2704,10 +3096,14 @@ def _build_parser() -> argparse.ArgumentParser:
     pfeat_ex.add_argument("--meta-json", default=None, help="Optional metadata JSON sidecar path")
     pfeat_ex.set_defaults(func=_run_features_extract)
 
-    pfeat_mf = pfeat_sub.add_parser("manifest", help="Build an ML dataset manifest from exported *_ml_metadata.json files")
+    pfeat_mf = pfeat_sub.add_parser(
+        "manifest", help="Build an ML dataset manifest from exported *_ml_metadata.json files"
+    )
     pfeat_mf.add_argument("input_dir", help="Directory containing exported ML metadata sidecars")
     pfeat_mf.add_argument("--out", required=True, help="Output dataset manifest JSON path")
-    pfeat_mf.add_argument("--pattern", default="*_ml_metadata.json", help="Glob pattern for metadata sidecars")
+    pfeat_mf.add_argument(
+        "--pattern", default="*_ml_metadata.json", help="Glob pattern for metadata sidecars"
+    )
     pfeat_mf.add_argument(
         "--split-ratios",
         default="0.8,0.1,0.1",
@@ -2716,14 +3112,24 @@ def _build_parser() -> argparse.ArgumentParser:
     pfeat_mf.set_defaults(func=_run_features_manifest)
 
     # moments
-    pmom = sub.add_parser("moments", help="Find and export interesting timestamped moments as clips")
+    pmom = sub.add_parser(
+        "moments", help="Find and export interesting timestamped moments as clips"
+    )
     pmom_sub = pmom.add_subparsers(dest="moments_cmd", required=True)
 
-    pmom_ex = pmom_sub.add_parser("extract", help="Extract moments to WAV clips + CSV from alert criteria")
+    pmom_ex = pmom_sub.add_parser(
+        "extract", help="Extract moments to WAV clips + CSV from alert criteria"
+    )
     pmom_ex.add_argument("input", help="Input audio file path")
     pmom_ex.add_argument("--out", default="moments_out", help="Output directory")
-    pmom_ex.add_argument("--stream-report", default=None, help="Optional precomputed stream_report.json")
-    pmom_ex.add_argument("--rules", default=None, help="Alert rules JSON/YAML path (used when stream report not provided)")
+    pmom_ex.add_argument(
+        "--stream-report", default=None, help="Optional precomputed stream_report.json"
+    )
+    pmom_ex.add_argument(
+        "--rules",
+        default=None,
+        help="Alert rules JSON/YAML path (used when stream report not provided)",
+    )
     pmom_ex.add_argument(
         "--metrics",
         default="novelty_curve,spectral_change_detection,isolation_forest_score,spl_a_db",
@@ -2732,25 +3138,80 @@ def _build_parser() -> argparse.ArgumentParser:
     pmom_ex.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
     pmom_ex.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     pmom_ex.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    pmom_ex.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    pmom_ex.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    pmom_ex.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    pmom_ex.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     pmom_ex.add_argument("--sample-rate", type=int, default=None)
-    pmom_ex.add_argument("--chunk-size", type=int, default=131072, help="Detection chunk size in samples")
-    pmom_ex.add_argument("--chunk-seconds", type=float, default=None, help="Detection chunk size in seconds (overrides --chunk-size)")
-    pmom_ex.add_argument("--chunk-minutes", type=float, default=None, help="Detection chunk size in minutes (overrides --chunk-size)")
-    pmom_ex.add_argument("--chunk-hours", type=float, default=None, help="Detection chunk size in hours (overrides --chunk-size)")
-    pmom_ex.add_argument("--chunk-days", type=float, default=None, help="Detection chunk size in days (overrides --chunk-size)")
+    pmom_ex.add_argument(
+        "--chunk-size", type=int, default=131072, help="Detection chunk size in samples"
+    )
+    pmom_ex.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Detection chunk size in seconds (overrides --chunk-size)",
+    )
+    pmom_ex.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Detection chunk size in minutes (overrides --chunk-size)",
+    )
+    pmom_ex.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Detection chunk size in hours (overrides --chunk-size)",
+    )
+    pmom_ex.add_argument(
+        "--chunk-days",
+        type=float,
+        default=None,
+        help="Detection chunk size in days (overrides --chunk-size)",
+    )
     pmom_ex.add_argument("--seed", type=int, default=42)
-    pmom_ex.add_argument("--max-chunks", type=int, default=None, help="Optional cap for detection chunks")
-    pmom_ex.add_argument("--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk")
-    pmom_ex.add_argument("--post-roll", type=float, default=3.0, help="Seconds after each detected chunk")
-    pmom_ex.add_argument("--merge-gap", type=float, default=2.0, help="Merge windows separated by <= this many seconds")
-    pmom_ex.add_argument("--min-alerts-per-chunk", type=int, default=1, help="Minimum alerts needed for chunk selection")
+    pmom_ex.add_argument(
+        "--max-chunks", type=int, default=None, help="Optional cap for detection chunks"
+    )
+    pmom_ex.add_argument(
+        "--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk"
+    )
+    pmom_ex.add_argument(
+        "--post-roll", type=float, default=3.0, help="Seconds after each detected chunk"
+    )
+    pmom_ex.add_argument(
+        "--merge-gap",
+        type=float,
+        default=2.0,
+        help="Merge windows separated by <= this many seconds",
+    )
+    pmom_ex.add_argument(
+        "--min-alerts-per-chunk",
+        type=int,
+        default=1,
+        help="Minimum alerts needed for chunk selection",
+    )
     select_group = pmom_ex.add_mutually_exclusive_group()
-    select_group.add_argument("--single", action="store_true", help="Extract only the single highest-ranked moment")
-    select_group.add_argument("--top-k", type=int, default=None, help="Extract top K highest-ranked moments")
-    select_group.add_argument("--all", action="store_true", help="Extract all detected moments (default)")
-    pmom_ex.add_argument("--rank-metric", default="novelty_curve", help="Metric used to rank moments (default: novelty_curve)")
+    select_group.add_argument(
+        "--single", action="store_true", help="Extract only the single highest-ranked moment"
+    )
+    select_group.add_argument(
+        "--top-k", type=int, default=None, help="Extract top K highest-ranked moments"
+    )
+    select_group.add_argument(
+        "--all", action="store_true", help="Extract all detected moments (default)"
+    )
+    pmom_ex.add_argument(
+        "--rank-metric",
+        default="novelty_curve",
+        help="Metric used to rank moments (default: novelty_curve)",
+    )
     pmom_ex.add_argument(
         "--rank-scope",
         default="downmix",
@@ -2761,13 +3222,25 @@ def _build_parser() -> argparse.ArgumentParser:
         "--event-window",
         type=float,
         default=None,
-        help="Symmetric window duration in seconds around event center (overrides chunk-edge rolls when set)",
+        help=(
+            "Symmetric window duration in seconds around event center (overrides "
+            "chunk-edge rolls when set)"
+        ),
     )
-    pmom_ex.add_argument("--window-before", type=float, default=None, help="Seconds before event center for each clip")
-    pmom_ex.add_argument("--window-after", type=float, default=None, help="Seconds after event center for each clip")
+    pmom_ex.add_argument(
+        "--window-before",
+        type=float,
+        default=None,
+        help="Seconds before event center for each clip",
+    )
+    pmom_ex.add_argument(
+        "--window-after", type=float, default=None, help="Seconds after event center for each clip"
+    )
     pmom_ex.add_argument("--max-clips", type=int, default=None, help="Legacy alias for --top-k")
     pmom_ex.add_argument("--csv", default=None, help="Output CSV path (default: <out>/moments.csv)")
-    pmom_ex.add_argument("--clips-dir", default=None, help="Output clips directory (default: <out>/clips)")
+    pmom_ex.add_argument(
+        "--clips-dir", default=None, help="Output clips directory (default: <out>/clips)"
+    )
     pmom_ex.add_argument("--report", default=None, help="Output moments report JSON path")
     pmom_ex.set_defaults(func=_run_moments_extract)
 
@@ -2777,16 +3250,26 @@ def _build_parser() -> argparse.ArgumentParser:
 
     pins_scene = pins_sub.add_parser("scene", help="Detect acoustic scene-change candidates")
     pins_scene.add_argument("input", help="Input audio file path")
-    pins_scene.add_argument("--out", required=True, help="Output directory for scene_changes.json/csv")
-    pins_scene.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_scene.add_argument(
+        "--out", required=True, help="Output directory for scene_changes.json/csv"
+    )
+    pins_scene.add_argument(
+        "--feature-set", default="auto", choices=["auto", "core", "librosa", "all"]
+    )
     pins_scene.add_argument("--frame-size", type=int, default=2048)
     pins_scene.add_argument("--hop-size", type=int, default=512)
     pins_scene.add_argument("--sample-rate", type=int, default=None)
-    pins_scene.add_argument("--threshold-z", type=float, default=1.5, help="Peak threshold in z-score units")
-    pins_scene.add_argument("--max-changes", type=int, default=None, help="Optional maximum number of changes")
+    pins_scene.add_argument(
+        "--threshold-z", type=float, default=1.5, help="Peak threshold in z-score units"
+    )
+    pins_scene.add_argument(
+        "--max-changes", type=int, default=None, help="Optional maximum number of changes"
+    )
     pins_scene.set_defaults(func=_run_insights_scene)
 
-    pins_calm = pins_sub.add_parser("calmness", help="Estimate calmness, chaos, and acoustic diversity")
+    pins_calm = pins_sub.add_parser(
+        "calmness", help="Estimate calmness, chaos, and acoustic diversity"
+    )
     pins_calm.add_argument("input", help="Input audio file path")
     pins_calm.add_argument("--out", required=True, help="Output calmness JSON path")
     pins_calm.add_argument("--frame-size", type=int, default=2048)
@@ -2794,50 +3277,93 @@ def _build_parser() -> argparse.ArgumentParser:
     pins_calm.add_argument("--sample-rate", type=int, default=None)
     pins_calm.set_defaults(func=_run_insights_calmness)
 
-    pins_sp = pins_sub.add_parser("spatial", help="Write a frame-wise multichannel spatial activity timeline")
+    pins_sp = pins_sub.add_parser(
+        "spatial", help="Write a frame-wise multichannel spatial activity timeline"
+    )
     pins_sp.add_argument("input", help="Input audio file path")
-    pins_sp.add_argument("--out", required=True, help="Output directory for spatial_timeline.json/csv")
+    pins_sp.add_argument(
+        "--out", required=True, help="Output directory for spatial_timeline.json/csv"
+    )
     pins_sp.add_argument("--frame-size", type=int, default=2048)
     pins_sp.add_argument("--hop-size", type=int, default=512)
     pins_sp.add_argument("--sample-rate", type=int, default=None)
     pins_sp.set_defaults(func=_run_insights_spatial)
 
-    pins_occ = pins_sub.add_parser("occupancy", help="Estimate acoustic occupancy by named frequency band")
+    pins_occ = pins_sub.add_parser(
+        "occupancy", help="Estimate acoustic occupancy by named frequency band"
+    )
     pins_occ.add_argument("input", help="Input audio file path")
-    pins_occ.add_argument("--out", required=True, help="Output directory for bio_occupancy.json/csv")
-    pins_occ.add_argument("--bands", default="anthro:20-1000,bio:2000-8000", help="Comma bands like anthro:20-1000,bio:2000-8000")
-    pins_occ.add_argument("--threshold-ratio", type=float, default=0.2, help="Band/total energy ratio counted as occupied")
+    pins_occ.add_argument(
+        "--out", required=True, help="Output directory for bio_occupancy.json/csv"
+    )
+    pins_occ.add_argument(
+        "--bands",
+        default="anthro:20-1000,bio:2000-8000",
+        help="Comma bands like anthro:20-1000,bio:2000-8000",
+    )
+    pins_occ.add_argument(
+        "--threshold-ratio",
+        type=float,
+        default=0.2,
+        help="Band/total energy ratio counted as occupied",
+    )
     pins_occ.add_argument("--frame-size", type=int, default=4096)
     pins_occ.add_argument("--hop-size", type=int, default=2048)
     pins_occ.add_argument("--sample-rate", type=int, default=None)
     pins_occ.set_defaults(func=_run_insights_occupancy)
 
-    pins_drift = pins_sub.add_parser("drift", help="Compare two analysis/shard reports for archive drift")
-    pins_drift.add_argument("baseline_report", help="Baseline analysis JSON or shard_analysis_report.json")
-    pins_drift.add_argument("candidate_report", help="Candidate analysis JSON or shard_analysis_report.json")
+    pins_drift = pins_sub.add_parser(
+        "drift", help="Compare two analysis/shard reports for archive drift"
+    )
+    pins_drift.add_argument(
+        "baseline_report", help="Baseline analysis JSON or shard_analysis_report.json"
+    )
+    pins_drift.add_argument(
+        "candidate_report", help="Candidate analysis JSON or shard_analysis_report.json"
+    )
     pins_drift.add_argument("--out", required=True, help="Output drift JSON path")
     pins_drift.set_defaults(func=_run_insights_drift)
 
-    pins_ret = pins_sub.add_parser("retrieve", help="Query-by-example event/file retrieval from a corpus folder")
+    pins_ret = pins_sub.add_parser(
+        "retrieve", help="Query-by-example event/file retrieval from a corpus folder"
+    )
     pins_ret.add_argument("query", help="Query audio file")
     pins_ret.add_argument("corpus_dir", help="Folder of candidate audio files")
-    pins_ret.add_argument("--out", required=True, help="Output directory for event_retrieval.json/csv")
+    pins_ret.add_argument(
+        "--out", required=True, help="Output directory for event_retrieval.json/csv"
+    )
     pins_ret.add_argument("--top-k", type=int, default=5)
-    pins_ret.add_argument("--mode", default="auto", choices=["auto", "feature", "metric", "metrics"])
-    pins_ret.add_argument("--metric", default="novelty_curve", help="Single metric for --mode metric")
-    pins_ret.add_argument("--metrics", default=None, help="Comma-separated metrics for --mode metrics")
-    pins_ret.add_argument("--distance", default="cosine", choices=["cosine", "euclidean", "manhattan"])
-    pins_ret.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_ret.add_argument(
+        "--mode", default="auto", choices=["auto", "feature", "metric", "metrics"]
+    )
+    pins_ret.add_argument(
+        "--metric", default="novelty_curve", help="Single metric for --mode metric"
+    )
+    pins_ret.add_argument(
+        "--metrics", default=None, help="Comma-separated metrics for --mode metrics"
+    )
+    pins_ret.add_argument(
+        "--distance", default="cosine", choices=["cosine", "euclidean", "manhattan"]
+    )
+    pins_ret.add_argument(
+        "--feature-set", default="auto", choices=["auto", "core", "librosa", "all"]
+    )
     pins_ret.add_argument("--frame-size", type=int, default=1024)
     pins_ret.add_argument("--hop-size", type=int, default=256)
     pins_ret.add_argument("--sample-rate", type=int, default=None)
     pins_ret.add_argument("--max-files", type=int, default=None)
     pins_ret.set_defaults(func=_run_insights_retrieve)
 
-    pins_emb = pins_sub.add_parser("embeddings", help="Build deterministic clip-level feature embeddings")
+    pins_emb = pins_sub.add_parser(
+        "embeddings", help="Build deterministic clip-level feature embeddings"
+    )
     pins_emb.add_argument("input_dir", help="Input directory of audio files")
-    pins_emb.add_argument("--out", required=True, help="Output directory for embeddings.npz/csv/manifest")
-    pins_emb.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_emb.add_argument(
+        "--out", required=True, help="Output directory for embeddings.npz/csv/manifest"
+    )
+    pins_emb.add_argument(
+        "--feature-set", default="auto", choices=["auto", "core", "librosa", "all"]
+    )
     pins_emb.add_argument("--frame-size", type=int, default=1024)
     pins_emb.add_argument("--hop-size", type=int, default=256)
     pins_emb.add_argument("--sample-rate", type=int, default=None)
@@ -2845,39 +3371,59 @@ def _build_parser() -> argparse.ArgumentParser:
     pins_emb.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda", "mps"])
     pins_emb.set_defaults(func=_run_insights_embeddings)
 
-    pins_rep = pins_sub.add_parser("report", help="Generate a compact HTML soundscape report from analysis JSON")
+    pins_rep = pins_sub.add_parser(
+        "report", help="Generate a compact HTML soundscape report from analysis JSON"
+    )
     pins_rep.add_argument("analysis_json", help="Input esl analysis JSON")
-    pins_rep.add_argument("--out", required=True, help="Output directory for soundscape_report.html/json")
+    pins_rep.add_argument(
+        "--out", required=True, help="Output directory for soundscape_report.html/json"
+    )
     pins_rep.set_defaults(func=_run_insights_report)
 
-    pins_cmp = pins_sub.add_parser("simulation-compare", help="Compare simulated and measured analysis JSON files")
+    pins_cmp = pins_sub.add_parser(
+        "simulation-compare", help="Compare simulated and measured analysis JSON files"
+    )
     pins_cmp.add_argument("simulated_json", help="Simulation analysis JSON")
     pins_cmp.add_argument("measured_json", help="Measured/field analysis JSON")
     pins_cmp.add_argument("--out", required=True, help="Output comparison JSON path")
     pins_cmp.set_defaults(func=_run_insights_simulation_compare)
 
-    pins_story = pins_sub.add_parser("storyboard", help="Create timestamped storyboard clips from high-change moments")
+    pins_story = pins_sub.add_parser(
+        "storyboard", help="Create timestamped storyboard clips from high-change moments"
+    )
     pins_story.add_argument("input", help="Input audio file path")
-    pins_story.add_argument("--out", required=True, help="Output directory for storyboard.json/csv/clips")
+    pins_story.add_argument(
+        "--out", required=True, help="Output directory for storyboard.json/csv/clips"
+    )
     pins_story.add_argument("--clips", type=int, default=12, help="Number of storyboard moments")
-    pins_story.add_argument("--window", type=float, default=5.0, help="Seconds around each selected moment")
-    pins_story.add_argument("--feature-set", default="auto", choices=["auto", "core", "librosa", "all"])
+    pins_story.add_argument(
+        "--window", type=float, default=5.0, help="Seconds around each selected moment"
+    )
+    pins_story.add_argument(
+        "--feature-set", default="auto", choices=["auto", "core", "librosa", "all"]
+    )
     pins_story.add_argument("--frame-size", type=int, default=2048)
     pins_story.add_argument("--hop-size", type=int, default=512)
     pins_story.add_argument("--sample-rate", type=int, default=None)
-    pins_story.add_argument("--no-clips", action="store_true", help="Write CSV/JSON only; do not export WAV clips")
+    pins_story.add_argument(
+        "--no-clips", action="store_true", help="Write CSV/JSON only; do not export WAV clips"
+    )
     pins_story.set_defaults(func=_run_insights_storyboard)
 
     # schema
     ps = sub.add_parser("schema", help="Print/write output JSON schema")
-    ps.add_argument("--out", default=None, help="Output schema path (prints schema_version and path)")
+    ps.add_argument(
+        "--out", default=None, help="Output schema path (prints schema_version and path)"
+    )
     ps.set_defaults(func=_run_schema)
 
     # shard
     psh = sub.add_parser("shard", help="Shard-manifest workflows for long-duration archives")
     psh_sub = psh.add_subparsers(dest="shard_cmd", required=True)
 
-    psh_index = psh_sub.add_parser("index", help="Build an ordered shard manifest from a directory of audio files")
+    psh_index = psh_sub.add_parser(
+        "index", help="Build an ordered shard manifest from a directory of audio files"
+    )
     psh_index.add_argument("input_dir", help="Directory containing shard audio files")
     psh_index.add_argument("--out", required=True, help="Output shard manifest JSON path")
     psh_index.add_argument(
@@ -2886,11 +3432,15 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["path", "mtime"],
         help="Shard ordering: path or file modification time",
     )
-    psh_index.add_argument("--no-recursive", action="store_true", help="Scan only the top-level directory")
+    psh_index.add_argument(
+        "--no-recursive", action="store_true", help="Scan only the top-level directory"
+    )
     psh_index.add_argument(
         "--calendar-start",
         default=None,
-        help="Absolute start for shard 0, ISO-8601 with offset/Z (for example 2026-01-01T00:00:00Z)",
+        help=(
+            "Absolute start for shard 0, ISO-8601 with offset/Z (for example 2026-01-01T00:00:00Z)"
+        ),
     )
     psh_index.add_argument(
         "--calendar-timezone",
@@ -2916,24 +3466,75 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_an.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     psh_an.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    psh_an.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    psh_an.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psh_an.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    psh_an.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     psh_an.add_argument("--sample-rate", type=int, default=None)
     psh_an.add_argument("--chunk-size", type=int, default=None, help="Chunk size in samples")
-    psh_an.add_argument("--chunk-seconds", type=float, default=None, help="Chunk size in seconds (overrides --chunk-size)")
-    psh_an.add_argument("--chunk-minutes", type=float, default=None, help="Chunk size in minutes (overrides --chunk-size)")
-    psh_an.add_argument("--chunk-hours", type=float, default=None, help="Chunk size in hours (overrides --chunk-size)")
-    psh_an.add_argument("--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)")
-    psh_an.add_argument("--summary-only", action="store_true", help="Omit frame series from per-shard JSON outputs")
-    psh_an.add_argument("--streamable-only", action="store_true", help="Use only streaming-capable metrics")
-    psh_an.add_argument("--allow-full-read", action="store_true", help="Allow full-read fallback for non-streaming metrics")
-    psh_an.add_argument("--max-series-points", type=int, default=None, help="Maximum frame-series points kept in each shard JSON")
-    psh_an.add_argument("--frame-table-dir", default=None, help="Directory for per-shard FrameTable CSV sidecars")
-    psh_an.add_argument("--frame-table-parquet-dir", default=None, help="Directory for per-shard Parquet FrameTable datasets")
-    psh_an.add_argument("--frame-table-hdf5-dir", default=None, help="Directory for per-shard HDF5 FrameTable files")
-    psh_an.add_argument("--checkpoint-dir", default=None, help="Root directory for per-shard checkpoint state")
-    psh_an.add_argument("--resume", action="store_true", help="Resume shard analysis using per-shard checkpoints")
-    psh_an.add_argument("--force", action="store_true", help="Recompute shard outputs even if present")
+    psh_an.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Chunk size in seconds (overrides --chunk-size)",
+    )
+    psh_an.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Chunk size in minutes (overrides --chunk-size)",
+    )
+    psh_an.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Chunk size in hours (overrides --chunk-size)",
+    )
+    psh_an.add_argument(
+        "--chunk-days", type=float, default=None, help="Chunk size in days (overrides --chunk-size)"
+    )
+    psh_an.add_argument(
+        "--summary-only", action="store_true", help="Omit frame series from per-shard JSON outputs"
+    )
+    psh_an.add_argument(
+        "--streamable-only", action="store_true", help="Use only streaming-capable metrics"
+    )
+    psh_an.add_argument(
+        "--allow-full-read",
+        action="store_true",
+        help="Allow full-read fallback for non-streaming metrics",
+    )
+    psh_an.add_argument(
+        "--max-series-points",
+        type=int,
+        default=None,
+        help="Maximum frame-series points kept in each shard JSON",
+    )
+    psh_an.add_argument(
+        "--frame-table-dir", default=None, help="Directory for per-shard FrameTable CSV sidecars"
+    )
+    psh_an.add_argument(
+        "--frame-table-parquet-dir",
+        default=None,
+        help="Directory for per-shard Parquet FrameTable datasets",
+    )
+    psh_an.add_argument(
+        "--frame-table-hdf5-dir", default=None, help="Directory for per-shard HDF5 FrameTable files"
+    )
+    psh_an.add_argument(
+        "--checkpoint-dir", default=None, help="Root directory for per-shard checkpoint state"
+    )
+    psh_an.add_argument(
+        "--resume", action="store_true", help="Resume shard analysis using per-shard checkpoints"
+    )
+    psh_an.add_argument(
+        "--force", action="store_true", help="Recompute shard outputs even if present"
+    )
     psh_an.add_argument("--seed", type=int, default=42)
     psh_an.add_argument(
         "--device",
@@ -2963,59 +3564,154 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_dataset.set_defaults(func=_run_shard_dataset)
 
-    psh_mom = psh_sub.add_parser("moments", help="Find top-ranked moments across an ordered shard manifest")
+    psh_mom = psh_sub.add_parser(
+        "moments", help="Find top-ranked moments across an ordered shard manifest"
+    )
     psh_mom.add_argument("manifest", help="Path to shard manifest JSON")
-    psh_mom.add_argument("--out", required=True, help="Output directory for archive-level moments products")
-    psh_mom.add_argument("--stream-root", default=None, help="Optional root directory for per-shard stream reports")
-    psh_mom.add_argument("--rules", default=None, help="Optional alert rules JSON/YAML path for shard stream passes")
-    psh_mom.add_argument("--metrics", default="novelty_curve,spectral_change_detection,spl_a_db", help="Comma-separated metrics for shard stream pass")
+    psh_mom.add_argument(
+        "--out", required=True, help="Output directory for archive-level moments products"
+    )
+    psh_mom.add_argument(
+        "--stream-root", default=None, help="Optional root directory for per-shard stream reports"
+    )
+    psh_mom.add_argument(
+        "--rules", default=None, help="Optional alert rules JSON/YAML path for shard stream passes"
+    )
+    psh_mom.add_argument(
+        "--metrics",
+        default="novelty_curve,spectral_change_detection,spl_a_db",
+        help="Comma-separated metrics for shard stream pass",
+    )
     psh_mom.add_argument("--calibration", default=None, help="Calibration YAML/JSON path")
     psh_mom.add_argument("--frame-size", type=int, default=2048, help="Frame size in samples")
     psh_mom.add_argument("--hop-size", type=int, default=512, help="Hop size in samples")
-    psh_mom.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    psh_mom.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psh_mom.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    psh_mom.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     psh_mom.add_argument("--sample-rate", type=int, default=None)
-    psh_mom.add_argument("--chunk-size", type=int, default=131072, help="Detection chunk size in samples")
-    psh_mom.add_argument("--chunk-seconds", type=float, default=None, help="Detection chunk size in seconds (overrides --chunk-size)")
-    psh_mom.add_argument("--chunk-minutes", type=float, default=None, help="Detection chunk size in minutes (overrides --chunk-size)")
-    psh_mom.add_argument("--chunk-hours", type=float, default=None, help="Detection chunk size in hours (overrides --chunk-size)")
-    psh_mom.add_argument("--chunk-days", type=float, default=None, help="Detection chunk size in days (overrides --chunk-size)")
+    psh_mom.add_argument(
+        "--chunk-size", type=int, default=131072, help="Detection chunk size in samples"
+    )
+    psh_mom.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=None,
+        help="Detection chunk size in seconds (overrides --chunk-size)",
+    )
+    psh_mom.add_argument(
+        "--chunk-minutes",
+        type=float,
+        default=None,
+        help="Detection chunk size in minutes (overrides --chunk-size)",
+    )
+    psh_mom.add_argument(
+        "--chunk-hours",
+        type=float,
+        default=None,
+        help="Detection chunk size in hours (overrides --chunk-size)",
+    )
+    psh_mom.add_argument(
+        "--chunk-days",
+        type=float,
+        default=None,
+        help="Detection chunk size in days (overrides --chunk-size)",
+    )
     psh_mom.add_argument("--seed", type=int, default=42)
-    psh_mom.add_argument("--max-chunks", type=int, default=None, help="Optional cap for detection chunks per shard")
-    psh_mom.add_argument("--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk")
-    psh_mom.add_argument("--post-roll", type=float, default=3.0, help="Seconds after each detected chunk")
-    psh_mom.add_argument("--merge-gap", type=float, default=2.0, help="Merge windows separated by <= this many seconds")
-    psh_mom.add_argument("--min-alerts-per-chunk", type=int, default=1, help="Minimum alerts needed for candidate chunk selection")
-    psh_mom.add_argument("--single", action="store_true", help="Extract only the single highest-ranked archive moment")
-    psh_mom.add_argument("--top-k", type=int, default=None, help="Extract top K highest-ranked archive moments")
-    psh_mom.add_argument("--rank-metric", default="novelty_curve", help="Metric used to rank archive moments")
+    psh_mom.add_argument(
+        "--max-chunks", type=int, default=None, help="Optional cap for detection chunks per shard"
+    )
+    psh_mom.add_argument(
+        "--pre-roll", type=float, default=3.0, help="Seconds before each detected chunk"
+    )
+    psh_mom.add_argument(
+        "--post-roll", type=float, default=3.0, help="Seconds after each detected chunk"
+    )
+    psh_mom.add_argument(
+        "--merge-gap",
+        type=float,
+        default=2.0,
+        help="Merge windows separated by <= this many seconds",
+    )
+    psh_mom.add_argument(
+        "--min-alerts-per-chunk",
+        type=int,
+        default=1,
+        help="Minimum alerts needed for candidate chunk selection",
+    )
+    psh_mom.add_argument(
+        "--single",
+        action="store_true",
+        help="Extract only the single highest-ranked archive moment",
+    )
+    psh_mom.add_argument(
+        "--top-k", type=int, default=None, help="Extract top K highest-ranked archive moments"
+    )
+    psh_mom.add_argument(
+        "--rank-metric", default="novelty_curve", help="Metric used to rank archive moments"
+    )
     psh_mom.add_argument(
         "--rank-scope",
         default="downmix",
         choices=["downmix", "per_channel_max", "per_channel_mean"],
         help="Rank on downmix, max per-channel metric, or mean per-channel metric",
     )
-    psh_mom.add_argument("--event-window", type=float, default=None, help="Symmetric window duration in seconds around event center")
-    psh_mom.add_argument("--window-before", type=float, default=None, help="Seconds before event center for each clip")
-    psh_mom.add_argument("--window-after", type=float, default=None, help="Seconds after event center for each clip")
-    psh_mom.add_argument("--force-stream", action="store_true", help="Recompute shard stream reports even if present under --stream-root")
-    psh_mom.add_argument("--resume", action="store_true", help="Resume shard stream passes if checkpoints are present")
+    psh_mom.add_argument(
+        "--event-window",
+        type=float,
+        default=None,
+        help="Symmetric window duration in seconds around event center",
+    )
+    psh_mom.add_argument(
+        "--window-before",
+        type=float,
+        default=None,
+        help="Seconds before event center for each clip",
+    )
+    psh_mom.add_argument(
+        "--window-after", type=float, default=None, help="Seconds after event center for each clip"
+    )
+    psh_mom.add_argument(
+        "--force-stream",
+        action="store_true",
+        help="Recompute shard stream reports even if present under --stream-root",
+    )
+    psh_mom.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume shard stream passes if checkpoints are present",
+    )
     psh_mom.add_argument("--report", default=None, help="Output archive moments report JSON path")
     psh_mom.set_defaults(func=_run_shard_moments)
 
-    psh_sim = psh_sub.add_parser("similar", help="Find the most similar shards in an ordered archive manifest")
+    psh_sim = psh_sub.add_parser(
+        "similar", help="Find the most similar shards in an ordered archive manifest"
+    )
     psh_sim.add_argument("manifest", help="Path to shard manifest JSON")
     psh_sim.add_argument("query", help="Query input audio file")
-    psh_sim.add_argument("--out", required=True, help="Output directory for shard similarity products")
-    psh_sim.add_argument("--top-k", type=int, default=5, help="Number of most-similar shards to report")
+    psh_sim.add_argument(
+        "--out", required=True, help="Output directory for shard similarity products"
+    )
+    psh_sim.add_argument(
+        "--top-k", type=int, default=5, help="Number of most-similar shards to report"
+    )
     psh_sim.add_argument(
         "--mode",
         default="auto",
         choices=["auto", "feature", "metric", "metrics"],
         help="Similarity mode: auto(feature), feature, metric(single), or metrics(multi)",
     )
-    psh_sim.add_argument("--metric", default="novelty_curve", help="Single metric ID for --mode metric")
-    psh_sim.add_argument("--metrics", default=None, help="Comma-separated metric IDs for --mode metrics")
+    psh_sim.add_argument(
+        "--metric", default="novelty_curve", help="Single metric ID for --mode metric"
+    )
+    psh_sim.add_argument(
+        "--metrics", default=None, help="Comma-separated metric IDs for --mode metrics"
+    )
     psh_sim.add_argument(
         "--distance",
         default="cosine",
@@ -3030,27 +3726,67 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_sim.add_argument("--frame-size", type=int, default=1024, help="Frame size in samples")
     psh_sim.add_argument("--hop-size", type=int, default=256, help="Hop size in samples")
-    psh_sim.add_argument("--frame-seconds", type=float, default=None, help="Frame size in seconds (overrides --frame-size)")
-    psh_sim.add_argument("--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)")
+    psh_sim.add_argument(
+        "--frame-seconds",
+        type=float,
+        default=None,
+        help="Frame size in seconds (overrides --frame-size)",
+    )
+    psh_sim.add_argument(
+        "--hop-seconds", type=float, default=None, help="Hop size in seconds (overrides --hop-size)"
+    )
     psh_sim.add_argument("--sample-rate", type=int, default=None)
-    psh_sim.add_argument("--normalize", dest="normalize", action="store_true", default=True, help="Normalize multi-metric vectors before distance")
-    psh_sim.add_argument("--no-normalize", dest="normalize", action="store_false", help="Disable multi-metric normalization")
-    psh_sim.add_argument("--calibration", default=None, help="Calibration YAML/JSON path (used for metric-based modes)")
-    psh_sim.add_argument("--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates")
-    psh_sim.add_argument("--include-query", action="store_true", help="Allow the query file to appear in results if it is also a shard")
+    psh_sim.add_argument(
+        "--normalize",
+        dest="normalize",
+        action="store_true",
+        default=True,
+        help="Normalize multi-metric vectors before distance",
+    )
+    psh_sim.add_argument(
+        "--no-normalize",
+        dest="normalize",
+        action="store_false",
+        help="Disable multi-metric normalization",
+    )
+    psh_sim.add_argument(
+        "--calibration",
+        default=None,
+        help="Calibration YAML/JSON path (used for metric-based modes)",
+    )
+    psh_sim.add_argument(
+        "--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates"
+    )
+    psh_sim.add_argument(
+        "--include-query",
+        action="store_true",
+        help="Allow the query file to appear in results if it is also a shard",
+    )
     psh_sim.add_argument(
         "--spatial-mode",
         default="off",
         choices=["off", "append", "only"],
-        help="Use spatial metrics for archive retrieval: off, append to base similarity, or spatial-only",
+        help=(
+            "Use spatial metrics for archive retrieval: off, append to base "
+            "similarity, or spatial-only"
+        ),
     )
     psh_sim.add_argument(
         "--spatial-metrics",
         default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
         help="Comma-separated spatial metrics used when --spatial-mode is append or only",
     )
-    psh_sim.add_argument("--spatial-weight", type=float, default=0.5, help="Blend weight for spatial distance when --spatial-mode append")
-    psh_sim.add_argument("--json", default=None, help="Output JSON path (default: <out>/<query_stem>_shard_similarity.json)")
+    psh_sim.add_argument(
+        "--spatial-weight",
+        type=float,
+        default=0.5,
+        help="Blend weight for spatial distance when --spatial-mode append",
+    )
+    psh_sim.add_argument(
+        "--json",
+        default=None,
+        help="Output JSON path (default: <out>/<query_stem>_shard_similarity.json)",
+    )
     psh_sim.add_argument("--csv", default=None, help="Optional CSV output path")
     psh_sim.add_argument("--seed", type=int, default=42)
     psh_sim.add_argument(
@@ -3071,13 +3807,22 @@ def _build_parser() -> argparse.ArgumentParser:
 
     psh_ret = psh_sub.add_parser(
         "retrieve",
-        help="Find query-like time windows inside an ordered shard archive and optionally export clips",
+        help=(
+            "Find query-like time windows inside an ordered shard archive and "
+            "optionally export clips"
+        ),
     )
     psh_ret.add_argument("manifest", help="Path to shard manifest JSON")
     psh_ret.add_argument("query", help="Query input audio file or event example")
-    psh_ret.add_argument("--out", required=True, help="Output directory for retrieval JSON/CSV/clips")
-    psh_ret.add_argument("--top-k", type=int, default=10, help="Number of matching archive windows to report")
-    psh_ret.add_argument("--window-seconds", type=float, default=10.0, help="Candidate window duration in seconds")
+    psh_ret.add_argument(
+        "--out", required=True, help="Output directory for retrieval JSON/CSV/clips"
+    )
+    psh_ret.add_argument(
+        "--top-k", type=int, default=10, help="Number of matching archive windows to report"
+    )
+    psh_ret.add_argument(
+        "--window-seconds", type=float, default=10.0, help="Candidate window duration in seconds"
+    )
     psh_ret.add_argument(
         "--window-hop-seconds",
         type=float,
@@ -3096,7 +3841,9 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["auto", "core", "librosa", "all"],
         help="Feature extraction set for retrieval: core(default), auto, librosa, or all",
     )
-    psh_ret.add_argument("--frame-size", type=int, default=1024, help="Feature frame size in samples")
+    psh_ret.add_argument(
+        "--frame-size", type=int, default=1024, help="Feature frame size in samples"
+    )
     psh_ret.add_argument("--hop-size", type=int, default=256, help="Feature hop size in samples")
     psh_ret.add_argument(
         "--frame-seconds",
@@ -3110,14 +3857,25 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Feature hop size in seconds (overrides --hop-size)",
     )
-    psh_ret.add_argument("--sample-rate", type=int, default=None, help="Optional analysis/resampling rate in Hz")
-    psh_ret.add_argument("--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates")
-    psh_ret.add_argument("--no-clips", action="store_true", help="Only write JSON/CSV results; do not export WAV clips")
+    psh_ret.add_argument(
+        "--sample-rate", type=int, default=None, help="Optional analysis/resampling rate in Hz"
+    )
+    psh_ret.add_argument(
+        "--max-shards", type=int, default=None, help="Optional cap on scanned shard candidates"
+    )
+    psh_ret.add_argument(
+        "--no-clips",
+        action="store_true",
+        help="Only write JSON/CSV results; do not export WAV clips",
+    )
     psh_ret.add_argument(
         "--spatial-mode",
         default="off",
         choices=["off", "append", "only"],
-        help="Use spatial metrics for event retrieval: off, append to base similarity, or spatial-only",
+        help=(
+            "Use spatial metrics for event retrieval: off, append to base similarity, "
+            "or spatial-only"
+        ),
     )
     psh_ret.add_argument(
         "--spatial-metrics",
@@ -3130,7 +3888,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default=0.5,
         help="Blend weight for spatial distance when --spatial-mode append",
     )
-    psh_ret.add_argument("--json", default=None, help="Output JSON path (default: <out>/event_retrieval.json)")
+    psh_ret.add_argument(
+        "--json", default=None, help="Output JSON path (default: <out>/event_retrieval.json)"
+    )
     psh_ret.add_argument("--csv", default=None, help="Optional CSV output path")
     psh_ret.add_argument(
         "--verbosity",
@@ -3154,27 +3914,51 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_prof.add_argument("manifest", help="Path to shard manifest JSON")
     psh_prof.add_argument("query", help="Query audio/event example")
-    psh_prof.add_argument("--out", required=True, help="Output directory for profile and per-run retrieval reports")
-    psh_prof.add_argument("--top-k", type=int, default=10, help="Number of ranked windows retained per run")
-    psh_prof.add_argument("--window-seconds", type=float, default=10.0, help="Candidate window duration in seconds")
-    psh_prof.add_argument("--window-hop-seconds", type=float, default=5.0, help="Candidate window step in seconds")
-    psh_prof.add_argument("--distance", default="cosine", choices=["cosine", "euclidean", "manhattan"])
-    psh_prof.add_argument("--feature-set", default="core", choices=["auto", "core", "librosa", "all"])
-    psh_prof.add_argument("--frame-size", type=int, default=1024, help="Feature frame size in samples")
+    psh_prof.add_argument(
+        "--out", required=True, help="Output directory for profile and per-run retrieval reports"
+    )
+    psh_prof.add_argument(
+        "--top-k", type=int, default=10, help="Number of ranked windows retained per run"
+    )
+    psh_prof.add_argument(
+        "--window-seconds", type=float, default=10.0, help="Candidate window duration in seconds"
+    )
+    psh_prof.add_argument(
+        "--window-hop-seconds", type=float, default=5.0, help="Candidate window step in seconds"
+    )
+    psh_prof.add_argument(
+        "--distance", default="cosine", choices=["cosine", "euclidean", "manhattan"]
+    )
+    psh_prof.add_argument(
+        "--feature-set", default="core", choices=["auto", "core", "librosa", "all"]
+    )
+    psh_prof.add_argument(
+        "--frame-size", type=int, default=1024, help="Feature frame size in samples"
+    )
     psh_prof.add_argument("--hop-size", type=int, default=256, help="Feature hop size in samples")
-    psh_prof.add_argument("--sample-rate", type=int, default=None, help="Optional retrieval/resampling rate in Hz")
-    psh_prof.add_argument("--max-shards", type=int, default=None, help="Optional cap on profiled shards")
+    psh_prof.add_argument(
+        "--sample-rate", type=int, default=None, help="Optional retrieval/resampling rate in Hz"
+    )
+    psh_prof.add_argument(
+        "--max-shards", type=int, default=None, help="Optional cap on profiled shards"
+    )
     psh_prof.add_argument("--spatial-mode", default="append", choices=["append", "only"])
     psh_prof.add_argument(
         "--spatial-metrics",
         default="interchannel_coherence,iacc,ild_db,itd_s,doa_azimuth_proxy_deg,ambisonic_diffuseness,ambisonic_energy_vector_azimuth_deg,ambisonic_energy_vector_elevation_deg",
         help="Comma-separated spatial metrics used by the spatial run",
     )
-    psh_prof.add_argument("--spatial-weight", type=float, default=0.5, help="Spatial blend weight for append mode")
-    psh_prof.add_argument("--no-baseline", action="store_true", help="Run only the requested spatial mode")
+    psh_prof.add_argument(
+        "--spatial-weight", type=float, default=0.5, help="Spatial blend weight for append mode"
+    )
+    psh_prof.add_argument(
+        "--no-baseline", action="store_true", help="Run only the requested spatial mode"
+    )
     psh_prof.set_defaults(func=_run_shard_profile_retrieve)
 
-    psh_plot = psh_sub.add_parser("plot", help="Render archive-scale plots from shard_analysis_report.json")
+    psh_plot = psh_sub.add_parser(
+        "plot", help="Render archive-scale plots from shard_analysis_report.json"
+    )
     psh_plot.add_argument("report", help="Path to shard_analysis_report.json")
     psh_plot.add_argument("--out", required=True, help="Output directory for archive PNG plots")
     psh_plot.add_argument(
@@ -3188,7 +3972,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     psh_plot.set_defaults(func=_run_shard_plot)
 
-    psh_ins = psh_sub.add_parser("insights", help="Manifest/report-level insights for shard archives")
+    psh_ins = psh_sub.add_parser(
+        "insights", help="Manifest/report-level insights for shard archives"
+    )
     psh_ins_sub = psh_ins.add_subparsers(dest="shard_insights_cmd", required=True)
 
     psh_ins_sum = psh_ins_sub.add_parser(
@@ -3246,7 +4032,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Generate an HTML archive soundscape report from shard_analysis_report.json",
     )
     psh_ins_report.add_argument("report", help="Path to shard_analysis_report.json")
-    psh_ins_report.add_argument("--out", required=True, help="Output directory for HTML/JSON report")
+    psh_ins_report.add_argument(
+        "--out", required=True, help="Output directory for HTML/JSON report"
+    )
     psh_ins_report.set_defaults(func=_run_shard_insights_report)
 
     # project
@@ -3256,9 +4044,13 @@ def _build_parser() -> argparse.ArgumentParser:
     pproj_cmp = pproj_sub.add_parser("compare", help="Compare project variants from project index")
     pproj_cmp.add_argument("--project", required=True, help="Project name")
     pproj_cmp.add_argument("--root", default=".", help="Root containing projects/<name>/index.json")
-    pproj_cmp.add_argument("--baseline", default=None, help="Baseline variant (default: first recorded)")
+    pproj_cmp.add_argument(
+        "--baseline", default=None, help="Baseline variant (default: first recorded)"
+    )
     pproj_cmp.add_argument("--metrics", default=None, help="Comma-separated metric subset")
-    pproj_cmp.add_argument("--json", dest="json_out", default=None, help="Comparison JSON output path")
+    pproj_cmp.add_argument(
+        "--json", dest="json_out", default=None, help="Comparison JSON output path"
+    )
     pproj_cmp.add_argument("--csv", dest="csv_out", default=None, help="Comparison CSV output path")
     pproj_cmp.set_defaults(func=_run_project_compare)
 
@@ -3269,7 +4061,9 @@ def _build_parser() -> argparse.ArgumentParser:
     ppl_run = ppl_sub.add_parser("run", help="Run staged pipeline on an input directory")
     ppl_run.add_argument("input_dir", help="Input directory")
     ppl_run.add_argument("--out", required=True, help="Output directory")
-    ppl_run.add_argument("--calibration", dest="calibration", default=None, help="Calibration YAML/JSON path")
+    ppl_run.add_argument(
+        "--calibration", dest="calibration", default=None, help="Calibration YAML/JSON path"
+    )
     ppl_run.add_argument("--metrics", default=None, help="Comma-separated metric list")
     ppl_run.add_argument("--frame-size", type=int, default=2048)
     ppl_run.add_argument("--hop-size", type=int, default=512)
@@ -3283,16 +4077,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Compute backend preference for ML/tensor workflows: auto|cpu|cuda|mps",
     )
     ppl_run.add_argument("--plot", action="store_true", help="Run plot stage")
-    ppl_run.add_argument("--interactive", action="store_true", help="Interactive plot HTML in plot stage")
-    ppl_run.add_argument("--plot-metrics", default=None, help="Comma-separated metrics to include in pipeline plots")
-    ppl_run.add_argument("--no-spectral", action="store_true", help="Skip spectral plot suite in pipeline plot stage")
-    ppl_run.add_argument("--similarity-matrix", action="store_true", help="Generate similarity matrix in pipeline plot stage")
-    ppl_run.add_argument("--novelty-matrix", action="store_true", help="Generate novelty matrix in pipeline plot stage")
-    ppl_run.add_argument("--show", action="store_true", help="Open generated plots with the system default viewer")
-    ppl_run.add_argument("--show-limit", type=int, default=12, help="Maximum number of plots to open with --show")
+    ppl_run.add_argument(
+        "--interactive", action="store_true", help="Interactive plot HTML in plot stage"
+    )
+    ppl_run.add_argument(
+        "--plot-metrics", default=None, help="Comma-separated metrics to include in pipeline plots"
+    )
+    ppl_run.add_argument(
+        "--no-spectral", action="store_true", help="Skip spectral plot suite in pipeline plot stage"
+    )
+    ppl_run.add_argument(
+        "--similarity-matrix",
+        action="store_true",
+        help="Generate similarity matrix in pipeline plot stage",
+    )
+    ppl_run.add_argument(
+        "--novelty-matrix",
+        action="store_true",
+        help="Generate novelty matrix in pipeline plot stage",
+    )
+    ppl_run.add_argument(
+        "--show", action="store_true", help="Open generated plots with the system default viewer"
+    )
+    ppl_run.add_argument(
+        "--show-limit", type=int, default=12, help="Maximum number of plots to open with --show"
+    )
     ppl_run.add_argument("--ml-export", action="store_true", help="Run ML export stage")
     ppl_run.add_argument("--project", default=None, help="Project name for provenance tagging")
-    ppl_run.add_argument("--stages", default=None, help="Explicit stage list: analyze,plot,ml_export,digest")
+    ppl_run.add_argument(
+        "--stages", default=None, help="Explicit stage list: analyze,plot,ml_export,digest"
+    )
     ppl_run.add_argument("--force", action="store_true", help="Recompute outputs even if present")
     ppl_run.set_defaults(func=_run_pipeline_run)
 
@@ -3316,7 +4130,9 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["all", "doctor", "analyze", "moments", "features", "similar", "batch", "long"],
         help="Print commands for one goal instead of the full starter set",
     )
-    pqs.add_argument("--input", default="input.wav", help="Placeholder input filename to use in printed commands")
+    pqs.add_argument(
+        "--input", default="input.wav", help="Placeholder input filename to use in printed commands"
+    )
     pqs.add_argument(
         "--long-input",
         default=None,
@@ -3335,7 +4151,9 @@ def _build_parser() -> argparse.ArgumentParser:
     pbench_dev.add_argument("--features", type=int, default=256)
     pbench_dev.add_argument("--iters", type=int, default=20)
     pbench_dev.add_argument("--seed", type=int, default=42)
-    pbench_dev.add_argument("--strict", action="store_true", help="Fail if requested accelerator is unavailable")
+    pbench_dev.add_argument(
+        "--strict", action="store_true", help="Fail if requested accelerator is unavailable"
+    )
     pbench_dev.add_argument("--json-out", default=None, help="Optional benchmark report JSON path")
     pbench_dev.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
     pbench_dev.set_defaults(func=_run_benchmark_device)
@@ -3359,7 +4177,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("hint: run with --debug 1 (or --debug 2) for more details where available.", file=sys.stderr)
+        print(
+            "hint: run with --debug 1 (or --debug 2) for more details where available.",
+            file=sys.stderr,
+        )
         print("hint: start with: esl doctor or esl quickstart", file=sys.stderr)
         return 1
 

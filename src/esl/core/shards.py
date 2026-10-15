@@ -21,13 +21,6 @@ import numpy as np
 
 from esl import __version__
 from esl.core import AnalysisConfig, analyze, load_calibration
-from esl.core.similarity import (
-    SimilaritySearchConfig,
-    _aggregate_feature_vector,
-    _distance,
-    _metric_vector,
-    _mode as _similarity_mode,
-)
 from esl.core.audio import AudioBuffer, iter_supported_files, probe_audio_metadata, read_audio
 from esl.core.context import AnalysisContext
 from esl.core.moments import (
@@ -43,13 +36,21 @@ from esl.core.moments import (
     _sec_to_hms,
     _select_windows,
 )
-from esl.core.streaming import StreamRunConfig, run_stream_analysis
+from esl.core.similarity import (
+    SimilaritySearchConfig,
+    _aggregate_feature_vector,
+    _distance,
+    _metric_vector,
+)
+from esl.core.similarity import (
+    _mode as _similarity_mode,
+)
 from esl.core.spatial_metadata import apply_spatial_metadata_sidecar, infer_spatial_metadata
+from esl.core.streaming import StreamRunConfig, run_stream_analysis
 from esl.io import save_json
 from esl.metrics.registry import create_registry
 from esl.schema import SCHEMA_VERSION
 from esl.viz.feature_vectors import extract_feature_vectors, extract_feature_vectors_from_array
-
 
 SHARD_MANIFEST_VERSION = "1.1.0"
 DEFAULT_SPATIAL_SIMILARITY_METRICS = (
@@ -85,7 +86,10 @@ def _now_utc() -> str:
 
 
 def _safe_name(text: str) -> str:
-    return "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in text).strip("_") or "shard"
+    return (
+        "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in text).strip("_")
+        or "shard"
+    )
 
 
 def _as_float(value: Any) -> float | None:
@@ -94,7 +98,9 @@ def _as_float(value: Any) -> float | None:
     return None
 
 
-def _parse_calendar_start(value: str | None, timezone_name: str | None) -> tuple[datetime | None, ZoneInfo | None]:
+def _parse_calendar_start(
+    value: str | None, timezone_name: str | None
+) -> tuple[datetime | None, ZoneInfo | None]:
     if value is None:
         if timezone_name is not None:
             raise ValueError("--calendar-timezone requires --calendar-start.")
@@ -102,9 +108,13 @@ def _parse_calendar_start(value: str | None, timezone_name: str | None) -> tuple
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
-        raise ValueError("--calendar-start must be ISO-8601, for example 2026-01-01T00:00:00Z.") from exc
+        raise ValueError(
+            "--calendar-start must be ISO-8601, for example 2026-01-01T00:00:00Z."
+        ) from exc
     if parsed.tzinfo is None:
-        raise ValueError("--calendar-start must include a UTC offset or Z to avoid ambiguous archive time.")
+        raise ValueError(
+            "--calendar-start must include a UTC offset or Z to avoid ambiguous archive time."
+        )
     try:
         display_zone = ZoneInfo(timezone_name) if timezone_name else None
     except Exception as exc:
@@ -214,7 +224,9 @@ class ShardSimilarConfig:
     include_query_if_present: bool = False
     max_shards: int | None = None
     spatial_mode: str = "off"  # off|append|only
-    spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
+    spatial_metrics: list[str] = field(
+        default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS)
+    )
     spatial_weight: float = 0.5
 
 
@@ -234,7 +246,9 @@ class ShardRetrieveConfig:
     max_shards: int | None = None
     write_clips: bool = True
     spatial_mode: str = "off"  # off|append|only
-    spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
+    spatial_metrics: list[str] = field(
+        default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS)
+    )
     spatial_weight: float = 0.5
 
 
@@ -255,7 +269,9 @@ class ShardSpatialRetrieveProfileConfig:
     sample_rate: int | None = None
     max_shards: int | None = None
     spatial_mode: str = "append"
-    spatial_metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS))
+    spatial_metrics: list[str] = field(
+        default_factory=lambda: list(DEFAULT_SPATIAL_SIMILARITY_METRICS)
+    )
     spatial_weight: float = 0.5
     compare_baseline: bool = True
 
@@ -285,31 +301,33 @@ def build_shard_manifest(cfg: ShardManifestConfig) -> tuple[Path, dict[str, Any]
         total_size_bytes += size_bytes
         rel = fp.resolve().relative_to(root)
         item: dict[str, Any] = {
-                "shard_index": idx,
-                "path": str(fp.resolve()),
-                "relative_path": str(rel),
-                "name": fp.name,
-                "start_s": start_s,
-                "end_s": end_s,
-                "duration_s": duration_s,
-                "size_bytes": size_bytes,
-                "size_gb": float(size_bytes / 1_000_000_000.0),
-                "sample_rate": meta.get("sample_rate"),
-                "channels": meta.get("channels"),
-                "num_samples": meta.get("num_samples"),
-                "format_name": meta.get("format_name"),
-                "subtype": meta.get("subtype"),
-                "backend": meta.get("backend"),
-                "codec_name": meta.get("codec_name"),
-                "channel_layout": meta.get("channel_layout"),
-                "mtime_utc": datetime.fromtimestamp(fp.stat().st_mtime, tz=timezone.utc).isoformat(),
+            "shard_index": idx,
+            "path": str(fp.resolve()),
+            "relative_path": str(rel),
+            "name": fp.name,
+            "start_s": start_s,
+            "end_s": end_s,
+            "duration_s": duration_s,
+            "size_bytes": size_bytes,
+            "size_gb": float(size_bytes / 1_000_000_000.0),
+            "sample_rate": meta.get("sample_rate"),
+            "channels": meta.get("channels"),
+            "num_samples": meta.get("num_samples"),
+            "format_name": meta.get("format_name"),
+            "subtype": meta.get("subtype"),
+            "backend": meta.get("backend"),
+            "codec_name": meta.get("codec_name"),
+            "channel_layout": meta.get("channel_layout"),
+            "mtime_utc": datetime.fromtimestamp(fp.stat().st_mtime, tz=timezone.utc).isoformat(),
         }
         sidecar = _sidecar_for(sidecar_root, rel)
         if sidecar is not None:
             spatial = infer_spatial_metadata(
                 int(meta.get("channels") or 1),
                 fp,
-                source_channel_layout=(str(meta["channel_layout"]) if meta.get("channel_layout") else None),
+                source_channel_layout=(
+                    str(meta["channel_layout"]) if meta.get("channel_layout") else None
+                ),
             )
             item["spatial_metadata"] = apply_spatial_metadata_sidecar(spatial, sidecar).to_dict()
             item["channel_layout_hint"] = item["spatial_metadata"]["layout_hint"]
@@ -414,7 +432,9 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
     reg = create_registry(with_external=True)
     calibration = load_calibration(cfg.calibration_path) if cfg.calibration_path else None
 
-    report_metrics = list(dict.fromkeys(cfg.report_metrics or cfg.metrics or ["rms_dbfs", "snr_db", "ndsi"]))
+    report_metrics = list(
+        dict.fromkeys(cfg.report_metrics or cfg.metrics or ["rms_dbfs", "snr_db", "ndsi"])
+    )
     rows: list[dict[str, Any]] = []
     processed = 0
     skipped = 0
@@ -458,8 +478,12 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
                         allow_full_read=cfg.allow_full_read,
                         max_series_points=cfg.max_series_points,
                         frame_table_csv=_frame_table_path(cfg.frame_table_dir, relative_path),
-                        frame_table_parquet_dir=_frame_table_parquet_dir(cfg.frame_table_parquet_root, relative_path),
-                        frame_table_hdf5=_frame_table_hdf5_path(cfg.frame_table_hdf5_root, relative_path),
+                        frame_table_parquet_dir=_frame_table_parquet_dir(
+                            cfg.frame_table_parquet_root, relative_path
+                        ),
+                        frame_table_hdf5=_frame_table_hdf5_path(
+                            cfg.frame_table_hdf5_root, relative_path
+                        ),
                         checkpoint_dir=_checkpoint_dir(cfg.checkpoint_root, relative_path),
                         resume=cfg.resume,
                         spatial_metadata_sidecar=(
@@ -488,7 +512,9 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
                 )
                 continue
 
-        duration_s = float(result.get("metadata", {}).get("duration_s") or item.get("duration_s") or 0.0)
+        duration_s = float(
+            result.get("metadata", {}).get("duration_s") or item.get("duration_s") or 0.0
+        )
         metrics_payload = result.get("metrics", {})
         row: dict[str, Any] = {
             "shard_index": int(item.get("shard_index", -1)),
@@ -503,10 +529,16 @@ def run_shard_analysis(cfg: ShardAnalyzeConfig) -> tuple[Path, dict[str, Any]]:
             "start_time_local": item.get("start_time_local"),
             "end_time_local": item.get("end_time_local"),
             "duration_s": duration_s,
-            "channels": int(result.get("metadata", {}).get("channels") or item.get("channels") or 0),
-            "sample_rate": int(result.get("metadata", {}).get("sample_rate") or item.get("sample_rate") or 0),
+            "channels": int(
+                result.get("metadata", {}).get("channels") or item.get("channels") or 0
+            ),
+            "sample_rate": int(
+                result.get("metadata", {}).get("sample_rate") or item.get("sample_rate") or 0
+            ),
             "analysis_mode": result.get("analysis_mode"),
-            "spatial_layout": result.get("metadata", {}).get("spatial_metadata", {}).get("layout_hint"),
+            "spatial_layout": result.get("metadata", {})
+            .get("spatial_metadata", {})
+            .get("layout_hint"),
             "frame_table_csv": result.get("artifacts", {}).get("frame_table_csv"),
             "frame_table_parquet_dir": result.get("artifacts", {}).get("frame_table_parquet_dir"),
             "frame_table_hdf5": result.get("artifacts", {}).get("frame_table_hdf5"),
@@ -665,7 +697,10 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
 
         for item in items:
             shard_path = Path(str(item["path"]))
-            if not cfg.include_query_if_present and shard_path.resolve() == cfg.query_path.resolve():
+            if (
+                not cfg.include_query_if_present
+                and shard_path.resolve() == cfg.query_path.resolve()
+            ):
                 continue
             try:
                 fv = extract_feature_vectors(
@@ -783,7 +818,10 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
         cand_vecs: list[Any] = []
         for item in items:
             shard_path = Path(str(item["path"]))
-            if not cfg.include_query_if_present and shard_path.resolve() == cfg.query_path.resolve():
+            if (
+                not cfg.include_query_if_present
+                and shard_path.resolve() == cfg.query_path.resolve()
+            ):
                 continue
             try:
                 result = analyze(
@@ -803,7 +841,9 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                 )
                 cand_vec = _metric_vector(result, metric_names)
                 if not np.isfinite(cand_vec).any():
-                    skipped.append({"path": str(shard_path.resolve()), "reason": "non-finite metric mean(s)"})
+                    skipped.append(
+                        {"path": str(shard_path.resolve()), "reason": "non-finite metric mean(s)"}
+                    )
                     continue
                 cand_rows.append(
                     {
@@ -812,10 +852,23 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                         "shard_index": int(item.get("shard_index", -1)),
                         "archive_start_s": float(item.get("start_s") or 0.0),
                         "archive_end_s": float(item.get("end_s") or 0.0),
-                        "duration_s": float(result.get("metadata", {}).get("duration_s", item.get("duration_s") or 0.0)),
-                        "channels": int(result.get("metadata", {}).get("channels", item.get("channels") or 0)),
-                        "sample_rate": int(result.get("metadata", {}).get("sample_rate", item.get("sample_rate") or 0)),
-                        "metric_means": {name: float(v) for name, v in zip(metric_names, cand_vec.tolist())},
+                        "duration_s": float(
+                            result.get("metadata", {}).get(
+                                "duration_s", item.get("duration_s") or 0.0
+                            )
+                        ),
+                        "channels": int(
+                            result.get("metadata", {}).get("channels", item.get("channels") or 0)
+                        ),
+                        "sample_rate": int(
+                            result.get("metadata", {}).get(
+                                "sample_rate", item.get("sample_rate") or 0
+                            )
+                        ),
+                        "metric_means": {
+                            name: float(v)
+                            for name, v in zip(metric_names, cand_vec.tolist(), strict=False)
+                        },
                     }
                 )
                 cand_vecs.append(cand_vec)
@@ -835,15 +888,22 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
                 c_work = (c_work - mu[None, :]) / sigma[None, :]
 
             rows = []
-            for row, raw_vec, work_vec in zip(cand_rows, cand_mat, c_work):
+            for row, raw_vec, work_vec in zip(cand_rows, cand_mat, c_work, strict=False):
                 shared_raw = _shared_finite_vectors(query_vec, raw_vec)
                 if shared_raw is None:
-                    skipped.append({"path": row["path"], "reason": "no shared finite metric dimensions"})
+                    skipped.append(
+                        {"path": row["path"], "reason": "no shared finite metric dimensions"}
+                    )
                     continue
                 if selected_mode == "metrics":
                     shared_work = _shared_finite_vectors(q_work, work_vec)
                     if shared_work is None:
-                        skipped.append({"path": row["path"], "reason": "no shared finite normalized metric dimensions"})
+                        skipped.append(
+                            {
+                                "path": row["path"],
+                                "reason": "no shared finite normalized metric dimensions",
+                            }
+                        )
                         continue
                     dist, sim = _distance(shared_work[0], shared_work[1], cfg.distance)
                     dist_kind = cfg.distance
@@ -871,7 +931,10 @@ def run_shard_similarity(cfg: ShardSimilarConfig) -> tuple[Path, dict[str, Any]]
             "normalize": bool(cfg.normalize),
             "query": {
                 "path": str(cfg.query_path.resolve()),
-                "metric_means": {name: float(v) for name, v in zip(metric_names, query_vec.tolist())},
+                "metric_means": {
+                    name: float(v)
+                    for name, v in zip(metric_names, query_vec.tolist(), strict=False)
+                },
             },
             "results": rows,
             "skipped": skipped,
@@ -1035,7 +1098,9 @@ def run_shard_event_retrieval(cfg: ShardRetrieveConfig) -> tuple[Path, dict[str,
     if spatial_mode not in {"off", "append", "only"}:
         raise ValueError("spatial_mode must be one of off|append|only")
     spatial_metrics = _resolve_spatial_metrics(cfg)
-    spatial_registry = create_registry(with_external=True) if spatial_mode in {"append", "only"} else None
+    spatial_registry = (
+        create_registry(with_external=True) if spatial_mode in {"append", "only"} else None
+    )
     spatial_query_vec = None
     if spatial_registry is not None:
         query_audio = read_audio(cfg.query_path, target_sr=cfg.sample_rate)
@@ -1288,7 +1353,11 @@ def run_shard_spatial_retrieval_profile(
     """
     manifest = load_shard_manifest(cfg.manifest_path)
     all_items = [item for item in manifest.get("items", []) if isinstance(item, dict)]
-    items = all_items[: int(cfg.max_shards)] if cfg.max_shards is not None and cfg.max_shards >= 0 else all_items
+    items = (
+        all_items[: int(cfg.max_shards)]
+        if cfg.max_shards is not None and cfg.max_shards >= 0
+        else all_items
+    )
     if not items:
         raise RuntimeError(f"No shard items found in manifest: {cfg.manifest_path}")
     requested_mode = str(cfg.spatial_mode).strip().lower()
@@ -1335,7 +1404,9 @@ def run_shard_spatial_retrieval_profile(
                 "windows_scanned": windows,
                 "windows_per_s": float(windows / elapsed_s),
                 "archive_duration_s": selected_duration_s,
-                "archive_realtime_factor": float(selected_duration_s / elapsed_s) if selected_duration_s > 0.0 else None,
+                "archive_realtime_factor": float(selected_duration_s / elapsed_s)
+                if selected_duration_s > 0.0
+                else None,
                 "retrieval_report_json": str(retrieval_path),
                 "candidate_windows": int(retrieval.get("candidate_windows") or 0),
                 "skipped_windows": int(len(retrieval.get("skipped") or [])),
@@ -1350,8 +1421,12 @@ def run_shard_spatial_retrieval_profile(
         comparison = {
             "spatial_mode": requested_mode,
             "elapsed_overhead_s": float(spatial["elapsed_s"] - base_elapsed),
-            "elapsed_overhead_percent": float(((float(spatial["elapsed_s"]) / base_elapsed) - 1.0) * 100.0),
-            "windows_per_s_ratio": float(float(spatial["windows_per_s"]) / max(float(baseline["windows_per_s"]), 1e-12)),
+            "elapsed_overhead_percent": float(
+                ((float(spatial["elapsed_s"]) / base_elapsed) - 1.0) * 100.0
+            ),
+            "windows_per_s_ratio": float(
+                float(spatial["windows_per_s"]) / max(float(baseline["windows_per_s"]), 1e-12)
+            ),
         }
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -1394,8 +1469,6 @@ def run_shard_spatial_retrieval_profile(
     return report_path, report
 
 
-
-
 def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:
     """Find top-ranked moments across a shard manifest and export clips + CSV."""
     manifest = load_shard_manifest(cfg.manifest_path)
@@ -1407,7 +1480,11 @@ def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:
     clips_dir = cfg.output_dir / "clips"
     clips_dir.mkdir(parents=True, exist_ok=True)
     csv_path = cfg.output_dir / "moments.csv"
-    report_path = cfg.report_path if cfg.report_path is not None else (cfg.output_dir / "archive_moments_report.json")
+    report_path = (
+        cfg.report_path
+        if cfg.report_path is not None
+        else (cfg.output_dir / "archive_moments_report.json")
+    )
     calibration = load_calibration(cfg.calibration_path) if cfg.calibration_path else None
     stream_root = (cfg.output_dir / "stream") if cfg.stream_root is None else Path(cfg.stream_root)
 
@@ -1443,7 +1520,9 @@ def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:
         if duration_s <= 0.0:
             duration_s = float(item.get("duration_s") or 0.0)
         rules_payload = stream_report.get("rules", {})
-        has_threshold_rules = isinstance(rules_payload, dict) and bool(rules_payload.get("metric_thresholds"))
+        has_threshold_rules = isinstance(rules_payload, dict) and bool(
+            rules_payload.get("metric_thresholds")
+        )
         shard_windows = _collect_windows(
             chunks=_iter_stream_chunks(stream_report, report_path=stream_report_path),
             pre_roll_s=cfg.pre_roll_s,
@@ -1488,7 +1567,9 @@ def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:
         clip_path = clips_dir / f"moment_{idx:04d}.wav"
         start_s = float(win["start_s"])
         end_s = float(win["end_s"])
-        codec = _codec_from_subtype(str(info.get("subtype")) if info.get("subtype") is not None else None)
+        codec = _codec_from_subtype(
+            str(info.get("subtype")) if info.get("subtype") is not None else None
+        )
         wrote = False
         if ffmpeg_ok:
             wrote = _clip_with_ffmpeg(
@@ -1497,7 +1578,11 @@ def run_shard_moments(cfg: ShardMomentsConfig) -> tuple[Path, dict[str, Any]]:
                 start_s=start_s,
                 end_s=end_s,
                 codec=codec,
-                sample_rate=(int(cfg.sample_rate) if cfg.sample_rate is not None else int(info.get("sample_rate") or 0) or None),
+                sample_rate=(
+                    int(cfg.sample_rate)
+                    if cfg.sample_rate is not None
+                    else int(info.get("sample_rate") or 0) or None
+                ),
                 channels=int(info.get("channels") or 1),
             )
         if not wrote:

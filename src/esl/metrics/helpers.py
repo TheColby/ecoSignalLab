@@ -30,7 +30,9 @@ class FramedSignal:
     times_s: np.ndarray  # [num_frames]
 
 
-def frame_signal(samples: np.ndarray, sample_rate: int, frame_size: int, hop_size: int) -> FramedSignal:
+def frame_signal(
+    samples: np.ndarray, sample_rate: int, frame_size: int, hop_size: int
+) -> FramedSignal:
     """Frame [samples, channels] into overlapping windows with tail padding."""
     if samples.ndim != 2:
         raise ValueError("Expected [samples, channels] signal")

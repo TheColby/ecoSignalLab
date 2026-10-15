@@ -33,9 +33,13 @@ def test_build_dataset_manifest_from_ml_metadata(tmp_path: Path) -> None:
         wav = tmp_path / f"tone_{idx}.wav"
         sf.write(wav, x, sr)
         result = analyze(AnalysisConfig(input_path=wav, output_dir=tmp_path, verbosity=0))
-        export_ml_features(result, output_dir=tmp_path / f"ml_{idx}", prefix=f"demo_{idx}", seed=123)
+        export_ml_features(
+            result, output_dir=tmp_path / f"ml_{idx}", prefix=f"demo_{idx}", seed=123
+        )
 
-    out_path, manifest = build_dataset_manifest_from_ml_metadata(tmp_path, tmp_path / "dataset_manifest.json")
+    out_path, manifest = build_dataset_manifest_from_ml_metadata(
+        tmp_path, tmp_path / "dataset_manifest.json"
+    )
     assert out_path.exists()
     assert int(manifest["num_samples"]) == 3
     assert sum(int(v) for v in manifest["split_counts"].values()) == 3

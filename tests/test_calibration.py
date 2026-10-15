@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from esl.core.calibration import dbfs_to_pa, dbfs_to_spl, pa_to_dbfs, precision_chain_available, spl_to_dbfs
+from esl.core.calibration import (
+    dbfs_to_pa,
+    dbfs_to_spl,
+    pa_to_dbfs,
+    precision_chain_available,
+    spl_to_dbfs,
+)
 from esl.core.calibration_check import CalibrationVerifyConfig, run_calibration_verify
 from esl.core.config import CalibrationProfile
 

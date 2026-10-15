@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -71,7 +71,9 @@ def test_stream_chunk_hours_overrides_chunk_size_samples(tmp_path: Path) -> None
     assert int(report["chunk_size"]) == 28800
 
 
-def test_multiple_chunk_duration_flags_error(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_multiple_chunk_duration_flags_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     wav = _write_wav(tmp_path / "in.wav", sr=8000, seconds=0.5)
     code = main(
         [

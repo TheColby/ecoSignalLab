@@ -3,7 +3,7 @@
 <h1>ecoSignalLab</h1>
 <h2>Environmental, Architectural, and Long-Archive Acoustic Analysis</h2>
 <h3>A Practical Textbook and Reproducible Laboratory Companion for <code>esl</code></h3>
-<p><strong>Edition 0.2.0</strong></p>
+<p><strong>Edition 0.3.0</strong></p>
 <p>Colby Leider and ecoSignalLab contributors</p>
 <p>Licensed under the <a href="../LICENSE">MIT License</a>.</p>
 <p>This textbook is generated from version-controlled documentation. Its claims, algorithms, source links, and laboratory workflows are intended to be inspectable rather than ornamental.</p>
@@ -15221,7 +15221,7 @@ algorithms, comparing implementations, or preparing a publication.
 
 # Colophon
 
-This is the `ecoSignalLab` textbook and reproducible laboratory companion, edition 0.2.0. It is maintained by Colby Leider and ecoSignalLab contributors and generated from version-controlled source documentation in the same repository as the software. The book is designed to be inspected alongside the code, configuration contracts, tests, examples, and cited methods rather than treated as a detached manual.
+This is the `ecoSignalLab` textbook and reproducible laboratory companion, edition 0.3.0. It is maintained by Colby Leider and ecoSignalLab contributors and generated from version-controlled source documentation in the same repository as the software. The book is designed to be inspected alongside the code, configuration contracts, tests, examples, and cited methods rather than treated as a detached manual.
 
 The book face is [TeX Gyre Schola](https://www.gust.org.pl/projects/e-foundry/tex-gyre), an open typeface in the New Century Schoolbook tradition. Code and literal command names use a monospace face. The cover mark is the `esl` circle-wave logo from [`assets/logos/esl/minimal/`](../assets/logos/esl/minimal/), reproduced above the title. The logo remains a project asset; its appearance is not a claim of certification, calibration, or standards compliance.
 

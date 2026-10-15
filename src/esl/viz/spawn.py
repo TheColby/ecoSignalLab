@@ -5,9 +5,9 @@ from __future__ import annotations
 import os
 import platform
 import subprocess
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, Callable, Sequence
-
+from typing import Any
 
 Launcher = Callable[[Path], tuple[bool, str | None]]
 

@@ -11,7 +11,6 @@ from typing import Any
 from esl.core import AnalysisConfig, analyze, load_calibration
 from esl.core.audio import iter_supported_files
 
-
 SUPPORTED_PATTERNS = [
     "*.wav",
     "*.flac",
@@ -188,7 +187,9 @@ def run_validation(cfg: ValidationRunConfig) -> tuple[Path, dict[str, Any]]:
                 "passed": not failures,
                 "failures": failures,
                 "validity_flags": validity,
-                "selected_metric_means": {name: _metric_mean(result, name) for name in requested_metrics},
+                "selected_metric_means": {
+                    name: _metric_mean(result, name) for name in requested_metrics
+                },
             }
         )
 

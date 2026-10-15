@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -23,7 +23,12 @@ def test_analyzer_emits_runtime_metadata(tmp_path: Path) -> None:
     assert isinstance(result.get("metric_catalog"), dict)
     assert isinstance(result.get("library_versions"), dict)
     meta = result["metadata"]
-    assert meta.get("channel_layout_hint") in {"mono", "stereo", "multichannel", "ambisonic_b_format"}
+    assert meta.get("channel_layout_hint") in {
+        "mono",
+        "stereo",
+        "multichannel",
+        "ambisonic_b_format",
+    }
     assert isinstance(meta.get("spatial_metadata"), dict)
     assert meta["spatial_metadata"]["layout_hint"] == meta.get("channel_layout_hint")
     assert isinstance(meta.get("runtime"), dict)
@@ -99,7 +104,9 @@ def test_analysis_applies_validated_ambisonics_sidecar(tmp_path: Path) -> None:
     )
 
     result = analyze(
-        AnalysisConfig(input_path=wav, output_dir=tmp_path, verbosity=0, spatial_metadata_sidecar=sidecar)
+        AnalysisConfig(
+            input_path=wav, output_dir=tmp_path, verbosity=0, spatial_metadata_sidecar=sidecar
+        )
     )
     spatial = result["metadata"]["spatial_metadata"]
     assert spatial["layout_family"] == "ambisonic"

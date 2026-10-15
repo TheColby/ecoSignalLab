@@ -198,9 +198,7 @@ def run_shard_report_scene_changes(
         scores = np.concatenate([[0.0], np.linalg.norm(np.diff(z, axis=0), axis=1)])
     cutoff = float(np.mean(scores) + float(threshold_z) * np.std(scores)) if scores.size else 0.0
     candidates = [
-        (idx, score)
-        for idx, score in enumerate(scores)
-        if idx > 0 and float(score) >= cutoff
+        (idx, score) for idx, score in enumerate(scores) if idx > 0 and float(score) >= cutoff
     ]
     candidates = sorted(candidates, key=lambda x: float(x[1]), reverse=True)
     if max_changes is not None:
@@ -317,8 +315,7 @@ def run_shard_report_calmness(
         hist, _ = np.histogram(level, bins=min(10, max(2, level.size)))
         probs = hist.astype(np.float64) / max(float(np.sum(hist)), EPS)
         diversity = float(
-            -np.sum(probs * np.log2(np.maximum(probs, EPS)))
-            / max(np.log2(max(probs.size, 2)), EPS)
+            -np.sum(probs * np.log2(np.maximum(probs, EPS))) / max(np.log2(max(probs.size, 2)), EPS)
         )
     else:
         diversity = 0.0
