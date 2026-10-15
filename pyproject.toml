@@ -47,6 +47,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+archive = [
+  "boto3>=1.34",
+  "psycopg[binary]>=3.1",
+]
 ml = [
   "torch>=2.0",
   "datasets>=2.16",
