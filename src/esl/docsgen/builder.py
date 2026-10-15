@@ -587,6 +587,12 @@ def _render_page_template(
       article {{ padding: 16px; }}
     }}
     @media print {{
+      pre, pre code {{
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }}
+      pre {{ overflow: visible; }}
       /* A book-sized face improves legibility in the long-form PDF editions. */
       body {{ background: #fffefb; font-size: 11.8pt; }}
       body.textbook-edition {{ font-size: 11.8pt; }}

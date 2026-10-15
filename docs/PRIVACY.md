@@ -79,7 +79,7 @@ The default is 65536 frames per read. Use `--block-frames` to reduce this for
 large channel counts; each read is limited to 1048576 scalar channel samples.
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["Input hash"] --> B["Intervals and optional detector"]
     B --> C["Validate and merge sample spans"]
     C --> D["Mask bounded blocks"]
