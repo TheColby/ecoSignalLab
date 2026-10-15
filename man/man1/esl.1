@@ -1,4 +1,4 @@
-.TH ESL 1 "March 2026" "ecoSignalLab 0.2.0" "User Commands"
+.TH ESL 1 "March 2026" "ecoSignalLab 0.3.0" "User Commands"
 .SH NAME
 esl \- ecoSignalLab command-line acoustic analysis toolkit
 .SH SYNOPSIS
@@ -42,7 +42,27 @@ Print or export the active JSON output schema.
 .TP
 \fBesl docs\fR
 Build documentation in HTML/PDF.
+.SH ADVANCED WORKFLOWS
+.TP
+\fBesl review\fR / \fBesl moments review\fR
+Generate an offline HTML annotation pack from a moments manifest.
+.TP
+\fBesl monitor\fR / \fBesl uncertainty\fR
+Compare baseline measurements and estimate metric-mean intervals.
+.TP
+\fBesl spatial-timeline\fR / \fBesl qa\fR
+Export spatial trajectories and recorder quality diagnostics.
+.TP
+\fBesl embeddings\fR / \fBesl index\fR
+Export provenance-addressed vectors and search a persistent SQLite index.
+.TP
+\fBesl protocol\fR / \fBesl privacy\fR / \fBesl archive-jobs\fR
+Manage measurement manifests, interval redaction, and leased archive jobs.
+Use each command's \fB\-\-help\fR for its input and output contract.
 .SH GLOBAL CLI BEHAVIOR
+.TP
+\fB\-\-version\fR
+Print the installed package version and exit.
 .TP
 \fB\-\-verbosity 0..3\fR
 0=silent, 1=summary, 2=detailed, 3=full diagnostic.

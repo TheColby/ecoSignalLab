@@ -2,7 +2,34 @@
 
 All notable changes to `ecoSignalLab` (`esl`) are documented here.
 
-## [0.2.0] - Unreleased
+## [0.3.0] - Unreleased
+
+### Added
+- CLI workflows for moment review, baseline monitoring, spatial timelines,
+  recorder QA, persistent vector search, uncertainty estimates, measurement
+  protocols, embedding backends, interval redaction, and leased archive jobs.
+  See the [advanced workflow guide](docs/ADVANCED_WORKFLOWS.md) for contracts
+  and implementation limits.
+- Archive-scale processing and retrieval:
+  - chunked, resumable analysis for long recordings
+  - shard manifests, calendar-aware rollups, archive insights, and campaign plots
+  - shard-level novelty-moment retrieval, query-by-example retrieval, and spatial retrieval profiling
+- First-class spatial metadata support:
+  - Ambisonics sidecars with explicit convention, channel-order, normalization, and label handling
+  - documented multichannel aggregation and spatial retrieval semantics
+- Calibration verification reports and reference-fixture workflows.
+- ML dataset manifests and appendable FrameTable-oriented archive workflows.
+- A source-controlled, print-ready textbook and user guide with rendered math, Mermaid diagrams, linked references, 33 laboratory assignments, and reproducible PDF generation.
+
+### Changed
+- Documentation generation now bundles the TeX Gyre Schola book face, produces a US Letter print master, preserves PDF hyperlinks, and uses terminal-green monospace fenced code blocks.
+- The textbook now includes a full Introduction, Part-indexed table of contents, assignment introductions, deliverables summaries, and assignment title rules.
+- Package and runtime version advance to `0.3.0`; the analysis-output schema remains `0.2.0` because this release does not change that schema contract.
+
+### Release Preparation
+- Do not create or push `v0.3.0` until the release checklist in [`docs/RELEASE.md`](docs/RELEASE.md) is complete and the intended release commit is on `main`.
+
+## [0.2.0] - 2026-02-19
 
 ### Added
 - First-time onboarding command:

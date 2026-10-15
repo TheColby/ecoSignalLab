@@ -3117,6 +3117,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     pmom_sub = pmom.add_subparsers(dest="moments_cmd", required=True)
 
+    from esl.workflows.review import register_moments
+
+    register_moments(pmom_sub)
+
     pmom_ex = pmom_sub.add_parser(
         "extract", help="Extract moments to WAV clips + CSV from alert criteria"
     )
@@ -4158,6 +4162,9 @@ def _build_parser() -> argparse.ArgumentParser:
     pbench_dev.add_argument("--debug", type=int, default=0, choices=[0, 1, 2])
     pbench_dev.set_defaults(func=_run_benchmark_device)
 
+    from esl.workflows import register_workflows
+
+    register_workflows(sub)
     return parser
 
 

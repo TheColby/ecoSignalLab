@@ -4,6 +4,7 @@ Quick links: [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES
 
 ## Start Here
 
+- [Advanced Workflows: Review, Monitoring, QA, Search, and Archive Operations](ADVANCED_WORKFLOWS.md)
 - [Getting Started](GETTING_STARTED.md)
 - [User Guide (PDF source)](USERGUIDE.md)
 - [Textbook (generated PDF source)](TEXTBOOK.md)

@@ -4,6 +4,15 @@ Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [T
 
 This document defines the JSON output contract for `esl analyze`, including schema versioning and provenance fields.
 
+## Workflow Artifacts
+
+The additive [advanced workflows](ADVANCED_WORKFLOWS.md) emit their own artifact
+contracts. An annotation packet, vector record, privacy audit, or worker claim is
+not an `esl analyze` result. Interpret its schema version together with its
+artifact kind and the corresponding workflow guide. Do not validate a workflow
+artifact against the analysis-output schema solely because both carry
+`schema_version` and `esl_version` fields.
+
 - Canonical source: `src/esl/schema/spec.py`
 - Published artifact: `docs/schema/analysis-output-0.2.0.json`
 - CLI access: `esl schema` or `esl schema --out docs/schema/analysis-output-0.2.0.json`

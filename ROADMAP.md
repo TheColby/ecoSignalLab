@@ -6,6 +6,12 @@ This roadmap reflects the current `esl` direction after long-file support, momen
 
 ## Snapshot
 
+The v0.3.0 work adds ten practical workflow areas described in the
+[advanced workflow guide](docs/ADVANCED_WORKFLOWS.md): review packs, baseline
+comparisons, spatial timelines, recorder QA, vector indexing, uncertainty,
+protocol manifests, embedding backends, privacy exports, and archive job leases.
+Each guide states the supported data formats and execution boundaries.
+
 What already exists now:
 
 - `esl shard index`

@@ -912,6 +912,8 @@ Outputs:
 
 ## Documentation
 
+- Advanced review, monitoring, spatial, QA, indexing, uncertainty, protocol,
+  embedding, privacy, and archive workflows: [workflow guide](docs/ADVANCED_WORKFLOWS.md).
 - Documentation index (hyperlinked map + device-type recipe index):
   - [`docs/INDEX.md`](docs/INDEX.md)
 - Man pages:
