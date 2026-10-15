@@ -681,31 +681,45 @@ Large files:
 
 ## What It Takes To Handle A 2-Year 96 kHz Float32 WAV
 
-Assume:
+For uncompressed audio, storage grows with duration, sample rate, channel count,
+and the number of bytes used for each sample. The audio payload size is:
 
 $$
 B = T \cdot f_s \cdot C \cdot b
 $$
 
 where:
-- $B$ is bytes
-- $T$ is duration in seconds
-- $f_s$ is sample rate in samples/second
-- $C$ is channel count
-- $b$ is bytes/sample
 
-For a 2-year recording:
+- $B$ is the audio payload size in bytes.
+- $T$ is duration in seconds.
+- $f_s$ is sample rate in sample frames per second.
+- $C$ is channel count.
+- $b$ is bytes per sample per channel.
 
-$$
-T = 2 \cdot 365 \cdot 24 \cdot 3600 = 63{,}072{,}000 \text{ s}
-$$
+Plain English: each second contains $f_s$ frames, and each frame contains $C$
+samples of $b$ bytes each. Container headers and metadata add a small amount of
+storage beyond this payload estimate.
 
-At `96 kHz` and `32-bit float`, $b = 4$.
-
-Mono:
+Using two 365-day years, the duration is:
 
 $$
-B = 63{,}072{,}000 \cdot 96{,}000 \cdot 1 \cdot 4 = 24{,}219{,}648{,}000{,}000
+\begin{aligned}
+T &= 2 \cdot 365 \cdot 24 \cdot 3600 \\
+  &= 63{,}072{,}000\ \mathrm{s}.
+\end{aligned}
+$$
+
+where each year has 365 days, each day has 24 hours, and each hour has 3600
+seconds. Calendar years that include leap days have a different duration.
+
+At 96 kHz and 32-bit float, $f_s = 96{,}000$ and $b = 4$. For mono audio,
+$C = 1$, so the payload is:
+
+$$
+\begin{aligned}
+B &= 63{,}072{,}000 \cdot 96{,}000 \cdot 1 \cdot 4 \\
+  &= 24{,}219{,}648{,}000{,}000\ \mathrm{bytes}.
+\end{aligned}
 $$
 
 That is about:
@@ -765,23 +779,30 @@ One terminology fix first:
 - "`32-bit float 24-bit`" is not a single WAV subtype
 - choose either `32-bit float` or `24-bit PCM`
 
-At `96 kHz`, `8` channels, `10` years, and `float32` samples:
+At 96 kHz, eight channels, ten 365-day years, and float32 samples, the same
+payload-size relationship applies:
 
 $$
 B = T \cdot f_s \cdot C \cdot b
 $$
 
 where:
-- $T = 315{,}360{,}000$ s
-- $f_s = 96{,}000$ Hz
-- $C = 8$
-- $b = 4$ bytes/sample
+
+- $T = 315{,}360{,}000$ seconds is the duration.
+- $f_s = 96{,}000$ sample frames per second is the sample rate.
+- $C = 8$ is the channel count.
+- $b = 4$ bytes per sample per channel is the float32 sample size.
+
+Substituting these values gives:
 
 $$
-B = 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 = 968{,}785{,}920{,}000{,}000
+\begin{aligned}
+B &= 315{,}360{,}000 \cdot 96{,}000 \cdot 8 \cdot 4 \\
+  &= 968{,}785{,}920{,}000{,}000\ \mathrm{bytes}.
+\end{aligned}
 $$
 
-That is about `968.79 TB`.
+That is about `968.79 TB` (decimal units), excluding container overhead.
 
 Recommended workflow:
 
