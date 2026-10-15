@@ -54,10 +54,10 @@ jobs:
             src/esl/cli/main.py \
             src/esl/__main__.py
       - name: Test suite
-        run: pytest
+        run: pytest --cov=esl --cov-report=
       - name: Golden coverage floor
         run: |
-          pytest -q tests/test_metrics_golden.py tests/test_ml_frametable.py --cov=esl --cov-report=term --cov-report=
+          pytest -q tests/test_metrics_golden.py tests/test_ml_frametable.py --cov=esl --cov-append --cov-report=
           coverage report \
             --include='*/src/esl/core/analyzer.py,*/src/esl/metrics/builtin.py,*/src/esl/metrics/helpers.py,*/src/esl/ml/export.py' \
             --fail-under=70

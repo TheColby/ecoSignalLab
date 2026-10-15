@@ -190,7 +190,7 @@ def _read_ffmpeg(path: Path, target_sr: int | None = None) -> AudioBuffer:
     if proc.returncode != 0:
         stderr = proc.stderr.decode("utf-8", errors="ignore").strip()
         raise RuntimeError(f"ffmpeg decode failed for {path}: {stderr}")
-    raw = np.frombuffer(proc.stdout, dtype=np.float32)
+    raw: np.ndarray = np.frombuffer(proc.stdout, dtype=np.float32)
     if channels <= 0:
         raise RuntimeError(f"Invalid channel count for {path}: {channels}")
     if raw.size % channels != 0:
