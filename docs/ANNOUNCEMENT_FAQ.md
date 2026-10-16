@@ -16,7 +16,12 @@ What changed in code:
 
 What to tell them to run:
 
+Install the published [PyPI package](https://pypi.org/project/ecosignallab/)
+in an activated virtual environment:
+
 ```bash
+python -m pip install ecosignallab
+esl --version
 esl doctor
 ```
 

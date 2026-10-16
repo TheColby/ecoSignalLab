@@ -13,14 +13,14 @@ esl doctor input.wav
 ## `zsh: command not found: esl`
 
 Cause:
-- virtual environment is not active, or package not installed in editable mode.
+- virtual environment is not active, or package not installed.
 
 Fix:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+python -m pip install ecosignallab
 ```
 
 Check:
@@ -38,7 +38,7 @@ Fix:
 
 ```bash
 source .venv/bin/activate
-pip install -e .
+python -m pip install ecosignallab
 ```
 
 ## FFmpeg decode errors for MP3/AAC/OGG

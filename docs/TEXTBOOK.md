@@ -230,7 +230,21 @@ click away when you need them.
 
 ## 1. The Smallest Useful Start
 
-Install and inspect your environment:
+Install from [PyPI](https://pypi.org/project/ecosignallab/) with Python 3.10 or newer:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "ecosignallab[io,plot,features]"
+esl --version
+esl doctor
+```
+
+On Windows, activate with `.venv\Scripts\activate`. The base package can be installed
+with `python -m pip install ecosignallab`. Upgrade with
+`python -m pip install --upgrade ecosignallab`.
+
+Alternatively, install the CLI in an isolated environment with pipx:
 
 ```bash
 python3 -m pip install --user pipx
@@ -9114,6 +9128,15 @@ Read the formulas, tables, and diagrams together. A formula defines a quantity; 
 Quick links: [Docs Index](INDEX.md) | [Getting Started](GETTING_STARTED.md) | [Task Recipes](TASK_RECIPES.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Schema](SCHEMA.md) | [Metrics](METRICS_REFERENCE.md) | [References](REFERENCES.md)
 
 This document defines the JSON output contract for `esl analyze`, including schema versioning and provenance fields.
+
+## Workflow Artifacts
+
+The additive [advanced workflows](ADVANCED_WORKFLOWS.md) emit their own artifact
+contracts. An annotation packet, vector record, privacy audit, or worker claim is
+not an `esl analyze` result. Interpret its schema version together with its
+artifact kind and the corresponding workflow guide. Do not validate a workflow
+artifact against the analysis-output schema solely because both carry
+`schema_version` and `esl_version` fields.
 
 - Canonical source: `src/esl/schema/spec.py`
 - Published artifact: `docs/schema/analysis-output-0.2.0.json`

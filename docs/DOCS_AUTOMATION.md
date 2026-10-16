@@ -88,7 +88,7 @@ sequenceDiagram
 Install docs extras:
 
 ```bash
-pip install -e .[docs]
+python -m pip install -e ".[docs]"
 ```
 
 Install Chromium runtime for Playwright:

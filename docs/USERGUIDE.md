@@ -14,7 +14,21 @@ click away when you need them.
 
 ## 1. The Smallest Useful Start
 
-Install and inspect your environment:
+Install from [PyPI](https://pypi.org/project/ecosignallab/) with Python 3.10 or newer:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "ecosignallab[io,plot,features]"
+esl --version
+esl doctor
+```
+
+On Windows, activate with `.venv\Scripts\activate`. The base package can be installed
+with `python -m pip install ecosignallab`. Upgrade with
+`python -m pip install --upgrade ecosignallab`.
+
+Alternatively, install the CLI in an isolated environment with pipx:
 
 ```bash
 python3 -m pip install --user pipx

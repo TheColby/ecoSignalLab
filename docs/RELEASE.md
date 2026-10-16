@@ -104,11 +104,11 @@ and sdist from a published GitHub release, verifies their GitHub SHA-256 digests
 and package metadata, runs `twine check --strict`, then uploads those exact files.
 The publisher job receives an OIDC token; no build scripts run in that job.
 The workflow also runs after successful tagged Release workflows. Manual runs
-accept an existing stable tag, allowing v0.3.0 to be published without moving it.
+accept an existing stable tag so publication does not require moving or recreating it.
 
-PyPI authorization must be configured separately. For the first publication,
-create a [pending Trusted Publisher](https://pypi.org/manage/account/publishing/)
-in the owning PyPI account with these values:
+Version [0.3.0](https://pypi.org/project/ecosignallab/0.3.0/) was published on
+2026-10-16. A fresh PyPI installation and `esl --version` were verified.
+The Trusted Publisher is configured with these values:
 
 | Field | Value |
 | --- | --- |
@@ -118,16 +118,17 @@ in the owning PyPI account with these values:
 | Workflow filename | `pypi.yml` |
 | Environment | `pypi` |
 
-Then run:
+For a future release, substitute its published GitHub release tag below:
 
 ```sh
-gh workflow run pypi.yml --ref main -f tag=v0.3.0
+gh workflow run pypi.yml --ref main -f tag=vX.Y.Z
 ```
 
-The first successful upload creates the PyPI project. Check the
-[project page](https://pypi.org/project/ecosignallab/) and install in a fresh
-environment with `python -m pip install ecosignallab==0.3.0` before announcing
-PyPI availability. Versions on PyPI are immutable: do not rebuild or replace
+The first upload created the PyPI project; do not add another pending publisher
+for subsequent releases. Manage the existing publisher in the project settings.
+After each publication, check the [project page](https://pypi.org/project/ecosignallab/)
+and install the new version in a fresh environment, then run `esl --version`
+and `esl doctor`. Versions on PyPI are immutable: do not rebuild or replace
 files under an already-published version. Re-running an already successful
 publication deliberately fails rather than silently skipping existing files.
 See [PyPI's Trusted Publishing guide](https://docs.pypi.org/trusted-publishers/using-a-publisher/).

@@ -97,7 +97,7 @@ bash scripts/easy/17_extract_features_all.sh input.wav out/features/vectors.npz 
 - If `esl` is not found, run:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+python -m pip install ecosignallab
 ```

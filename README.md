@@ -15,7 +15,28 @@ If you know nothing yet except “I have an audio file and need actionable acous
 
 ## Installation
 
-If you just want `esl` installed with the least drama, use `pipx`.
+Available on [PyPI](https://pypi.org/project/ecosignallab/) for Python 3.10 or newer.
+The package name is `ecosignallab`; the command and Python module are `esl`.
+
+### Install with pip
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install ecosignallab
+esl --version
+esl doctor
+```
+
+On Windows, activate with `.venv\Scripts\activate`. For optional file formats,
+interactive plots, and audio features:
+
+```bash
+python -m pip install "ecosignallab[io,plot,features]"
+```
+
+Upgrade an existing installation with `python -m pip install --upgrade ecosignallab`.
+For an isolated CLI install, use `pipx` or `uv tool` below.
 
 ### Option 1: `pipx` install
 
@@ -379,7 +400,9 @@ flowchart TB
     E --> F
 ```
 
-## Installation
+## Developer Installation from Source
+
+From a repository checkout:
 
 ```bash
 python -m venv .venv
@@ -396,8 +419,8 @@ bash scripts/install.sh
 Optional extras:
 
 ```bash
-pip install -e .[dev,ml,plot,io,docs]
-pip install -e .[features]   # librosa-rich feature vectors/similarity
+python -m pip install -e ".[dev,ml,plot,io,docs]"
+python -m pip install -e ".[features]"   # librosa-rich feature vectors/similarity
 ```
 
 System dependencies:

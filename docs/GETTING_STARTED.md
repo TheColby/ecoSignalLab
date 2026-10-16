@@ -10,12 +10,17 @@ Positioning:
 ## 1) Install
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+python -m pip install ecosignallab
+esl --version
+esl doctor
 ```
 
-Install helper (includes man pages):
+Install from [PyPI](https://pypi.org/project/ecosignallab/) with Python 3.10 or newer.
+On Windows, activate with `.venv\Scripts\activate`. No repository clone is needed.
+
+Source checkout install helper (includes man pages):
 
 ```bash
 bash scripts/install.sh
@@ -24,8 +29,12 @@ bash scripts/install.sh
 Optional extras:
 
 ```bash
-pip install -e .[dev,ml,plot,io,docs,features]
+python -m pip install "ecosignallab[io,plot,features]"
 ```
+
+For ML workflows, add `ecosignallab[ml]`; for PostgreSQL/S3 archive clients,
+add `ecosignallab[archive]`. Upgrade with `python -m pip install --upgrade ecosignallab`.
+For development from a checkout, use `python -m pip install -e ".[dev,ml,plot,io,docs,features]"`.
 
 ## 2) Quick command set
 
