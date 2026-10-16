@@ -16,7 +16,7 @@ This runbook describes how to cut an `esl` release and publish build artifacts (
 .venv/bin/pytest -q
 ```
 
-## v0.3.0 Preparation
+## v0.3.0 Release
 
 `main` is now prepared with package/runtime version `0.3.0`. The
 analysis-output JSON schema remains version `0.2.0`: schema versioning is
@@ -39,9 +39,10 @@ Before cutting the tag:
 ### Current Verification Status
 
 The v0.3.0 package/runtime bump, repository-wide `ruff check .`, full test suite,
-textbook rebuild, and source/wheel build have been verified. The remaining tag
-decision is release governance: finalize the changelog date and commit range,
-confirm the release commit is on `main`, then create the annotated tag.
+textbook rebuild, and source/wheel build have been verified. The changelog is
+dated 2026-10-15, with curated [release notes](releases/v0.3.0.md). The release
+workflow reads `docs/releases/<tag>.md` when publishing a tagged release.
+Run the workflow manually on `main` as a preflight before creating the tag.
 
 ## Release Flow
 

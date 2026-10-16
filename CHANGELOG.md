@@ -2,7 +2,7 @@
 
 All notable changes to `ecoSignalLab` (`esl`) are documented here.
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-10-15
 
 ### Added
 - CLI workflows for moment review, baseline monitoring, spatial timelines,
@@ -26,8 +26,9 @@ All notable changes to `ecoSignalLab` (`esl`) are documented here.
 - The textbook now includes a full Introduction, Part-indexed table of contents, assignment introductions, deliverables summaries, and assignment title rules.
 - Package and runtime version advance to `0.3.0`; the analysis-output schema remains `0.2.0` because this release does not change that schema contract.
 
-### Release Preparation
-- Do not create or push `v0.3.0` until the release checklist in [`docs/RELEASE.md`](docs/RELEASE.md) is complete and the intended release commit is on `main`.
+### Release Notes
+- See the [v0.3.0 release notes](docs/releases/v0.3.0.md) for installation,
+  compatibility, new command families, and implementation boundaries.
 
 ## [0.2.0] - 2026-02-19
 
