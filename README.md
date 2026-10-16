@@ -28,7 +28,8 @@ esl --version
 esl doctor
 ```
 
-On Windows, activate with `.venv\Scripts\activate`. For optional file formats,
+On Windows Command Prompt, activate with `.venv\Scripts\activate.bat`.
+In PowerShell, use `.\.venv\Scripts\Activate.ps1`. For optional file formats,
 interactive plots, and audio features:
 
 ```bash

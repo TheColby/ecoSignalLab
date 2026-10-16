@@ -18,7 +18,8 @@ esl doctor
 ```
 
 Install from [PyPI](https://pypi.org/project/ecosignallab/) with Python 3.10 or newer.
-On Windows, activate with `.venv\Scripts\activate`. No repository clone is needed.
+On Windows Command Prompt, activate with `.venv\Scripts\activate.bat`.
+In PowerShell, use `.\.venv\Scripts\Activate.ps1`. No repository clone is needed.
 
 Source checkout install helper (includes man pages):
 

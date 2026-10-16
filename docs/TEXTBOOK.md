@@ -240,7 +240,8 @@ esl --version
 esl doctor
 ```
 
-On Windows, activate with `.venv\Scripts\activate`. The base package can be installed
+On Windows Command Prompt, activate with `.venv\Scripts\activate.bat`.
+In PowerShell, use `.\.venv\Scripts\Activate.ps1`. The base package can be installed
 with `python -m pip install ecosignallab`. Upgrade with
 `python -m pip install --upgrade ecosignallab`.
 
